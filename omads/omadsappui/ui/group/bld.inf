@@ -1,0 +1,45 @@
+/*
+* Copyright (c) 2002-2005 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  
+*
+*/
+
+
+
+
+PRJ_EXTENSIONS
+START EXTENSION s60/mifconv
+  OPTION TARGETFILE nsmldssync.mif
+  OPTION HEADERFILE nsmldssync.mbg
+  OPTION SOURCES -c8,8 qgn_prop_sml_http -c8,8 qgn_prop_sml_http_off -c8,8 qgn_prop_cp_conn_datasync
+END
+
+START EXTENSION s60/mifconv
+  OPTION TARGETFILE nsmldssync_aif.mif
+  OPTION SOURCES -c8,8 qgn_menu_sml
+END
+
+PRJ_MMPFILES
+
+//gnumakefile omadsappui_icons_dc.mk
+/*
+#ifdef __SCALABLE_ICONS
+gnumakefile omadsappui_icons_aif_scalable_dc.mk
+#else
+gnumakefile omadsappui_icons_aif_bitmaps_dc.mk
+#endif
+*/
+
+
+./NSmlDSSync.mmp

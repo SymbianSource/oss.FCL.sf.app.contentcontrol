@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SystemDefinition schema="3.0.0">
+  <package id="contentcontrol" name="Content Control Daemons" levels="plugin app">
+    <collection id="applicationmanagement" name="Application Management" level="app">
+	   	<!-- could this collection be collapsed into a single component? Do all these need to be noted separately? --> 
+      <component id="options" filter="s60" name="Install Options">
+        <unit bldFile="applicationmanagement/options/group"/>
+      </component>
+      <component id="applicationmanagement_client" filter="s60" name="AM Client">
+        <unit bldFile="applicationmanagement/client/group"/>
+      </component>
+      <component id="applicationmanagement_server" filter="s60" name="AM Server">
+        <unit bldFile="applicationmanagement/server/group"/>
+      </component>
+      <component id="rfsplugin" filter="s60" name="AM RFS Plugin" class="plugin">
+        <unit bldFile="applicationmanagement/rfsplugin/group"/>
+      </component>
+      <component id="amadapter2" filter="s60" name="AM Adapter" class="plugin">
+        <unit bldFile="applicationmanagement/amadapter2/group"/>
+      </component>
+      <component id="applicationmanagement_build" filter="s60" name="AM Build">
+		<!-- can the exports be moved into the other components? -->
+        <unit bldFile="applicationmanagement/group"/>
+      </component>
+    </collection>
+    <collection id="customization" name="DM Customization Adapters" level="plugin">
+      <component id="dmutils" name="DM Utils" filter="s60">
+        <unit bldFile="customization/dmutils/bld"/>
+      </component>
+      <component id="uisettingssrv" filter="s60" name="UI Settings Server">
+        <unit bldFile="customization/uisettingssrv/bld"/>
+      </component>
+      <component id="isadapter" filter="s60" name="Idle State Adapter" class="plugin">
+        <unit bldFile="customization/isadapter/bld"/>
+      </component>
+      <component id="supadapter" filter="s60" name="Startup Adapter" class="plugin">
+        <unit bldFile="customization/supadapter/bld"/>
+      </component>
+      <component id="wallpaperadapter" filter="s60" name="Wallpaper Adapter" class="plugin">
+        <unit bldFile="customization/wallpaperadapter/bld"/>
+      </component>
+      <component id="operatorlogoadapter" filter="s60" name="Operator Logo Adapter" class="plugin">
+        <unit bldFile="customization/operatorlogoadapter/bld"/>
+      </component>
+      <component id="screensaveradapter" filter="s60" name="Screen Saver Adapter" class="plugin">
+        <unit bldFile="customization/screensaveradapter/bld"/>
+      </component>
+      <component id="themesadapter" filter="s60" name="Themes Adapter" class="plugin">
+        <unit bldFile="customization/themesadapter/bld"/>
+      </component>
+      <component id="embeddedlinkadapter" filter="s60" name="Embedded Link Adapter" class="plugin">
+        <unit bldFile="customization/embeddedlinkadapter/bld"/>
+      </component>
+      <component id="customization_build" filter="s60" name="DM Customization Build">
+		<!-- can these exports be included in one of the above components? -->
+        <unit bldFile="customization/group"/>
+      </component>
+    </collection>
+    <collection id="omads" name="OMA Data Sync" level="app">
+      <component id="omadsappui" filter="s60" name="OMA DS Application UI">
+        <unit bldFile="omads/omadsappui/group"/>
+      </component>
+      <component id="omadsextensions" filter="s60" name="OMA DS Extensions" class="plugin">
+        <unit bldFile="omads/omadsextensions/group"/>
+        	<!-- should this bld.inf be #included?  -->
+        <!-- <unit bldFile="omads/omadsextensions/dsutils/emailxmlutils/bld"/> -->
+      </component>
+    </collection>
+    <collection id="contentcontrol_info" name="Content Control Daemons Info" level="app">
+      <component id="contentctrl_plat" filter="s60" class="api" name="Content Control Daemons Platforn Interfaces">
+        <unit bldFile="contentctrl_plat/group"/>
+      </component>
+    </collection>
+  </package>
+</SystemDefinition>

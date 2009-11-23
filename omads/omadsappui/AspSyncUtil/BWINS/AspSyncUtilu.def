@@ -1,0 +1,6 @@
+EXPORTS
+	?NewL@CSyncUtilApi@@SAPAV1@XZ @ 1 NONAME ; class CSyncUtilApi * CSyncUtilApi::NewL(void)
+	?ShowSettingsL@CSyncUtilApi@@QAEXHHAAVTDes16@@@Z @ 2 NONAME ; void CSyncUtilApi::ShowSettingsL(int, int, class TDes16 &)
+	?SynchronizeL@CSyncUtilApi@@QAEXAAVRFile@@@Z @ 3 NONAME ; void CSyncUtilApi::SynchronizeL(class RFile &)
+	?SynchronizeL@CSyncUtilApi@@QAEXHHHAAVTDes16@@@Z @ 4 NONAME ; void CSyncUtilApi::SynchronizeL(int, int, int, class TDes16 &)
+

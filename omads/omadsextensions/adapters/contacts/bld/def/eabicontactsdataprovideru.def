@@ -1,0 +1,11 @@
+EXPORTS
+	_Z24ImplementationGroupProxyRi @ 1 NONAME
+	_ZTI22CNSmlContactsDataStore @ 2 NONAME ; #<TI>#
+	_ZTI24CNSmlContactsModsFetcher @ 3 NONAME ; #<TI>#
+	_ZTI25CNSmlContactsDataProvider @ 4 NONAME ; #<TI>#
+	_ZTIN22CNSmlContactsDataStore23CNSmlContactsBufferItemE @ 5 NONAME ; #<TI>#
+	_ZTV22CNSmlContactsDataStore @ 6 NONAME ; #<VT>#
+	_ZTV24CNSmlContactsModsFetcher @ 7 NONAME ; #<VT>#
+	_ZTV25CNSmlContactsDataProvider @ 8 NONAME ; #<VT>#
+	_ZTVN22CNSmlContactsDataStore23CNSmlContactsBufferItemE @ 9 NONAME ; #<VT>#
+

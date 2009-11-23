@@ -1,0 +1,32 @@
+/*
+* Copyright (c) 2002-2005 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  Localisation file for OmaDSAppUi/AspSyncUtil
+*
+*/
+
+
+//d:PC Suite profile
+//d: PC Suite profile
+//l:navi_text_pane_t1 
+//r:3.1
+//
+#define qtn_sml_pc_suite_profile "PC Suite"
+
+//d:PC Suite Plus profile
+//d:PC Suite Plus profile
+//l:navi_text_pane_t1 
+//r:5.0
+//
+#define qtn_sml_pc_suite_plus_profile "PC Suite Plus"
+

@@ -1,0 +1,45 @@
+EXPORTS
+	??0CNSmlXmlParser@@QAE@XZ @ 1 NONAME ; CNSmlXmlParser::CNSmlXmlParser(void)
+	??0TNSmlFolderAttributeData@@QAE@XZ @ 2 NONAME ; TNSmlFolderAttributeData::TNSmlFolderAttributeData(void)
+	??1CNSmlEmailFileParser@@UAE@XZ @ 3 NONAME ; CNSmlEmailFileParser::~CNSmlEmailFileParser(void)
+	??1CNSmlEmailParser@@UAE@XZ @ 4 NONAME ; CNSmlEmailParser::~CNSmlEmailParser(void)
+	??1CNSmlExtData@@UAE@XZ @ 5 NONAME ; CNSmlExtData::~CNSmlExtData(void)
+	??1CNSmlFolderParser@@UAE@XZ @ 6 NONAME ; CNSmlFolderParser::~CNSmlFolderParser(void)
+	??1CNSmlTruncatedData@@UAE@XZ @ 7 NONAME ; CNSmlTruncatedData::~CNSmlTruncatedData(void)
+	??1CNSmlXmlParser@@UAE@XZ @ 8 NONAME ; CNSmlXmlParser::~CNSmlXmlParser(void)
+	?AddAttachmentL@CNSmlTruncatedData@@QAEXPAVHBufC8@@H0@Z @ 9 NONAME ; void CNSmlTruncatedData::AddAttachmentL(class HBufC8 *, int, class HBufC8 *)
+	?AddBodyL@CNSmlTruncatedData@@QAEXHPAVHBufC8@@@Z @ 10 NONAME ; void CNSmlTruncatedData::AddBodyL(int, class HBufC8 *)
+	?AddExtL@CNSmlEmailParser@@QAEXPAVCNSmlExtData@@@Z @ 11 NONAME ; void CNSmlEmailParser::AddExtL(class CNSmlExtData *)
+	?AddExtL@CNSmlFolderParser@@QAEXPAVCNSmlExtData@@@Z @ 12 NONAME ; void CNSmlFolderParser::AddExtL(class CNSmlExtData *)
+	?AddXValL@CNSmlExtData@@QAEXPAVHBufC8@@@Z @ 13 NONAME ; void CNSmlExtData::AddXValL(class HBufC8 *)
+	?AttributeCount@TNSmlFolderAttributeData@@QBEHXZ @ 14 NONAME ; int TNSmlFolderAttributeData::AttributeCount(void) const
+	?ConvertIntoEntitiesL@CNSmlExtData@@QAEXPBVCNSmlXmlParser@@@Z @ 15 NONAME ; void CNSmlExtData::ConvertIntoEntitiesL(class CNSmlXmlParser const *)
+	?ConvertIntoEntitiesL@CNSmlTruncatedData@@QAEXPBVCNSmlXmlParser@@@Z @ 16 NONAME ; void CNSmlTruncatedData::ConvertIntoEntitiesL(class CNSmlXmlParser const *)
+	?CountXmlSize@CNSmlExtData@@QBEHPBVCNSmlXmlParser@@@Z @ 17 NONAME ; int CNSmlExtData::CountXmlSize(class CNSmlXmlParser const *) const
+	?CountXmlSize@TNSmlFolderAttributeData@@QBEHPBVCNSmlXmlParser@@@Z @ 18 NONAME ; int TNSmlFolderAttributeData::CountXmlSize(class CNSmlXmlParser const *) const
+	?CountXmlSizeL@CNSmlEmailFileParser@@UAEHXZ @ 19 NONAME ; int CNSmlEmailFileParser::CountXmlSizeL(void)
+	?CountXmlSizeL@CNSmlEmailParser@@UAEHXZ @ 20 NONAME ; int CNSmlEmailParser::CountXmlSizeL(void)
+	?CountXmlSizeL@CNSmlFolderParser@@UAEHXZ @ 21 NONAME ; int CNSmlFolderParser::CountXmlSizeL(void)
+	?CountXmlSizeL@CNSmlTruncatedData@@QBEHPBVCNSmlXmlParser@@@Z @ 22 NONAME ; int CNSmlTruncatedData::CountXmlSizeL(class CNSmlXmlParser const *) const
+	?GenerateXml@CNSmlEmailFileParser@@UAE?AW4TNSmlParserGeneratorError@@AAPAVHBufC8@@@Z @ 23 NONAME ; enum TNSmlParserGeneratorError CNSmlEmailFileParser::GenerateXml(class HBufC8 * &)
+	?GenerateXml@CNSmlEmailFileParser@@UAE?AW4TNSmlParserGeneratorError@@AAVRWriteStream@@@Z @ 24 NONAME ; enum TNSmlParserGeneratorError CNSmlEmailFileParser::GenerateXml(class RWriteStream &)
+	?GenerateXml@CNSmlEmailParser@@UAE?AW4TNSmlParserGeneratorError@@AAPAVHBufC8@@@Z @ 25 NONAME ; enum TNSmlParserGeneratorError CNSmlEmailParser::GenerateXml(class HBufC8 * &)
+	?GenerateXml@CNSmlFolderParser@@UAE?AW4TNSmlParserGeneratorError@@AAPAVHBufC8@@@Z @ 26 NONAME ; enum TNSmlParserGeneratorError CNSmlFolderParser::GenerateXml(class HBufC8 * &)
+	?GenerateXml@TNSmlFolderAttributeData@@QBEXAAVTPtr8@@PBVCNSmlXmlParser@@@Z @ 27 NONAME ; void TNSmlFolderAttributeData::GenerateXml(class TPtr8 &, class CNSmlXmlParser const *) const
+	?GenerateXmlL@CNSmlExtData@@QBEXAAVTPtr8@@PBVCNSmlXmlParser@@@Z @ 28 NONAME ; void CNSmlExtData::GenerateXmlL(class TPtr8 &, class CNSmlXmlParser const *) const
+	?GenerateXmlL@CNSmlTruncatedData@@QBEXAAVTPtr8@@PBVCNSmlXmlParser@@@Z @ 29 NONAME ; void CNSmlTruncatedData::GenerateXmlL(class TPtr8 &, class CNSmlXmlParser const *) const
+	?NewL@CNSmlEmailFileParser@@SAPAV1@XZ @ 30 NONAME ; class CNSmlEmailFileParser * CNSmlEmailFileParser::NewL(void)
+	?NewL@CNSmlEmailParser@@SAPAV1@XZ @ 31 NONAME ; class CNSmlEmailParser * CNSmlEmailParser::NewL(void)
+	?NewL@CNSmlExtData@@SAPAV1@XZ @ 32 NONAME ; class CNSmlExtData * CNSmlExtData::NewL(void)
+	?NewL@CNSmlFolderParser@@SAPAV1@XZ @ 33 NONAME ; class CNSmlFolderParser * CNSmlFolderParser::NewL(void)
+	?NewL@CNSmlTruncatedData@@SAPAV1@XZ @ 34 NONAME ; class CNSmlTruncatedData * CNSmlTruncatedData::NewL(void)
+	?NewLC@CNSmlEmailFileParser@@SAPAV1@XZ @ 35 NONAME ; class CNSmlEmailFileParser * CNSmlEmailFileParser::NewLC(void)
+	?NewLC@CNSmlEmailParser@@SAPAV1@XZ @ 36 NONAME ; class CNSmlEmailParser * CNSmlEmailParser::NewLC(void)
+	?NewLC@CNSmlExtData@@SAPAV1@XZ @ 37 NONAME ; class CNSmlExtData * CNSmlExtData::NewLC(void)
+	?NewLC@CNSmlFolderParser@@SAPAV1@XZ @ 38 NONAME ; class CNSmlFolderParser * CNSmlFolderParser::NewLC(void)
+	?NewLC@CNSmlTruncatedData@@SAPAV1@XZ @ 39 NONAME ; class CNSmlTruncatedData * CNSmlTruncatedData::NewLC(void)
+	?ParseXml@CNSmlEmailFileParser@@UAE?AW4TNSmlParserGeneratorError@@AAVRReadStream@@@Z @ 40 NONAME ; enum TNSmlParserGeneratorError CNSmlEmailFileParser::ParseXml(class RReadStream &)
+	?ParseXml@CNSmlEmailFileParser@@UAE?AW4TNSmlParserGeneratorError@@PAVHBufC8@@@Z @ 41 NONAME ; enum TNSmlParserGeneratorError CNSmlEmailFileParser::ParseXml(class HBufC8 *)
+	?ParseXml@CNSmlEmailParser@@UAE?AW4TNSmlParserGeneratorError@@PAVHBufC8@@@Z @ 42 NONAME ; enum TNSmlParserGeneratorError CNSmlEmailParser::ParseXml(class HBufC8 *)
+	?ParseXml@CNSmlFolderParser@@UAE?AW4TNSmlParserGeneratorError@@PAVHBufC8@@@Z @ 43 NONAME ; enum TNSmlParserGeneratorError CNSmlFolderParser::ParseXml(class HBufC8 *)
+
