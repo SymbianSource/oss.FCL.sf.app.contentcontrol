@@ -204,11 +204,10 @@ void CAspScheduleDialog::HandleListBoxEventL(CEikListBox* /*aListBox*/,
 	  {
 	   switch ( aEventType )
         {
-         case EEventItemDoubleClicked:
+         case EEventItemSingleClicked:
               HandleOKL();
               break;
          case EEventEnterKeyPressed :
-         case EEventItemClicked :
          case EEventItemDraggingActioned :
          case EEventPenDownOnItem :
               break;
@@ -2785,7 +2784,7 @@ void CAutoSyncCheckBoxSettingPage::HandleListBoxEventL(CEikListBox* aListBox, TL
 	  	switch(aEventType)
 	
 		{   
-			case EEventItemClicked:
+			 case EEventItemSingleClicked:
        		 	 index=aListBox->CurrentItemIndex();
        		 	 selectableItem = (*iSelectionItemList)[index];
        		 	 if(selectableItem->SelectionStatus())

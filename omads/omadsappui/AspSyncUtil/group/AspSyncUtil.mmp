@@ -117,12 +117,11 @@ LIBRARY SyncMLClientAPI.lib
 //LIBRARY syncmldatafilter.lib
 LIBRARY nsmltransporthandler.lib
 
-LIBRARY	 centralrepository.lib
-
 //#ifdef __SAP_POLICY_MANAGEMENT
-LIBRARY	policyengine.lib
+LIBRARY	policyengine.lib calinterimapi.lib 
 //#endif
-
+LIBRARY     	calencommonutils.lib
+LIBRARY			CalenInterimUtils2.lib
 
 //LIBRARY nsmlxml.lib
 //LIBRARY nsmlwbxml.lib

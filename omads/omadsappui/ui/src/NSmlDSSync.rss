@@ -24,7 +24,7 @@ NAME    SYNC // 4 letter ID
 //  INCLUDES
 
 #include "NSmlDSSync.hrh"
-#include<NSmlDSSync.loc>
+#include<nsmldssync.loc>
 
 #include <eikon.rh>
 #include <avkon.rsg>

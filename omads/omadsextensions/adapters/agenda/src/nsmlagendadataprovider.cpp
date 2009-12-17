@@ -17,21 +17,21 @@
 
 
 // INCLUDE FILES
-#include "nsmlagendadataprovider.h"
-#include "nsmlagendadatastore.h"
-#include "nsmldebug.h"
-#include "nsmldsimpluids.h"
 #include <SmlDataProvider.h>
 #include <ecom.h>
 #include <barsc.h>
 #include <bautils.h>
-#include <NSmlAgendaDataStore_1_1_2.rsg>
-#include <NSmlAgendaDataStore_1_2.rsg>
+#include <nsmlagendadatastore_1_1_2.rsg>
 #include <SmlDataFormat.h>
 #include <implementationproxy.h>
 #include <data_caging_path_literals.hrh>
 #include <e32property.h>
 #include <DataSyncInternalPSKeys.h>
+#include <nsmldebug.h>
+#include "nsmlagendadataprovider.h"
+#include "nsmlagendadatastore.h"
+#include "nsmlagendadebug.h"
+#include "nsmldsimpluids.h"
 
 // ====================================== MEMBER FUNCTIONS ========================================
 
@@ -43,8 +43,8 @@
 //
 CNSmlAgendaDataProvider::CNSmlAgendaDataProvider()
 	{
-	_DBG_FILE("CNSmlAgendaDataProvider::CNSmlAgendaDataProvider(): BEGIN");
-	_DBG_FILE("CNSmlAgendaDataProvider::CNSmlAgendaDataProvider(): END");
+	FLOG(_L("CNSmlAgendaDataProvider::CNSmlAgendaDataProvider(): BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::CNSmlAgendaDataProvider(): END"));
 	}
 
 // ------------------------------------------------------------------------------------------------
@@ -54,11 +54,9 @@ CNSmlAgendaDataProvider::CNSmlAgendaDataProvider()
 //
 void CNSmlAgendaDataProvider::ConstructL( )
 	{
-	_DBG_FILE("CNSmlAgendaDataProvider::NewL: BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::NewL: BEGIN"));
 	iAgnDataStore = CNSmlAgendaDataStore::NewL();
-	iStringPool.OpenL();
-	User::LeaveIfError( iSession.Connect() );
-	_DBG_FILE("CNSmlAgendaDataProvider::NewL: BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::NewL: END"));
 	}
 
 // ------------------------------------------------------------------------------------------------
@@ -68,12 +66,12 @@ void CNSmlAgendaDataProvider::ConstructL( )
 //
 CNSmlAgendaDataProvider* CNSmlAgendaDataProvider::NewL()
 	{
-	_DBG_FILE("CNSmlAgendaDataProvider::NewL: BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::NewL: BEGIN"));
 	CNSmlAgendaDataProvider* self = new ( ELeave ) CNSmlAgendaDataProvider();
 	CleanupStack::PushL( self );
 	self->ConstructL();
 	CleanupStack::Pop( self );
-	_DBG_FILE("CNSmlAgendaDataProvider::NewL: BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::NewL: END"));
 	return self;
 	}
 
@@ -84,14 +82,12 @@ CNSmlAgendaDataProvider* CNSmlAgendaDataProvider::NewL()
 //
 CNSmlAgendaDataProvider::~CNSmlAgendaDataProvider()
 	{
-	_DBG_FILE("CNSmlAgendaDataProvider::~CNSmlAgendaDataProvider(): BEGIN");
-	delete iAgnDataStore;
-	iSession.Close();
+	FLOG(_L("CNSmlAgendaDataProvider::~CNSmlAgendaDataProvider(): BEGIN"));
 	delete iDSFormat;
-	iStringPool.Close();
+	delete iAgnDataStore;
 	iFilterArray.ResetAndDestroy();
 	iFilterArray.Close();
-	_DBG_FILE("CNSmlAgendaDataProvider::~CNSmlAgendaDataProvider(): END");
+	FLOG(_L("CNSmlAgendaDataProvider::~CNSmlAgendaDataProvider(): END"));
 	}
 
 // ------------------------------------------------------------------------------------------------
@@ -101,8 +97,8 @@ CNSmlAgendaDataProvider::~CNSmlAgendaDataProvider()
 //
 void CNSmlAgendaDataProvider::DoOnFrameworkEvent( TSmlFrameworkEvent /*aEvent*/, TInt /*aParam1*/, TInt /*aParam2*/ )
     {
-	_DBG_FILE("CNSmlAgendaDataProvider::DoOnFrameworkEvent: BEGIN");
-	_DBG_FILE("CNSmlAgendaDataProvider::DoOnFrameworkEvent: END");
+	FLOG(_L("CNSmlAgendaDataProvider::DoOnFrameworkEvent: BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::DoOnFrameworkEvent: END"));
     }
 
 // ------------------------------------------------------------------------------------------------
@@ -112,13 +108,13 @@ void CNSmlAgendaDataProvider::DoOnFrameworkEvent( TSmlFrameworkEvent /*aEvent*/,
 //
 TBool CNSmlAgendaDataProvider::DoSupportsOperation( TUid aOpId ) const
     {
-	_DBG_FILE("CNSmlAgendaDataProvider::DoSupportsOperation: BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::DoSupportsOperation: BEGIN"));
 	if ( aOpId == KUidSmlSupportMultipleStores )
 		{
-		_DBG_FILE("CNSmlAgendaDataProvider::DoSupportsOperation: END");
+		FLOG(_L("CNSmlAgendaDataProvider::DoSupportsOperation: END"));
 		return ETrue;
 		}
-	_DBG_FILE("CNSmlAgendaDataProvider::DoSupportsOperation: END");
+	FLOG(_L("CNSmlAgendaDataProvider::DoSupportsOperation: END"));
 	return EFalse;
     }
 
@@ -129,16 +125,17 @@ TBool CNSmlAgendaDataProvider::DoSupportsOperation( TUid aOpId ) const
 //
 const CSmlDataStoreFormat& CNSmlAgendaDataProvider::DoStoreFormatL()
     {
-	_DBG_FILE("CNSmlAgendaDataProvider::DoStoreFormatL(): BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::DoStoreFormatL(): BEGIN"));
 	
 	if ( iDSFormat )
 		{
        	delete iDSFormat;
        	iDSFormat = NULL;
 		}
-	iDSFormat = DoOwnStoreFormatL();
-	
-    return *iDSFormat;
+	// RD_MULTICAL
+	iDSFormat = iAgnDataStore->StoreFormatL();
+	// RD_MULTICAL
+	return *iDSFormat;
     }
 
 // ------------------------------------------------------------------------------------------------
@@ -148,8 +145,8 @@ const CSmlDataStoreFormat& CNSmlAgendaDataProvider::DoStoreFormatL()
 //
 CDesCArray* CNSmlAgendaDataProvider::DoListStoresLC()
     {
-	_DBG_FILE("CNSmlAgendaDataProvider::DoListStoresLC(): BEGIN");
-	_DBG_FILE("CNSmlAgendaDataProvider::DoListStoresLC(): END");
+	FLOG(_L("CNSmlAgendaDataProvider::DoListStoresLC(): BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::DoListStoresLC(): END"));
 	return iAgnDataStore->DoListAgendaFilesLC();
     }
 
@@ -160,8 +157,8 @@ CDesCArray* CNSmlAgendaDataProvider::DoListStoresLC()
 //
 const TDesC& CNSmlAgendaDataProvider::DoDefaultStoreL()
     {
-	_DBG_FILE("CNSmlAgendaDataProvider::DoDefaultStoreL(): BEGIN");
-	_DBG_FILE("CNSmlAgendaDataProvider::DoDefaultStoreL(): END");
+	FLOG(_L("CNSmlAgendaDataProvider::DoDefaultStoreL(): BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::DoDefaultStoreL(): END"));
 	return iAgnDataStore->DoGetDefaultFileNameL();
     }
 
@@ -172,10 +169,10 @@ const TDesC& CNSmlAgendaDataProvider::DoDefaultStoreL()
 //
 CSmlDataStore* CNSmlAgendaDataProvider::DoNewStoreInstanceLC()
     {
-	_DBG_FILE("CNSmlAgendaDataProvider::DoNewStoreInstanceLC(): BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::DoNewStoreInstanceLC(): BEGIN"));
 	CNSmlAgendaDataStore* newStore = CNSmlAgendaDataStore::NewL();
 	CleanupStack::PushL( newStore );
-	_DBG_FILE("CNSmlAgendaDataProvider::DoNewStoreInstanceLC(): END");
+	FLOG(_L("CNSmlAgendaDataProvider::DoNewStoreInstanceLC(): END"));
 	return newStore;
     } 
 
@@ -186,8 +183,8 @@ CSmlDataStore* CNSmlAgendaDataProvider::DoNewStoreInstanceLC()
 const RPointerArray<CSyncMLFilter>& CNSmlAgendaDataProvider::DoSupportedServerFiltersL()
 	{
 	// This method returns empty array. It means that this Data Provider does not support filtering
-	_DBG_FILE("CNSmlAgendaDataProvider::DoSupportedServerFiltersL(): BEGIN");
-	_DBG_FILE("CNSmlAgendaDataProvider::DoSupportedServerFiltersL(): END");
+	FLOG(_L("CNSmlAgendaDataProvider::DoSupportedServerFiltersL(): BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::DoSupportedServerFiltersL(): END"));
 	return iFilterArray;
 	}
 
@@ -197,9 +194,9 @@ const RPointerArray<CSyncMLFilter>& CNSmlAgendaDataProvider::DoSupportedServerFi
 // ------------------------------------------------------------------------------------------------
 void CNSmlAgendaDataProvider::DoCheckSupportedServerFiltersL( const CSmlDataStoreFormat& /*aServerDataStoreFormat*/, RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterChangeInfo& /*aChangeInfo*/ )
 	{
-	_DBG_FILE("CNSmlAgendaDataProvider::DoCheckSupportedServerFiltersL(): BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::DoCheckSupportedServerFiltersL(): BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::DoCheckSupportedServerFiltersL(): END"));
 	User::Leave( KErrNotSupported );
-	_DBG_FILE("CNSmlAgendaDataProvider::DoCheckSupportedServerFiltersL(): END");
 	}
 
 // ------------------------------------------------------------------------------------------------
@@ -208,9 +205,9 @@ void CNSmlAgendaDataProvider::DoCheckSupportedServerFiltersL( const CSmlDataStor
 // ------------------------------------------------------------------------------------------------
 void CNSmlAgendaDataProvider::DoCheckServerFiltersL( RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterChangeInfo& /*aChangeInfo*/ )
 	{
-	_DBG_FILE("CNSmlAgendaDataProvider::DoCheckServerFiltersL(): BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::DoCheckServerFiltersL(): BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::DoCheckServerFiltersL(): END"));
 	User::Leave( KErrNotSupported );
-	_DBG_FILE("CNSmlAgendaDataProvider::DoCheckServerFiltersL(): END");
 	}
 
 // ------------------------------------------------------------------------------------------------
@@ -219,9 +216,9 @@ void CNSmlAgendaDataProvider::DoCheckServerFiltersL( RPointerArray<CSyncMLFilter
 // ------------------------------------------------------------------------------------------------
 HBufC* CNSmlAgendaDataProvider::DoGenerateRecordFilterQueryLC( const RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterMatchType /*aMatch*/, TDes& /*aFilterMimeType*/, TSyncMLFilterType& /*aFilterType*/, TDesC& /*aStoreName*/ )
 	{
-	_DBG_FILE("CNSmlAgendaDataProvider::DoGenerateRecordFilterQueryLC(): BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::DoGenerateRecordFilterQueryLC(): BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::DoGenerateRecordFilterQueryLC(): END"));
 	User::Leave( KErrNotSupported );
-	_DBG_FILE("CNSmlAgendaDataProvider::DoGenerateRecordFilterQueryLC(): END");
 	return NULL;
 	}
 	
@@ -231,53 +228,9 @@ HBufC* CNSmlAgendaDataProvider::DoGenerateRecordFilterQueryLC( const RPointerArr
 // ------------------------------------------------------------------------------------------------
 void CNSmlAgendaDataProvider::DoGenerateFieldFilterQueryL( const RPointerArray<CSyncMLFilter>& /*aFilters*/, TDes& /*aFilterMimeType*/, RPointerArray<CSmlDataProperty>& /*aProperties*/, TDesC& /*aStoreName*/ )
 	{
-	_DBG_FILE("CNSmlAgendaDataProvider::DoGenerateFieldFilterQueryL(): BEGIN");
+	FLOG(_L("CNSmlAgendaDataProvider::DoGenerateFieldFilterQueryL(): BEGIN"));
+	FLOG(_L("CNSmlAgendaDataProvider::DoGenerateFieldFilterQueryL(): END"));
 	User::Leave( KErrNotSupported );
-	_DBG_FILE("CNSmlAgendaDataProvider::DoGenerateFieldFilterQueryL(): END");
-	}
-
-// ------------------------------------------------------------------------------------------------
-// CNSmlAgendaDataProvider::DoOwnStoreFormatL
-// Read own store format from own resource file.
-// ------------------------------------------------------------------------------------------------
-//
-CSmlDataStoreFormat* CNSmlAgendaDataProvider::DoOwnStoreFormatL()
-	{
-	_DBG_FILE("CNSmlAgendaDataProvider::DoOwnStoreFormatL(): BEGIN");
-	TFileName fileName;
-	TParse parse;
-
-    // Check correct Data Sync protocol
-	TInt value( EDataSyncNotRunning );
-	TInt error = RProperty::Get( KPSUidDataSynchronizationInternalKeys,
-                                 KDataSyncStatus,
-                                 value );
-	if ( error == KErrNone &&
-	     value == EDataSyncRunning )
-	    {
-	    parse.Set( KNSmlDSAgendaDataStoreRsc_1_1_2, &KDC_RESOURCE_FILES_DIR, NULL );
-	    }
-	else // error or protocol version 1.2 
-	    {
-	    parse.Set( KNSmlDSAgendaDataStoreRsc_1_2, &KDC_RESOURCE_FILES_DIR, NULL );
-	    }		
-	
-	fileName = parse.FullName();
-	RResourceFile resourceFile;
-	BaflUtils::NearestLanguageFile( iSession, fileName );
-
-	resourceFile.OpenL( iSession, fileName );
-	CleanupClosePushL( resourceFile );
-
-	HBufC8* profileRes = resourceFile.AllocReadLC( NSML_AGENDA_DATA_STORE );
-	TResourceReader reader;
-	reader.SetBuffer( profileRes );
-
-	CSmlDataStoreFormat* dsFormat = CSmlDataStoreFormat::NewLC( iStringPool, reader );
-	CleanupStack::Pop(); // dsFormat
-	CleanupStack::PopAndDestroy( 2 ); // profileRes, resourceFile
-	_DBG_FILE("CNSmlAgendaDataProvider::DoOwnStoreFormatL(): END");
-	return dsFormat;
 	}
 
 // =================================== OTHER EXPORTED FUNCTIONS ===================================
@@ -297,9 +250,9 @@ const TImplementationProxy ImplementationTable[] =
 //
 EXPORT_C const TImplementationProxy* ImplementationGroupProxy( TInt& aTableCount )
     {
-	_DBG_FILE("ImplementationGroupProxy() for CNSmlAgendaDataProvider: begin");
+	FLOG(_L("ImplementationGroupProxy() for CNSmlAgendaDataProvider: begin"));
     aTableCount = sizeof( ImplementationTable ) / sizeof( TImplementationProxy );
-	_DBG_FILE("ImplementationGroupProxy() for CNSmlAgendaDataProvider: end");
+	FLOG(_L("ImplementationGroupProxy() for CNSmlAgendaDataProvider: end"));
     return ImplementationTable;
 	}
 

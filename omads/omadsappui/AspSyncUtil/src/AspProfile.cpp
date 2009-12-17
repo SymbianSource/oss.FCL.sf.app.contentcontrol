@@ -21,6 +21,10 @@
 
 #include <SyncMLTransportProperties.h>
 #include <featmgr.h>   // FeatureManager
+#include <calsession.h>
+#include <calcalendarinfo.h>
+#include <e32math.h>
+#include <gdi.h>
 
 #include "AspProfile.h"
 #include "AspResHandler.h"
@@ -28,8 +32,12 @@
 #include "AspDebug.h"
 #include "AspSchedule.h"
 #include <centralrepository.h> //CRepository
+#include <calenmulticaluids.hrh> // Calendar File Meta Data Properties
+#include <calenmulticalutil.h>
+#include <CalenInterimUtils2.h>
 
-
+_LIT(KDrive ,"C:");
+_LIT(KCharUnderscore, "_");
 
 /*******************************************************************************
  * class TAspProviderItem
@@ -833,6 +841,33 @@ TInt CAspContentList::CheckMandatoryDataL(TInt& aContentCount)
 			aContentCount = goodContentCount;
 		    return EMandatoryNoRemoteDatabase;
 			}
+       	
+       	if (task.iDataProviderId == KUidNSmlAdapterCalendar.iUid)
+       	    {
+       	    CCalSession* session = CCalSession::NewL();
+       	    CleanupStack::PushL(session);
+       	    TRAPD (err, session->OpenL(task.iClientDataSource));
+       	    if (err == KErrNotFound)
+       	        {
+       	        TInt index = FindProviderIndex(task.iDataProviderId);
+       	        TAspProviderItem& provider = ProviderItem(index);
+       	              	        
+                TBuf<KBufSize> localDatabase;
+       	        TBuf<KBufSize> remoteDatabase;
+       	        TInt syncDirection;
+       	        TBool taskEnabled;
+       	        ReadTaskL(provider.iDataProviderId, localDatabase, remoteDatabase,
+       	           taskEnabled, syncDirection);
+       	        
+       	        //Creating new task creates new calendar local database
+                CreateTaskL(provider.iDataProviderId, localDatabase, remoteDatabase,
+                   taskEnabled, syncDirection);
+                
+                InitAllTasksL();
+                InitDataProvidersL();
+       	        }
+       	    CleanupStack::PopAndDestroy(session);
+       	    }
 
 		goodContentCount++;
 		}
@@ -1150,9 +1185,18 @@ TInt CAspContentList::CreateTaskL(TAspProviderItem& aDataProvider)
 	RSyncMLTask task;
 	CleanupClosePushL(task);
 	
-	task.CreateL(iProfile->Profile(), aDataProvider.iDataProviderId, 
+	if (aDataProvider.iDataProviderId == KUidNSmlAdapterCalendar.iUid )
+        {
+        TBuf<128> calLocalDb ;
+        CreateCalLocalDatabaseL(calLocalDb);
+        task.CreateL(iProfile->Profile(), aDataProvider.iDataProviderId, 
+                KNullDesC, calLocalDb);
+        }
+    else
+        {
+        task.CreateL(iProfile->Profile(), aDataProvider.iDataProviderId, 
 	              KNullDesC, aDataProvider.iDefaultDataStore);
-	
+        }
 	task.SetEnabledL(aDataProvider.iIsIncludedInSync);
 	task.SetDefaultSyncTypeL(SmlSyncDirection());
 	
@@ -1212,14 +1256,39 @@ void CAspContentList::CreateTaskL(TInt aDataProviderId,
 			}
 		else
 			{
-			task.CreateL(iProfile->Profile(), aDataProviderId, 
+			if (aDataProviderId == KUidNSmlAdapterCalendar.iUid )
+                {
+                TBuf<128> calLocalDb ;
+                CreateCalLocalDatabaseL(calLocalDb);
+                task.CreateL(iProfile->Profile(), aDataProviderId, 
+                                              aRemoteDatabase, calLocalDb);
+                }
+            else
+                {
+                task.CreateL(iProfile->Profile(), aDataProviderId, 
 			             aRemoteDatabase, item.iDefaultDataStore);
+                }
 			}
 		}
 	else
 		{
-		task.CreateL(iProfile->Profile(), aDataProviderId, 
-		                                  aRemoteDatabase, aLocalDatabase);
+		if (aDataProviderId == KUidNSmlAdapterCalendar.iUid )
+		    {
+		    TBuf<128> calLocalDb ;
+		    TRAPD(err ,RetrieveCalLocalDatabaseL(calLocalDb));
+		    if (err != KErrNone)
+		        {
+		        CreateCalLocalDatabaseL(calLocalDb);
+		        }
+		    
+		    task.CreateL(iProfile->Profile(), aDataProviderId, 
+		                                  aRemoteDatabase, calLocalDb);
+		    }
+		else
+		    {
+		    task.CreateL(iProfile->Profile(), aDataProviderId, 
+		                                              aRemoteDatabase, aLocalDatabase);
+		    }
 		}
 	
 	task.SetEnabledL(aEnabled);
@@ -1255,6 +1324,213 @@ void CAspContentList::CreateTask(TInt aDataProviderId,
 	FLOG( _L("CAspContentList::CreateTask END") );
 	}
 
+// -----------------------------------------------------------------------------
+// CAspContentList::CreateTask
+// 
+// -----------------------------------------------------------------------------
+//
+void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
+    {
+            
+    aCalName.Copy(KDrive);
+    
+    TBuf<128> buffer;
+    iProfile->GetName(buffer);
+     
+    CCalSession* calSession = CCalSession::NewL();
+    CleanupStack::PushL(calSession);
+    
+        
+    TInt suffix = 0;
+    TInt suffixLen = 0;
+    TInt delPos = buffer.Length();
+    
+    while (!IsCalNameAvailableL(*calSession ,buffer))
+        {
+        //A db with profile name already exists , try profile_1 ,profile_2 etc..
+        if (!suffix)
+            {
+            buffer.Append(KCharUnderscore);
+            ++delPos;
+            }
+        else
+            {
+            while (suffix/10)
+                {
+                ++suffixLen;
+                }
+            
+            buffer.Delete(delPos ,++suffixLen);
+            suffixLen = 0;
+            }   
+        buffer.AppendNum(++suffix);
+        }
+    
+    TBuf8<128> keyBuff;
+    TUint calValue = 0;
+    CCalCalendarInfo* calinfo = CCalCalendarInfo::NewL();
+    CleanupStack::PushL(calinfo);
+    //Visibility
+    calinfo->SetEnabled(ETrue);
+    
+    calinfo->SetNameL(buffer);
+    calinfo->SetColor(Math::Random());
+    
+    // Set Meta Data Properties
+    // LUID Meta Property
+    keyBuff.Zero();
+    keyBuff.AppendNum( EFolderLUID );
+    calValue = CCalenMultiCalUtil::GetNextAvailableOffsetL();
+    FLOG(_L("CNSmlOviAgendaAdapterPlugin::CreateFolderItemL: nextoffset: '%d'"), calValue);
+    TPckgC<TUint> pckgUidValue( calValue );
+    calinfo->SetPropertyL( keyBuff, pckgUidValue );
+    
+    // Create & Modified Time Meta Property
+    keyBuff.Zero();
+    keyBuff.AppendNum( ECreationTime );
+    TTime time;
+    time.HomeTime();
+    TPckgC<TTime> pckgCreateTimeValue( time );
+    calinfo->SetPropertyL( keyBuff, pckgCreateTimeValue );
+    keyBuff.Zero();
+    keyBuff.AppendNum( EModificationTime );
+    calinfo->SetPropertyL( keyBuff, pckgCreateTimeValue );
+    
+    // Sync Status
+    keyBuff.Zero();
+    keyBuff.AppendNum( ESyncStatus );
+    TBool syncstatus( ETrue );
+    TPckgC<TBool> pckgSyncStatusValue( syncstatus );
+    calinfo->SetPropertyL( keyBuff, pckgSyncStatusValue );
+    
+    // Global UID MetaDataProperty 
+    keyBuff.Zero();
+    keyBuff.AppendNum( EGlobalUUID );
+    CCalenInterimUtils2* interimUtils = CCalenInterimUtils2::NewL();
+    CleanupStack::PushL( interimUtils );
+    HBufC8* guuid = interimUtils->CalFileGlobalUidL();
+    TPtr8 guuidPtr = guuid->Des();
+    CleanupStack::PushL( guuid );
+    calinfo->SetPropertyL( keyBuff, guuidPtr );
+    CleanupStack::PopAndDestroy( guuid );
+    CleanupStack::PopAndDestroy( interimUtils );
+          
+    // Owner Name
+    keyBuff.Zero();
+    keyBuff.AppendNum( EDeviceSyncServiceOwner );
+    TPckgC<TInt> pckgAppUIDValue( KCRUidNSmlDSApp.iUid );    
+    calinfo->SetPropertyL( keyBuff, pckgAppUIDValue );
+
+
+    keyBuff.Zero();
+    keyBuff.AppendNum( EDeviceSyncProfileID );
+    TPckgC<TInt> pckgProfileIdValue( iProfile->ProfileId() );    
+    calinfo->SetPropertyL( keyBuff, pckgProfileIdValue );
+
+    
+    // Create the CalFile
+    HBufC* calfilename = CCalenMultiCalUtil::GetNextAvailableCalFileL();
+    calSession->CreateCalFileL( calfilename->Des(), *calinfo );
+	
+	aCalName.Copy( calfilename->Des() );
+    
+    delete calfilename;
+    
+    CleanupStack::PopAndDestroy(calinfo);
+    CleanupStack::PopAndDestroy(calSession);
+    }
+
+// -----------------------------------------------------------------------------
+// CAspContentList::IsCalNameAvailableL
+// 
+// -----------------------------------------------------------------------------
+//
+TBool CAspContentList::IsCalNameAvailableL(CCalSession& aSession ,TDes& aCalName)
+    {
+    CCalSession* vCalSubSession = NULL;  
+    CDesCArray* calfilearr = aSession.ListCalFilesL();
+    
+    for(TInt i = 0; i < calfilearr->Count(); i++)
+        {
+        vCalSubSession = CCalSession::NewL(aSession);
+        CleanupStack::PushL(vCalSubSession);
+        vCalSubSession->OpenL(calfilearr->MdcaPoint(i));
+    
+        CCalCalendarInfo* caleninfo = vCalSubSession->CalendarInfoL(); 
+        
+        if (aCalName == caleninfo->NameL())
+            {
+            delete caleninfo;
+            delete calfilearr;
+            CleanupStack::PopAndDestroy(vCalSubSession);
+            return EFalse;
+            }
+    
+        delete caleninfo;    
+        CleanupStack::PopAndDestroy(vCalSubSession); 
+        }
+    delete calfilearr;
+    return ETrue;
+    
+    }
+// -----------------------------------------------------------------------------
+// CAspContentList::RetrieveCalLocalDatabaseL
+// 
+// -----------------------------------------------------------------------------
+//
+void CAspContentList::RetrieveCalLocalDatabaseL(TDes& aCalName)
+    {
+      
+    FLOG(_L("CAspContentList::RetrieveCalLocalDatabaseL: BEGIN"));   
+      
+    TBuf8<128> keyBuff;
+    CCalSession* vCalSession = NULL;
+    CCalSession* vCalSubSession = NULL;   
+    
+    vCalSession = CCalSession::NewL();
+    CleanupStack::PushL(vCalSession);
+    
+    CDesCArray* calfilearr = vCalSession->ListCalFilesL();            
+    
+    TBool dbFound = EFalse;
+    for(TInt i = 0; i < calfilearr->Count(); i++)
+        {
+        vCalSubSession = CCalSession::NewL(*vCalSession);
+        CleanupStack::PushL(vCalSubSession);
+        vCalSubSession->OpenL(calfilearr->MdcaPoint(i));
+        
+        CCalCalendarInfo* caleninfo = vCalSubSession->CalendarInfoL(); 
+        CleanupStack::PushL(caleninfo);
+        
+        TInt profileId;
+        keyBuff.Zero();
+        keyBuff.AppendNum( EDeviceSyncProfileID );
+        TPckgC<TInt> intBuf(profileId);
+        TRAP_IGNORE(intBuf.Set(caleninfo->PropertyValueL(keyBuff)));
+                
+        profileId = intBuf();
+        
+        if ( profileId == iProfile->ProfileId())
+            {
+            aCalName.Append(caleninfo->FileNameL());
+            dbFound = ETrue;
+            CleanupStack::PopAndDestroy(caleninfo);   
+            CleanupStack::PopAndDestroy(vCalSubSession);
+            break;
+            }
+        CleanupStack::PopAndDestroy(caleninfo);    
+        CleanupStack::PopAndDestroy(vCalSubSession); 
+        }
+		
+		if( dbFound == EFalse )
+			{
+			delete calfilearr; 
+			User::Leave( KErrNotFound );
+			}
+ 
+    delete calfilearr;     
+    CleanupStack::PopAndDestroy(vCalSession);
+    }
 
 // -----------------------------------------------------------------------------
 // CAspContentList::ReadTaskL

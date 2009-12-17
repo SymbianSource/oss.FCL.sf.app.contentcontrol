@@ -21,7 +21,8 @@
 #include <s32buf.h>
 #include <s32file.h>
 
-#include "nsmlxmlparser.h"
+#include <nsmlfolderparser.h>
+#include "nsmlparserconstants.h"
 
 
 // ============================ MEMBER FUNCTIONS ===============================
@@ -75,8 +76,7 @@ EXPORT_C CNSmlFolderParser::~CNSmlFolderParser()
 // -----------------------------------------------------------------------------
 // CNSmlFolderParser::ParseXml
 // Parses through the given XML and places the data to member variables.
-// Note: The string-values in CNSmlEmailParser are NOT copies, but 
-// references to aXml. The method does not check whether the member variables 
+// Note: The method does not check whether the member variables 
 // already contains data or not, but just writes it (if some of them are already 
 // instantiated dynamically, they should be deleted before this method is called).
 // -----------------------------------------------------------------------------
@@ -547,7 +547,7 @@ void CNSmlFolderParser::EndElementStateChangeL(TNSmlCurrentFolderElement aCurren
 
 // -----------------------------------------------------------------------------
 // CNSmlFolderParser::ConvertIntoEntitiesL
-// Converts special characters of this email-dataobject to corresponding 
+// Converts special characters of this dataobject to corresponding 
 // characters. 
 // -----------------------------------------------------------------------------
 //

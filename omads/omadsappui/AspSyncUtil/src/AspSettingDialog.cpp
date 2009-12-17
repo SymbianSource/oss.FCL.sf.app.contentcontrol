@@ -1614,16 +1614,17 @@ TInt CAspSettingDialog::DoCheckMandatoryDataL()
 		
     TAspParam param(iApplicationId, iSyncSession);
 	CAspProfile* profile = CAspProfile::NewLC(param);
-    profile->OpenL(iCurrentProfileId, CAspProfile::EOpenRead,
+    profile->OpenL(iCurrentProfileId, CAspProfile::EOpenReadWrite,
                                       CAspProfile::EAllProperties);
     
     
     TInt mandatoryConnectionData = CAspProfile::CheckMandatoryConnData(profile);
-    CleanupStack::PopAndDestroy(profile);
-	
+    iContentList->SetProfile(profile);	
 	TInt contentCount = 0;
 	TInt mandatoryContentData = iContentList->CheckMandatoryDataL(contentCount);
-	
+	iContentList->SetProfile(NULL);
+	CleanupStack::PopAndDestroy(profile);
+
 	if (mandatoryConnectionData != EMandatoryOk)
 		{
 		return mandatoryConnectionData;
@@ -2406,7 +2407,7 @@ void CAspSettingDialog::HandleListBoxEventL(CEikListBox* /*aListBox*/, TListBoxE
 	   {
 	   	 switch(aEventType)
 		{
-			case EEventItemClicked :
+			case EEventItemSingleClicked :
 			     HandleOKL();
 			     break;
 			default:

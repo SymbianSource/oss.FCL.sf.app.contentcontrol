@@ -190,11 +190,11 @@ void CAspProfileDialog::HandleListBoxEventL(CEikListBox* /*aListBox*/,
 	  {
 	   switch ( aEventType )
         {
-         case EEventItemDoubleClicked:
+        case EEventItemSingleClicked:
               HandleOKL();
               break;
          case EEventEnterKeyPressed :
-         case EEventItemClicked :
+         
          case EEventItemDraggingActioned :
          case EEventPenDownOnItem :
         	  if(iEditMode != EDialogModeSettingEnforcement)

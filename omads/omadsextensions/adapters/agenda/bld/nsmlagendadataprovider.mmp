@@ -57,14 +57,14 @@ TARGETPATH	RESOURCE_FILES_DIR
 LANGUAGE_IDS
 END 
 
-START RESOURCE NSmlAgendaDataStore_1_2.rss
-HEADER
-TARGETPATH	RESOURCE_FILES_DIR
-LANGUAGE_IDS
-END 
-
+//RD_MULTICAL
+LIBRARY 	gdi.lib
+//RD_MULTICAL
 LIBRARY		ECom.lib euser.lib efsrv.lib estor.lib smlstoreformat.lib
 LIBRARY		nsmldebug.lib smldataprovider.lib nsmldatamod.lib
 LIBRARY		nsmlchangefinder.lib wbxmllib.lib bafl.lib sysutil.lib
-LIBRARY		CalInterimAPI.lib msgs.lib CalenImp.lib CalenInterimUtils2.lib
+LIBRARY		CalInterimAPI.lib msgs.lib CalenImp.lib CalenInterimUtils2.lib calencommonutils.lib
 LIBRARY 	versit.lib
+LIBRARY 	charconv.lib 
+LIBRARY 	flogger.lib
+LIBRARY 	centralrepository.lib

@@ -260,7 +260,7 @@ void CAspRadioButtonSettingPage::HandleListBoxEventL(CEikListBox* aListBox, TLis
 	{
 	  	switch(aEventType)
 		{  
-			case EEventItemClicked:
+		   case EEventItemSingleClicked:
        			 this->ProcessCommandL(EAknSoftkeySelect);	
         		 break;
 		  	default:
@@ -531,7 +531,7 @@ void CAspCheckBoxSettingPage::HandleListBoxEventL(CEikListBox* aListBox, TListBo
 	  	switch(aEventType)
 	
 		{   
-			case EEventItemClicked:
+		  case EEventItemSingleClicked:
        		 	 index=aListBox->CurrentItemIndex();
        		 	 selectableItem = (*iSelectionItemList)[index];
        		 	 if(selectableItem->SelectionStatus())

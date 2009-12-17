@@ -562,6 +562,18 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 				      SML_DATA_PROPERTY
 					{
 					version=1;
+					display_name="My Card";
+					name="X-SELF";
+					data_type="";
+					enum_values={};
+					flags= 0;
+					max_size=256;
+					max_occur=0;
+					params={};
+					},
+				SML_DATA_PROPERTY
+					{
+					version=1;
 					display_name="SIP protocol";
 					name="X-SIP";
 					data_type="";

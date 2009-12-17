@@ -326,7 +326,7 @@ void CAspFilterDialog::DynInitMenuPaneL( TInt aResourceID, CEikMenuPane* aMenuPa
 //
 void CAspFilterDialog::HandleListBoxEventL(CEikListBox* /*aListBox*/, TListBoxEvent aEventType)
 	{
-	if (aEventType == EEventEnterKeyPressed || aEventType == EEventItemDoubleClicked)
+	if (aEventType == EEventEnterKeyPressed || aEventType == EEventItemSingleClicked)
 		{
 		HandleOKL();
 		}

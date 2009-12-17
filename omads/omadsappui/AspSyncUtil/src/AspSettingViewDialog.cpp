@@ -181,7 +181,7 @@ void CAspSettingViewDialog::HandleListBoxEventL(CEikListBox* /*aListBox*/,
     switch ( aEventType )
         {
         case EEventEnterKeyPressed:
-        case EEventItemDoubleClicked:
+        case EEventItemSingleClicked:
             HandleOKL();
             break;
         default:

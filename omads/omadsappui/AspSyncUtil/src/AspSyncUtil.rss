@@ -25,10 +25,10 @@
 #include "AspSyncUtil.rh"
 
 // aspsyncutil uses sync app .loc file
-#include<NSmlDSSync.loc>
+#include<nsmldssync.loc>
 
 // For profiles sync application brings
-#include<NSmlSyncProfiles.loc>
+#include<nsmlsyncprofiles.loc>
 
 // common avkon strings
 #include<avkon.loc>
@@ -1457,7 +1457,7 @@ RESOURCE MENU_PANE r_asp_filter_dialog_menu_pane
     {
     items=
         {
-		MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; },
+		MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; flags = EEikMenuItemAction;},
 		
 #ifdef __SERIES60_HELP				
     	MENU_ITEM { command=EAknCmdHelp; txt=qtn_options_help; },
@@ -1524,7 +1524,7 @@ RESOURCE MENU_PANE r_asp_profile_dialog_menu_pane
     {
     items=
         {
-		MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; },
+		MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; flags = EEikMenuItemAction;},
 		
 #ifdef __SERIES60_HELP		
     	MENU_ITEM { command=EAknCmdHelp; txt=qtn_options_help; },
@@ -1538,7 +1538,7 @@ RESOURCE MENU_PANE r_advance_settings_dialog_menu_pane
     {
     items=
         {
-        MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; },
+        MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; flags = EEikMenuItemAction; },
         
 #ifdef __SERIES60_HELP      
         MENU_ITEM { command=EAspMenuCmdHelp; txt=qtn_options_help; },
@@ -1626,7 +1626,7 @@ RESOURCE MENU_PANE r_asp_auto_sync_dialog_menu_pane
     {
     items=
         {
-		MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; },
+		MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; flags = EEikMenuItemAction; },
 		
 #ifdef __SERIES60_HELP		
     	MENU_ITEM { command=EAknCmdHelp; txt=qtn_options_help; },
@@ -1678,7 +1678,7 @@ RESOURCE MENU_PANE r_asp_auto_sync_profile_dialog_menu_pane
     {
     items=
         {
-		MENU_ITEM { command=EAspMenuCmdSelect; txt=qtn_sml_cmd_select; },
+		MENU_ITEM { command=EAspMenuCmdSelect; txt=qtn_sml_cmd_select; flags = EEikMenuItemAction;},
 		MENU_ITEM { command=EAspMenuCmdView; txt=qtn_sml_cmd_view_contents; },
 		
 #ifdef __SERIES60_HELP		
@@ -1735,7 +1735,7 @@ RESOURCE MENU_PANE r_asp_content_dialog_menu_pane
     {
     items=
         {
-		MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change; },
+		MENU_ITEM { command=EAspMenuCmdChange; txt=qtn_options_change;flags = EEikMenuItemAction; },
 		
 #ifdef __SERIES60_HELP		
     	MENU_ITEM { command=EAknCmdHelp; txt=qtn_options_help; },
@@ -1789,7 +1789,7 @@ RESOURCE MENU_PANE r_asp_setting_view_dialog_menu_pane
     {
     items=
         {
-		MENU_ITEM { command=EAspMenuCmdOpen; txt=qtn_options_open; },
+		MENU_ITEM { command=EAspMenuCmdOpen; txt=qtn_options_open; flags = EEikMenuItemAction; },
 		
 #ifdef __SERIES60_HELP		
     	MENU_ITEM { command=EAknCmdHelp; txt=qtn_options_help; },
@@ -1920,8 +1920,8 @@ RESOURCE MENU_PANE r_asp_setting_dialog_menu_pane
 	{
 	items =
 		{
-		MENU_ITEM { command=EAspMenuCmdMark; 			txt=qtn_sml_cmd_mark; },
-		MENU_ITEM { command=EAspMenuCmdUnmark; 			txt=qtn_sml_cmd_unmark; },
+		MENU_ITEM { command=EAspMenuCmdMark; 			txt=qtn_sml_cmd_mark; flags = EEikMenuItemAction;  },
+		MENU_ITEM { command=EAspMenuCmdUnmark; 			txt=qtn_sml_cmd_unmark; flags = EEikMenuItemAction; },
 		MENU_ITEM { command=EAspMenuCmdSync;           txt=qtn_sml_cmd_sync; },
 		MENU_ITEM { command=EAspMenuCmdNewSet;         txt=qtn_sml_cmd_create_new; },
 		MENU_ITEM { command=EAspMenuCmdEdit;           txt=qtn_sml_cmd_edit; },

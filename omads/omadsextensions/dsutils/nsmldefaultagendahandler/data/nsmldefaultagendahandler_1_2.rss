@@ -17,11 +17,10 @@ CHARACTER_SET UTF8/*
 
 
 #include <bldvariant.hrh>
-#include "SmlDataFormat.rh"
-#include "SmlDataFormat.hrh"
-#include "nsmlagendadefines.hrh"
+#include <SmlDataFormat.rh>
+#include <SmlDataFormat.hrh>
 
-RESOURCE SML_DATA_STORE_FORMAT nsml_agenda_data_store
+RESOURCE SML_DATA_STORE_FORMAT nsml_default_agenda_handler
 	{
 	version=1;
 	display_name="Calendar";
@@ -856,11 +855,48 @@ RESOURCE SML_DATA_STORE_FORMAT nsml_agenda_data_store
   mime_format_tx_pref=0;     // Preferred index for tx
 	mime_format_rx_pref=0;     // Preferred index for rx
 #endif // __NSML_USE_ICAL_FEATURE
-	folder_properties={};
+	folder_properties={
+	        SML_DATA_PROPERTY
+	                        {
+	                        version = 1;
+	                        display_name = "Name";
+	                        name = "NAME";
+	                        data_type = "text";
+	                        enum_values = {};
+	                        flags = 0;
+	                        max_size = 256;
+	                        max_occur = 1;
+	                        params = {};
+	                        },
+	                SML_DATA_PROPERTY
+	                        {
+	                        version = 1;
+	                        display_name = "Created";
+	                        name = "CREATED";
+	                        data_type = "datetime";
+	                        enum_values = {};
+	                        flags = 0;
+	                        max_size = 256;
+	                        max_occur = 1;
+	                        params = {};
+	                        },
+	                SML_DATA_PROPERTY
+                           {
+                           version = 1;
+                           display_name = "Modified";
+                           name = "MODIFIED";
+                           data_type = "datetime";
+                           enum_values = {};
+                           flags = 0;
+                           max_size = 256;
+                           max_occur = 1;
+                           params = {};
+                           }                  
+	};
 	filter_capabilities={};
 	max_size=0; 	// no limit
 	max_items=0; 	// no limit
-	flags=0;
+	flags = KSmlDataStore_Hierarchical;        // Hierarchical
 	}
             
 // End of File

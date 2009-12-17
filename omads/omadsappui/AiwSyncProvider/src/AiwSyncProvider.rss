@@ -19,7 +19,7 @@
 #include <eikon.rh>
 #include "registryinfov2.rh" 
 #include "AiwSyncProvider.rh"
-#include<NSmlDSSync.loc>
+#include<nsmldssync.loc>
 #include "AiwCommon.hrh"
 
 #include <avkon.rsg>

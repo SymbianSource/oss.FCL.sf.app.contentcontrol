@@ -25,7 +25,7 @@ NAME DSGS
 #include <avkon.loc>
 #include <data_caging_paths_strings.hrh>
 
-#include<NSmlDSSync.loc>
+#include<nsmldssync.loc>
 
 RESOURCE RSS_SIGNATURE { }
 

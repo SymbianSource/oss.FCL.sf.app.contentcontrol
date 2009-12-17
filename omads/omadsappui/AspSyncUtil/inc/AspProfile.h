@@ -22,6 +22,7 @@
 // INCLUDES
 #include <e32base.h>
 #include <ecom.h>
+#include <calsession.h>
 
 #include <SyncMLClient.h>    // for RSyncMLSession
 #include <SyncMLClientDS.h>  // for RSyncMLDataSyncProfile
@@ -469,7 +470,9 @@ NONSHARABLE_CLASS (CAspContentList): public CBase
     	void ReadDataProviderItemL(RSyncMLDataProvider& aProvider, TAspProviderItem& aItem);
 
 
-		
+    	void CreateCalLocalDatabaseL(TDes& aCalName);
+    	void RetrieveCalLocalDatabaseL(TDes& aCalName);
+    	TBool IsCalNameAvailableL(CCalSession& aSession ,TDes& aCalName);
 		
     private:
     

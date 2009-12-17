@@ -546,7 +546,7 @@ void CAspContentDialog::HandleListBoxEventL(CEikListBox* /*aListBox*/,
 	{
     switch ( aEventType )
         {
-        case EEventItemDoubleClicked:
+        case EEventItemSingleClicked:
             HandleOKL();
             break;
         default:

@@ -17,7 +17,6 @@
 */
 
 
-
-//#include "../syncml_notifier_roaming_api/group/bld.inf"
-//#include "../sync_service_api/group/bld.inf"
 #include "../oma_ds_presync_plugin_api/group/bld.inf"
+#include "../ds_agenda_handler_plugin_api/group/bld.inf"
+#include "../ds_folder_util_api/group/bld.inf"

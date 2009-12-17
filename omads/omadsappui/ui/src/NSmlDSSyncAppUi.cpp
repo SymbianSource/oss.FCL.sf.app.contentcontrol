@@ -45,7 +45,7 @@ void CNSmlDSSyncAppUi::ConstructL()
     const TInt KBufSize128 = 128;
     const TInt KModeDialogNoWait = 4;
     
-    BaseConstructL(EAknEnableSkin | EAknDisableHighlightAnimation | EAknEnableMSK);
+    BaseConstructL(EAknEnableSkin | EAknDisableHighlightAnimation | EAknEnableMSK | EAknSingleClickCompatible);
 
 	TBool flag = CEikonEnv::Static()->StartedAsServerApp() ;
 	if (flag)

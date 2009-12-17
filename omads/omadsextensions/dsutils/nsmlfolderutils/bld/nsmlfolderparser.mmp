@@ -11,7 +11,7 @@
 *
 * Contributors:
 *
-* Description:  EMail XML Parser mmp file
+* Description:  Folder XML Parser mmp file
 *
 */
 
@@ -21,31 +21,27 @@
 
 CAPABILITY	CAP_GENERAL_DLL
 VENDORID 	VID_DEFAULT
-TARGET          nsmlxmlparser.dll
+TARGET          nsmlfolderparser.dll
 TARGETTYPE      dll
-UID             0x1000008d 0x101F6DE4
+UID             0x1000008d 0x20029F12
 
 #if defined(ARMCC)
-DEFFILE		./def/eabixmlparser
+DEFFILE		./def/eabifolderparser
 #elif defined(WINSCW)
-DEFFILE		./def/bwinscwxmlparser
+DEFFILE		./def/bwinscwfolderparser
 #elif defined(WINS)
-DEFFILE		./def/bwinsxmlparser
+DEFFILE		./def/bwinsfolderparser
 #else
-DEFFILE		./def/bmarmxmlparser
+DEFFILE		./def/bmarmfolderparser
 #endif
 
 APP_LAYER_SYSTEMINCLUDE
-SYSTEMINCLUDE	../../../adapters/email/mtm/inc
-USERINCLUDE     ../inc
 
 SOURCEPATH      ../src
-SOURCE		nsmlxmlparser.cpp
+USERINCLUDE 	../inc
+SOURCE		    nsmlxmlparser.cpp
 SOURCE          NSmlExtData.cpp
 SOURCE          NSmlFolderAttributeData.cpp
-SOURCE          NSmlTruncatedData.cpp
-SOURCE          NSmlEmailParser.cpp
-SOURCE          NSmlEmailFileParser.cpp
 SOURCE          NSmlFolderParser.cpp
 
 LIBRARY         euser.lib estor.lib efsrv.lib

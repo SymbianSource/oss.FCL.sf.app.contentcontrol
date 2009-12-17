@@ -21,7 +21,8 @@
 #include <s32buf.h>
 #include <s32file.h>
 
-#include "nsmlxmlparser.h"
+#include <nsmlfolderparser.h>
+#include "nsmlparserconstants.h"
 
 
 // ============================ MEMBER FUNCTIONS ===============================

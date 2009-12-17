@@ -1,0 +1,22 @@
+EXPORTS
+	?NewL@CNSmlExtData@@SAPAV1@XZ @ 1 NONAME ; class CNSmlExtData * CNSmlExtData::NewL(void)
+	?NewLC@CNSmlExtData@@SAPAV1@XZ @ 2 NONAME ; class CNSmlExtData * CNSmlExtData::NewLC(void)
+	?AddXValL@CNSmlExtData@@QAEXPAVHBufC8@@@Z @ 3 NONAME ; void CNSmlExtData::AddXValL(class HBufC8 *)
+	?GenerateXmlL@CNSmlExtData@@QBEXAAVTPtr8@@PBVCNSmlXmlParser@@@Z @ 4 NONAME ; void CNSmlExtData::GenerateXmlL(class TPtr8 &, class CNSmlXmlParser const *) const
+	??0CNSmlXmlParser@@QAE@XZ @ 5 NONAME ; CNSmlXmlParser::CNSmlXmlParser(void)
+	?NewLC@CNSmlFolderParser@@SAPAV1@XZ @ 6 NONAME ; class CNSmlFolderParser * CNSmlFolderParser::NewLC(void)
+	?AddExtL@CNSmlFolderParser@@QAEXPAVCNSmlExtData@@@Z @ 7 NONAME ; void CNSmlFolderParser::AddExtL(class CNSmlExtData *)
+	?AttributeCount@TNSmlFolderAttributeData@@QBEHXZ @ 8 NONAME ; int TNSmlFolderAttributeData::AttributeCount(void) const
+	?ConvertIntoEntitiesL@CNSmlExtData@@QAEXPBVCNSmlXmlParser@@@Z @ 9 NONAME ; void CNSmlExtData::ConvertIntoEntitiesL(class CNSmlXmlParser const *)
+	?CountXmlSize@CNSmlExtData@@QBEHPBVCNSmlXmlParser@@@Z @ 10 NONAME ; int CNSmlExtData::CountXmlSize(class CNSmlXmlParser const *) const
+	?CountXmlSizeL@CNSmlFolderParser@@UAEHXZ @ 11 NONAME ; int CNSmlFolderParser::CountXmlSizeL(void)
+	??1CNSmlXmlParser@@UAE@XZ @ 12 NONAME ; CNSmlXmlParser::~CNSmlXmlParser(void)
+	?NewL@CNSmlFolderParser@@SAPAV1@XZ @ 13 NONAME ; class CNSmlFolderParser * CNSmlFolderParser::NewL(void)
+	??1CNSmlFolderParser@@UAE@XZ @ 14 NONAME ; CNSmlFolderParser::~CNSmlFolderParser(void)
+	?CountXmlSize@TNSmlFolderAttributeData@@QBEHPBVCNSmlXmlParser@@@Z @ 15 NONAME ; int TNSmlFolderAttributeData::CountXmlSize(class CNSmlXmlParser const *) const
+	?GenerateXml@CNSmlFolderParser@@UAE?AW4TNSmlParserGeneratorError@@AAPAVHBufC8@@@Z @ 16 NONAME ; enum TNSmlParserGeneratorError CNSmlFolderParser::GenerateXml(class HBufC8 * &)
+	??1CNSmlExtData@@UAE@XZ @ 17 NONAME ; CNSmlExtData::~CNSmlExtData(void)
+	??0TNSmlFolderAttributeData@@QAE@XZ @ 18 NONAME ; TNSmlFolderAttributeData::TNSmlFolderAttributeData(void)
+	?ParseXml@CNSmlFolderParser@@UAE?AW4TNSmlParserGeneratorError@@PAVHBufC8@@@Z @ 19 NONAME ; enum TNSmlParserGeneratorError CNSmlFolderParser::ParseXml(class HBufC8 *)
+	?GenerateXml@TNSmlFolderAttributeData@@QBEXAAVTPtr8@@PBVCNSmlXmlParser@@@Z @ 20 NONAME ; void TNSmlFolderAttributeData::GenerateXml(class TPtr8 &, class CNSmlXmlParser const *) const
+
