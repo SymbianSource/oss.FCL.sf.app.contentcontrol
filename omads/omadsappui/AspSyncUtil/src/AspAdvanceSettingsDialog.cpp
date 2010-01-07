@@ -30,7 +30,7 @@
 #include <aknpasswordsettingpage.h>     // CAknAlphaPasswordSettingPage
 #include <ConnectionUiUtilities.h>      // CConnectionUiUtilities
 #include <featmgr.h>   // FeatureManager
-#include <AspDefines.h> //For enum TRoamingSettings
+#include "AspDefines.h" //For enum TRoamingSettings
 #include <centralrepository.h> //For central Repository
 #include "CPreSyncPlugin.h"
 

@@ -3225,7 +3225,7 @@ HBufC* CNSmlAgendaDataStore::CreateCalFileL( HBufC* aProfileName, TInt aProfileI
     // Global UID MetaDataProperty 
     keyBuff.Zero();
     keyBuff.AppendNum( EGlobalUUID );
-    HBufC8* guuid = iInterimUtils->CalFileGlobalUidL();
+    HBufC8* guuid = iInterimUtils->GlobalUidL();
     TPtr8 guuidPtr = guuid->Des();
     CleanupStack::PushL( guuid );
     calinfo->SetPropertyL( keyBuff, guuidPtr );

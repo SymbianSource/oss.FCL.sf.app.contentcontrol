@@ -1408,7 +1408,7 @@ void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
     keyBuff.AppendNum( EGlobalUUID );
     CCalenInterimUtils2* interimUtils = CCalenInterimUtils2::NewL();
     CleanupStack::PushL( interimUtils );
-    HBufC8* guuid = interimUtils->CalFileGlobalUidL();
+    HBufC8* guuid = interimUtils->GlobalUidL();
     TPtr8 guuidPtr = guuid->Des();
     CleanupStack::PushL( guuid );
     calinfo->SetPropertyL( keyBuff, guuidPtr );
