@@ -2241,9 +2241,9 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
         }
     else
         {
+        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         delete agendautil;
         delete calfilename; 
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
                    KErrNotSupported: END"));
         User::Leave( KErrNotSupported );
@@ -2253,9 +2253,9 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
     // Multiple items are not supported
     if ( rdArray.Count() != 1 )
         {
+        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         delete agendautil;
         delete calfilename; 
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
                    Multiple items are not supported: END"));
         User::Leave( KErrNotSupported );
@@ -2267,9 +2267,9 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
     FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: after StoreL '%d'"), err );
     if ( err )
         {
+        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         delete agendautil;
         delete calfilename; 
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
                    Error at storing item to database: END"));
         User::Leave( KErrGeneral );
@@ -2312,9 +2312,10 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
             }
         CleanupStack::PopAndDestroy();// newEntry,
         }
+	CleanupStack::PopAndDestroy( 2 ); //  rdArray, readStream 
     delete agendautil;
-    delete calfilename;     	
-    CleanupStack::PopAndDestroy( 2 ); //  rdArray, readStream   
+	delete calfilename;     	
+      
     FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: END"));
     }
     
@@ -2365,9 +2366,9 @@ void CNSmlAgendaDataStore::DoCommitReplaceCalItemL()
     if ( err || !agendautil )
         {
         FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: entry is not valid"));
+        CleanupStack::PopAndDestroy( 2 ); // olditem, writeStream
         delete agendautil;
         delete calfilename;
-        CleanupStack::PopAndDestroy( 2 ); // olditem, writeStream
         User::Leave( KErrGeneral );
         }  
         
@@ -2386,9 +2387,9 @@ void CNSmlAgendaDataStore::DoCommitReplaceCalItemL()
 #endif // __NSML_USE_ICAL_FEATURE
     else
         {
+        CleanupStack::PopAndDestroy( 2 ); // olditem, writeStream
         delete agendautil;
         delete calfilename;
-        CleanupStack::PopAndDestroy( 2 ); // olditem, writeStream
         FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL - \
                    KErrNotSupported: END"));
         User::Leave( KErrNotSupported );
@@ -2429,10 +2430,11 @@ void CNSmlAgendaDataStore::DoCommitReplaceCalItemL()
         }
     else
         {
+        CleanupStack::PopAndDestroy( 5 ); // xRecurrenceId, recurrenceId,
+                                              // uid, oldItem, geoId
         delete agendautil;
         delete calfilename;
-        CleanupStack::PopAndDestroy( 5 ); // xRecurrenceId, recurrenceId,
-                                          // uid, oldItem, geoId
+        
         User::Leave( KErrNotSupported );
         }
     if ( recurrenceId )
@@ -2482,9 +2484,9 @@ void CNSmlAgendaDataStore::DoCommitReplaceCalItemL()
 #endif // __NSML_USE_ICAL_FEATURE
     else
         {
+        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         delete agendautil;
         delete calfilename;
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
                    KErrNotSupported: END"));
         User::Leave( KErrNotSupported );
@@ -2495,9 +2497,9 @@ void CNSmlAgendaDataStore::DoCommitReplaceCalItemL()
     if ( rdArray.Count() != 1 )
         {
         FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: Multiple items are not supported "));
+        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         delete agendautil;
         delete calfilename;
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
                    Multiple items are not supported: END"));
         User::Leave( KErrNotSupported );
@@ -2507,12 +2509,13 @@ void CNSmlAgendaDataStore::DoCommitReplaceCalItemL()
 
     FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: before StoreL"));
     TRAP( err, iInterimUtils->StoreL( *agendautil->iEntryView, *rdArray[0], ETrue ) );
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateItemL: after StoreL '%d'"), err );
+    FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: after StoreL '%d'"), err );
+    
     if ( err )
         {
+        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         delete agendautil;
         delete calfilename;
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL - \
                    Error at storing item to database: END"));
         User::Leave( KErrGeneral );
@@ -2548,11 +2551,9 @@ void CNSmlAgendaDataStore::DoCommitReplaceCalItemL()
     CleanupStack::PopAndDestroy(); // replacedEntry
     }
     
+	CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
     delete agendautil;
-    delete calfilename;
-	
-    CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-    
+	delete calfilename;	
 	FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: END"));
     }
 
@@ -3051,29 +3052,58 @@ void CNSmlAgendaDataStore::OpenStoreL()
     FLOG(_L("CNSmlAgendaDataStore::OpenStoreL BEGIN"));
 
     TInt profileid = NULL;
+    TBuf<KBuffLength> serverid;
     TBuf<KBuffLength> profilename;
+	TBool isHandlerAvailable( EFalse );
     
-    // Get the ProfileId and ProfileName from the cenrep
+    // Get the ServerId, ProfileId and ProfileName from the cenrep
     CRepository* rep = CRepository::NewLC( KNsmlDsSessionInfoKey );
     TInt err = rep->Get( EDSSessionProfileId, profileid );
     err = rep->Get( EDSSessionProfileName, profilename );
+    err = rep->Get(EDSSessionServerId, serverid );
     User::LeaveIfError(err);
     CleanupStack::PopAndDestroy(rep);
+    
+    // Reintialize the StoreName
+    if ( iOpenedStoreName )
+        {
+        delete iOpenedStoreName;
+        iOpenedStoreName = NULL;
+        }
     
     // Find the CalendarFile having the given ProfileID
     CDesCArray* calfilearr = new (ELeave) CDesCArrayFlat(1);
     CleanupStack::PushL(calfilearr);
-    if ( IsCalFileAvailableL( profileid, calfilearr ) )
+    FLOG(_L("CNSmlAgendaDataStore:::OpenStoreL():Profilename '%S'"), &profilename );
+    FLOG(_L("CNSmlAgendaDataStore:::OpenStoreL():serverid '%S'"), &serverid );
+	
+	if( 0 != serverid.Length() )
+        {   
+		HBufC8* opaquedata = HBufC8::NewL( serverid.Length() );
+        TPtr8 name( opaquedata->Des() );
+        CnvUtfConverter::ConvertFromUnicodeToUtf8(name , serverid );
+		
+		for( TInt adaptercount = 0; adaptercount < iAgendaPluginAdapters.Count(); adaptercount++ )
+	        {
+	        if( 0 == opaquedata->Compare(iAgendaPluginAdapters[adaptercount]->iOpaqueData->Des()) )
+	            {
+	            FLOG(_L("CNSmlAgendaDataStore::Handler available"));			
+				isHandlerAvailable = ETrue;
+	            break;
+	            }        
+	        }
+			delete opaquedata;
+        }	
+    
+	if( isHandlerAvailable )
+		{
+		iOpenedStoreName = iDefaultStoreFileName->AllocL();
+		}	
+    else if( IsCalFileAvailableL( profileid, calfilearr ) )
         {
         FLOG(_L("CNSmlAgendaDataStore::OpenStoreL Found the assoicated calfile"));
         
         // TODO: Yet to get clarification for enable/disable the notification
-       
-        if ( iOpenedStoreName )
-            {
-            delete iOpenedStoreName;
-            iOpenedStoreName = NULL;
-            }
         iOpenedStoreName = calfilearr->MdcaPoint(0).AllocL();
         }
     else
@@ -3084,12 +3114,6 @@ void CNSmlAgendaDataStore::OpenStoreL()
         HBufC* name = profilename.AllocL();
         HBufC* calfilename = CreateCalFileL( name, profileid );
         delete name;
-        
-        if ( iOpenedStoreName )
-            {
-            delete iOpenedStoreName;
-            iOpenedStoreName = NULL;
-            }
         iOpenedStoreName = calfilename;
         }
         

@@ -17,12 +17,12 @@
 
 #include <SenXmlUtils.h>
 #include <SenXmlReader.h>
-#include <FavouritesLimits.h>   // Localized names for folders
+#include <favouriteslimits.h>   // Localized names for folders
 #include <bookmarkdsa.rsg>
 #include <stringresourcereader.h>
 #include <bautils.h>
 #include <utf.h>
-#include <FeedsServerFolderItem.h>
+#include <feedsserverfolderitem.h>
 
 #include "bookmarkdataproviderdefs.h"
 #include "omadsfolderobject.h"

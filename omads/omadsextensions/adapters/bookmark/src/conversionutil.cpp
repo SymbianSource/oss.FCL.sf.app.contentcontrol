@@ -15,7 +15,7 @@
 *
 */
 
-#include <FeedsServerFolderItem.h>
+#include <feedsserverfolderitem.h>
 #include "conversionutil.h"
 #include "omadsfolderobject.h"
 #include "vbookmarkconverter.h"

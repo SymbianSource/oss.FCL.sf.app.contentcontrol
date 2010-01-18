@@ -17,12 +17,12 @@
 
 
 #include <sysutil.h> 
-#include <FavouritesItem.h>
+#include <favouritesitem.h>
 #include <FavouritesItemList.h> 
 
 #include <FeedsServerClient.h>
 #include <FeedsServerFeed.h>
-#include <FeedsServerFolderItem.h>
+#include <feedsserverfolderitem.h>
 
 #include "bookmarkdatastore.h"
 #include "vbookmarkconverter.h"

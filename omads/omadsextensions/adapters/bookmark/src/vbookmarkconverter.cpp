@@ -18,8 +18,8 @@
 
 // INCLUDES
 #include <utf.h>
-#include <FavouritesItem.h>
-#include <FeedsServerFolderItem.h>
+#include <favouritesitem.h>
+#include <feedsserverfolderitem.h>
 #include "vbookmarkconverter.h"
 #include "logger.h"
 

@@ -19,7 +19,7 @@
 #ifndef _CONVERSIONUTIL_H_
 #define _CONVERSIONUTIL_H_
 
-#include <FavouritesItem.h>
+#include <favouritesitem.h>
 
 class COMADSFolderObject;
 class CVBookmarkConverter;

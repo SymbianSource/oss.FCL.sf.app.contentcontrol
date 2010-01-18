@@ -20,11 +20,11 @@
 #define __BOOKMARKDATASTORE_H__
 
 #include <SmlDataProvider.h>
-#include <FavouritesDb.h>
+#include <favouritesdb.h>
 #include <nsmlchangefinder.h>
 
 #include <FeedsServerClient.h>
-#include <FeedsServerFolderItem.h>
+#include <feedsserverfolderitem.h>
 
 class CNSmlDataItemUidSet;
 class CFavouritesItem;

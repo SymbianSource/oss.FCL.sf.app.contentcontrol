@@ -21,7 +21,7 @@
 
 #include <f32file.h>
 #include <MSenContentHandlerClient.h>
-#include <FavouritesItem.h>
+#include <favouritesitem.h>
 
 
 const TInt KMaxFolderNameLength = KFavouritesMaxName;
