@@ -966,6 +966,7 @@ void CAspScheduleDialog::SaveSettingsL()
 				iSchedule->SetProfileId(item->iNumberData);
 				if(oldProfile != iSchedule->ProfileId())
 					{
+                    iSchedule->SaveL(); //Saved values to be used in Update
 					iSchedule->UpdateProfileSettingsL();
 					}
 				break;

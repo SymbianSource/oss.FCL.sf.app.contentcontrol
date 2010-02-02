@@ -1258,8 +1258,13 @@ void CAspContentList::CreateTaskL(TInt aDataProviderId,
 			{
 			if (aDataProviderId == KUidNSmlAdapterCalendar.iUid )
                 {
-                TBuf<128> calLocalDb ;
-                CreateCalLocalDatabaseL(calLocalDb);
+                TBuf<KBufSize> calLocalDb ;
+				TRAPD(err ,RetrieveCalLocalDatabaseL(calLocalDb));
+				if (err != KErrNone)
+					{
+					CreateCalLocalDatabaseL(calLocalDb);
+					}				
+                
                 task.CreateL(iProfile->Profile(), aDataProviderId, 
                                               aRemoteDatabase, calLocalDb);
                 }
@@ -1334,9 +1339,23 @@ void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
             
     aCalName.Copy(KDrive);
     
-    TBuf<128> buffer;
+    TBuf<KBufSize> buffer;
     iProfile->GetName(buffer);
-     
+	
+	TInt currentProfileId = iProfile->ProfileId();
+	
+	if (buffer.Compare(KAutoSyncProfileName) == 0)
+		{
+		CAspSchedule* schedule = CAspSchedule::NewLC();
+		currentProfileId = schedule->ProfileId();
+		TAspParam param(iApplicationId, iSyncSession);
+		CAspProfile* selectedProfile = CAspProfile::NewLC(param);
+		selectedProfile->OpenL(currentProfileId, CAspProfile::EOpenRead, CAspProfile::EAllProperties);
+		selectedProfile->GetName(buffer);
+		CleanupStack::PopAndDestroy(selectedProfile);
+		CleanupStack::PopAndDestroy(schedule);
+		}
+		
     CCalSession* calSession = CCalSession::NewL();
     CleanupStack::PushL(calSession);
     
@@ -1424,7 +1443,7 @@ void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
 
     keyBuff.Zero();
     keyBuff.AppendNum( EDeviceSyncProfileID );
-    TPckgC<TInt> pckgProfileIdValue( iProfile->ProfileId() );    
+    TPckgC<TInt> pckgProfileIdValue( currentProfileId );    
     calinfo->SetPropertyL( keyBuff, pckgProfileIdValue );
 
     
@@ -1507,10 +1526,21 @@ void CAspContentList::RetrieveCalLocalDatabaseL(TDes& aCalName)
         keyBuff.AppendNum( EDeviceSyncProfileID );
         TPckgC<TInt> intBuf(profileId);
         TRAP_IGNORE(intBuf.Set(caleninfo->PropertyValueL(keyBuff)));
-                
         profileId = intBuf();
-        
-        if ( profileId == iProfile->ProfileId())
+		
+        TBuf<KBufSize> buffer;
+		iProfile->GetName(buffer);
+		
+		TInt currentProfileId = iProfile->ProfileId();
+	
+		if (buffer.Compare(KAutoSyncProfileName) == 0)
+			{
+			CAspSchedule* schedule = CAspSchedule::NewLC();
+			currentProfileId = schedule->ProfileId();
+			CleanupStack::PopAndDestroy(schedule);		
+			}
+		
+        if ( profileId == currentProfileId)
             {
             aCalName.Append(caleninfo->FileNameL());
             dbFound = ETrue;
@@ -2255,12 +2285,31 @@ void CAspProfileList::ReadAllProfilesL(TInt aListMode)
 
 	TInt count = arr.Count();
 
+	//Hiding OVI Sync profile
+	const TUid KUidOtaSyncCenRep                = { 0x20016C06 };
+	const TUid KCRUidOtaSyncProfileId           = { 0x102 };
+	TInt oviProfileId = KErrNotFound;
+	CRepository* centRep = NULL;
+
+	TRAPD(err ,centRep = CRepository::NewL(KUidOtaSyncCenRep));
+	if (err == KErrNone)
+		{
+		CleanupStack::PushL(centRep);
+		centRep->Get(KCRUidOtaSyncProfileId.iUid, oviProfileId);
+    	CleanupStack::PopAndDestroy();// centRep
+		}
 	for (TInt i=0; i<count; i++)
 		{
 		TAspParam param(iApplicationId, iSyncSession);
 		CAspProfile* profile = CAspProfile::NewLC(param);
 		TInt id = arr[i];
 		
+		//Hiding OVI Sync profile
+		if (id == oviProfileId)
+			{
+			CleanupStack::PopAndDestroy(profile);
+			continue;
+		    }
 		if (aListMode == EBasePropertiesOnly)
 			{
 			profile->OpenL(id, CAspProfile::EOpenRead, CAspProfile::EBaseProperties);
