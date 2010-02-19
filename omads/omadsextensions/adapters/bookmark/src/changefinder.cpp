@@ -165,12 +165,10 @@ void CChangeFinder::ResetL()
         {
         LOGGER_WRITE("iOldSnapshot->Reset()");
         iOldSnapshot->Reset();
+        // Write 'null' data to file, 
+        // this removes change history from the file
+        CloseL();
         }
-
-    // Write 'null' data to file, 
-    // this removes change history from the file
-    CloseL();
-    
     LOGGER_LEAVEFN( "CChangeFinder::ResetL" );
     }
 

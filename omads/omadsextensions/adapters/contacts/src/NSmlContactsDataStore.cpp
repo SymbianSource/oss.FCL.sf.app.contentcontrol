@@ -1910,12 +1910,61 @@ void CNSmlContactsDataStore::VPbkSingleContactOperationFailed(
 		 {
 	 	iWriteStream.Close();
 	 	User::RequestComplete( iCallerStatus, aError );
-		 }
-		else if(iLastOperation == ENSmlRetrieveOp)
-		 {
-		 	User::RequestComplete( iCallerStatus, aError );
-		 }
-	 }
+	 	}
+	else if (iLastOperation == ENSMLUpdateExportOp)
+        {
+        iWriteStream.Close();
+        delete iMergeItem;
+        iMergeItem = NULL;
+        User::RequestComplete( iCallerStatus, aError );
+        }
+	else if (iLastOperation == ENSMLUpdateImportOp)
+        {
+        if(iBatchMode)
+            {
+            iResultArray->Append( aError ); 
+            } 
+        delete iBuf;
+        iBuf = NULL;
+        iReadStream.Close();
+        iIndex++;
+        if(iIndex == iContactsBufferItemList.Count() )
+            {
+            ResetBuffer();
+            User::RequestComplete( iCallerStatus, aError );    
+            }
+        else
+            {
+            _DBG_FILE("VPbkSingleContactOperationFailed, Continuing to complete the Batch Operation");
+            ExecuteBufferL();
+            }
+        }
+	else if(iLastOperation == ENSmlRetrieveOp)
+	    {
+        iRetrieveCount--;	        
+        if(iBatchMode)
+            {
+            iResultArray->AppendL( aError ); 
+            }        
+        iIndex++;
+        if(iIndex == iContactsBufferItemList.Count() )
+            {
+            ResetBuffer();
+            User::RequestComplete( iCallerStatus, aError );    
+            }
+        else if(!iRetrieveCount)
+            {
+            _DBG_FILE("VPbkSingleContactOperationFailed, Continuing to complete the Batch Operation");
+            ExecuteBufferL();
+            }
+	    }
+    else
+        {
+        _DBG_FILE("VPbkSingleContactOperationFailed, No Matching LastOperation Completing the Operation");
+        User::RequestComplete( iCallerStatus, aError );    
+        }	
+	_DBG_FILE("CNSmlContactsDataStore::VPbkSingleContactOperationFailed(): end");
+	}
  // ---------------------------------------------------------------------------
 //  CNSmlContactsDataStore::VPbkSingleContactOperationFailed
 // ---------------------------------------------------------------------------
