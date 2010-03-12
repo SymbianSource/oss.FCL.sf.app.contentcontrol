@@ -18,7 +18,7 @@
 
 
 // INCLUDES
-#include "NSmlDataModBase.h"
+#include <NSmlDataModBase.h>
 #include <vcard.h>
 
 // ============================ MEMBER FUNCTIONS ===============================

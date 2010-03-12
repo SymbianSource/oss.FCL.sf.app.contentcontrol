@@ -135,7 +135,7 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 							display_name="Type";
 							name="TYPE";
 							data_type="";
-							enum_values={"HOME", "WORK", "CELL", "PAGER", "FAX", "VIDEO", "PREF", "CAR"};
+							enum_values={"HOME", "WORK", "VOICE", "CELL", "PAGER", "FAX", "VIDEO", "PREF", "CAR"};
 							}
 						};
 					},

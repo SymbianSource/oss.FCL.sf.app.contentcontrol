@@ -376,7 +376,7 @@ NONSHARABLE_CLASS (CAspProfileDialog) : public CAknDialog, public MEikListBoxObs
         * @param None.
 		* @return None.
         */
-		void SetVisibility();
+		void SetVisibilityL();
 		
         /**
         * Set all settings to read-only state.

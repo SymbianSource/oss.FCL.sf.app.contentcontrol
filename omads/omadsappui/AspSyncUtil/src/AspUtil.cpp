@@ -33,6 +33,7 @@
 #include <hlplch.h>    // HlpLauncher
 
 #include <MuiuMsvUiServiceUtilities.h> // for MsvUiServiceUtilities
+#include <NsmlOperatorDataCRKeys.h> // KCRUidOperatorDatasyncInternalKeys
 
 
 #include "AspUtil.h"
@@ -345,7 +346,65 @@ TInt TUtil::ProviderIdFromAppId(TInt aApplicationId)
 	return id;
 	}
 
+// -----------------------------------------------------------------------------
+// TUtil::ProviderIdFromAppId
+//
+// -----------------------------------------------------------------------------
+//
+TInt TUtil::ProviderIdFromAppId(TInt aApplicationId, TBool aOperatorProfile)
+    {
+    TInt id=KErrNotFound;
 
+    if (aOperatorProfile)
+        {
+        id = OperatorProviderIdFromAppId( aApplicationId );
+        }
+    else
+        {
+        id = ProviderIdFromAppId( aApplicationId );
+        }
+    return id;
+    }
+
+// -----------------------------------------------------------------------------
+// TUtil::OperatorProviderIdFromAppId
+//
+// -----------------------------------------------------------------------------
+//
+TInt TUtil::OperatorProviderIdFromAppId(TInt aApplicationId)
+    {
+    TInt id = KErrNotFound;
+    CRepository* repository = NULL;
+    
+    TInt err = KErrNotFound;
+    TRAP(err, repository = CRepository::NewL(KCRUidOperatorDatasyncInternalKeys));
+    if (err == KErrNone)
+        {
+        switch (aApplicationId)
+            {
+             // Operator specific version of Contacts adapter is supported
+            case EApplicationIdContact:
+                {
+                err = repository->Get(KNsmlOpDsOperatorAdapterUid, id);
+                break;
+                }
+            default:
+                {
+                id = ProviderIdFromAppId(aApplicationId);
+                break;
+                }
+            }
+         delete repository;
+        }
+
+    if ( (id == KErrNotFound) || (err != KErrNone) )
+        {
+        // Use default adapter
+        id = ProviderIdFromAppId(aApplicationId);        
+        }
+    return id;
+    }
+        
 // -----------------------------------------------------------------------------
 // TUtil::AppIdFromProviderId
 //
@@ -371,9 +430,37 @@ TInt TUtil::AppIdFromProviderId(TInt aAdapterId)
 		{
 		id = EApplicationIdNote;
 		}
-
+	if (id == KErrNotFound) // Check if this operator specific adapter
+	    {
+	    id = AppIdFromOperatorSpecificProviderId( aAdapterId );
+	    }
 	return id;
 	}
+
+// -----------------------------------------------------------------------------
+// TUtil::AppIdFromOperatorSpecificProviderId
+//
+// -----------------------------------------------------------------------------
+//
+TInt TUtil::AppIdFromOperatorSpecificProviderId(TInt aAdapterId)
+    {
+    TInt id=KErrNotFound;
+    CRepository* repository = NULL;
+    
+    TRAPD(err, repository = CRepository::NewL(KCRUidOperatorDatasyncInternalKeys));
+    if (err == KErrNone)
+        {
+        TInt operatorContactsProvider = KErrNotFound;
+        err = repository->Get(KNsmlOpDsOperatorAdapterUid, operatorContactsProvider);
+        
+        if ( err == KErrNone && aAdapterId == operatorContactsProvider )
+            {
+            id = EApplicationIdContact;
+            }
+        delete repository;
+        }
+    return id;
+    }
 
 
 // -----------------------------------------------------------------------------

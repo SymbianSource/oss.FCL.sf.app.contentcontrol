@@ -79,7 +79,15 @@ CNSmlContactsModsFetcher::~CNSmlContactsModsFetcher()
 	
 	_DBG_FILE("CNSmlContactsModsFetcher::~CNSmlContactsModsFetcher(): end");
 	}
-	
+
+// ----------------------------------------------------------------------------
+// CNSmlContactsModsFetcher::CancelRequest
+// ----------------------------------------------------------------------------
+void CNSmlContactsModsFetcher::CancelRequest()
+     {
+     Cancel();
+     }
+
 // ------------------------------------------------------------------------------------------------
 // CNSmlContactsModsFetcher::FetchModificationsL
 // ------------------------------------------------------------------------------------------------

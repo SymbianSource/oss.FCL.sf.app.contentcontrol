@@ -21,6 +21,9 @@
 
 #include <SyncMLTransportProperties.h>
 #include <featmgr.h>   // FeatureManager
+#include <centralrepository.h> // CRepository
+#include <NSmlOperatorDataCRKeys.h> // KCRUidOperatorDatasyncInternalKeys
+
 #include <calsession.h>
 #include <calcalendarinfo.h>
 #include <e32math.h>
@@ -407,6 +410,10 @@ void CAspContentList::DoInitDataProvidersL()
 	Session().ListDataProvidersL(arr);
 	CleanupClosePushL(arr);
 
+	TBool operatorProfile = CAspProfile::IsOperatorProfileL(iProfile);
+	TInt operatorUid = CAspProfile::OperatorAdapterUidL();
+	TInt profileUid = CAspProfile::ProfileAdapterUidL();
+	
 	TInt count = arr.Count();
 	for (TInt i=0; i<count; i++)
 		{
@@ -430,9 +437,29 @@ void CAspContentList::DoInitDataProvidersL()
 		    	FTRACE( RDebug::Print(_L("### provider has no display name (id=%x) ###"), item.iDataProviderId) );
 		    	continue;
 		    	}
-	
-		    User::LeaveIfError(iProviderList.Append(item));
-	        
+
+		    if ( iApplicationId == 0 )
+		        {
+		        if ( operatorProfile )
+		            {
+		            if ( id != KUidNSmlAdapterContact.iUid )
+		                {
+		                User::LeaveIfError(iProviderList.Append(item)); 
+		                }
+		            }
+		        else
+		            {
+		            if ( id != operatorUid && id != profileUid )
+		                {
+		                User::LeaveIfError(iProviderList.Append(item));
+		                }
+		            }
+		        }
+		    else
+		        {
+                User::LeaveIfError(iProviderList.Append(item));
+		        }
+            
 	        CleanupStack::PopAndDestroy(&provider);
 		    }
 		    
@@ -2242,7 +2269,7 @@ void CAspProfileList::ReadProfileL(TInt aProfileId)
 
 	if (iApplicationId != EApplicationIdSync)
 		{
-		TInt dataProviderId = TUtil::ProviderIdFromAppId(iApplicationId);
+		TInt dataProviderId = TUtil::ProviderIdFromAppId(iApplicationId, CAspProfile::IsOperatorProfileL(profile));
 		TInt taskId = TAspTask::FindTaskIdL(profile, dataProviderId, KNullDesC);
 		item.iTaskId = taskId; // needed for syncing only one content 
 		}
@@ -2325,13 +2352,20 @@ void CAspProfileList::ReadAllProfilesL(TInt aListMode)
 			profile->OpenL(id, CAspProfile::EOpenRead, CAspProfile::EAllProperties);
 			}
 			
+		
+		// Hidden operator specific profile should not be visible
+		if (profile->IsHiddenOperatorProfileL())
+		    {
+		    CleanupStack::PopAndDestroy(profile);
+		    continue;
+		    }
 
 		TAspProfileItem item;
 		item.Init();
 		
 		if (iApplicationId != EApplicationIdSync)
 			{
-			TInt dataProviderId = TUtil::ProviderIdFromAppId(iApplicationId);
+			TInt dataProviderId = TUtil::ProviderIdFromAppId(iApplicationId, CAspProfile::IsOperatorProfileL(profile));
 			TInt taskId = TAspTask::FindTaskIdL(profile, dataProviderId, KNullDesC);
 			item.iTaskId = taskId; // needed for syncing only one content 
 			}
@@ -2567,7 +2601,13 @@ TBool CAspProfileList::IsUniqueServerId(const TDesC& aServerId, TInt aProfileId)
 		{
 		return ETrue;
 		}
-		
+
+    // Operator specific serverID is not considered as unique
+	if (CAspProfile::EqualsToOperatorServerId(aServerId))
+	    {
+	    return EFalse;
+	    }
+
 	TBool serverIdFound = EFalse;
 	
 	TInt count = iList.Count();
@@ -2916,9 +2956,20 @@ TInt CAspProfile::ProfileId()
 // -----------------------------------------------------------------------------
 //
 TBool CAspProfile::DeleteAllowed()
-	{
-	return iProfile.DeleteAllowed();
-	}
+    {
+    TBool operatorProfile = EFalse;
+    TRAPD( err, operatorProfile = IsReadOnlyOperatorProfileL() );
+
+    // Disallow deletion of operator specific profile
+    if( err == KErrNone && operatorProfile )
+        {
+        return EFalse;
+        }
+    else
+        {
+        return iProfile.DeleteAllowed();
+        }
+    }
 
 
 // -----------------------------------------------------------------------------
@@ -4123,7 +4174,133 @@ void CAspProfile::GetLocalisedPCSuite(TDes& aText)
  		}
 }
 
+//-----------------------------------------------------------------------------
+// CAspProfile:::IsOperatorProfileL
+// 
+//-----------------------------------------------------------------------------
+//
+TBool CAspProfile::IsOperatorProfileL( CAspProfile* aProfile )
+    {
+    if ( !aProfile )
+        {
+        return EFalse;
+        }
 
+    TBuf<KBufSize255> serverId;
+    TBuf8<KBufSize255> serverIdUtf8;
+    TBuf8<KBufSize255> value;
+    
+    aProfile->GetServerId( serverId );
+    if ( serverId.Length() > 0 )
+        {
+        serverIdUtf8.Copy( serverId );
+    
+        CRepository* rep = CRepository::NewLC( KCRUidOperatorDatasyncInternalKeys );
+        TInt err = rep->Get( KNsmlOpDsOperatorSyncServerId, value );
+        CleanupStack::PopAndDestroy( rep );
+    
+        if ( !err && serverIdUtf8.Compare( value ) == 0 )
+            {
+            return ETrue;
+            }
+        }
+    return EFalse;
+    }
+
+//-----------------------------------------------------------------------------
+// CAspProfile:::OperatorAdapterUidL
+// 
+//-----------------------------------------------------------------------------
+//
+TInt CAspProfile::OperatorAdapterUidL()
+    {
+    TInt value = 0;
+    CRepository* rep = CRepository::NewLC( KCRUidOperatorDatasyncInternalKeys );
+    rep->Get( KNsmlOpDsOperatorAdapterUid, value );
+    CleanupStack::PopAndDestroy( rep );
+    return value;
+    }
+
+//-----------------------------------------------------------------------------
+// CAspProfile:::ProfileAdapterUidL
+// 
+//-----------------------------------------------------------------------------
+//
+TInt CAspProfile::ProfileAdapterUidL()
+    {
+    TInt value = 0;
+    CRepository* rep = CRepository::NewLC( KCRUidOperatorDatasyncInternalKeys );
+    rep->Get( KNsmlOpDsProfileAdapterUid, value );
+    CleanupStack::PopAndDestroy( rep );
+    return value;
+    }
+
+//-----------------------------------------------------------------------------
+// CAspProfile:::ProfileVisibilityL
+// 
+//-----------------------------------------------------------------------------
+//
+TInt CAspProfile::ProfileVisibilityL()
+    {
+    TInt value = 0;
+    CRepository* rep = CRepository::NewLC( KCRUidOperatorDatasyncInternalKeys );
+    rep->Get( KNsmlOpDsSyncProfileVisibility, value );
+    CleanupStack::PopAndDestroy( rep );
+    return value;
+    }
+
+//-----------------------------------------------------------------------------
+// CAspProfile:::IsReadOnlyOperatorProfileL
+// 
+//-----------------------------------------------------------------------------
+//
+TBool CAspProfile::IsReadOnlyOperatorProfileL()
+    {
+    return ( IsOperatorProfileL( this ) && 
+        ProfileVisibilityL() == EProfileVisibilityReadOnly );
+    }
+
+//-----------------------------------------------------------------------------
+// CAspProfile:::IsHiddenOperatorProfileL
+// 
+//-----------------------------------------------------------------------------
+//
+TBool CAspProfile::IsHiddenOperatorProfileL()
+    {
+    return ( IsOperatorProfileL( this ) && 
+        ProfileVisibilityL() == EProfileVisibilityHidden );
+    }
+
+//-----------------------------------------------------------------------------
+// CAspProfile:::EqualsToOperatorServerIdL
+// 
+//-----------------------------------------------------------------------------
+//
+TBool CAspProfile::EqualsToOperatorServerId( const TDesC& aServerId )
+    {
+    if ( aServerId.Length() > 0 )
+        {
+        TBuf8<KBufSize255> serverIdUtf8;
+        TBuf8<KBufSize255> value;
+        serverIdUtf8.Copy( aServerId );
+
+        // Read operator specific serverId from cenrep
+        CRepository* rep = NULL;
+        TRAPD( err, rep = CRepository::NewL( KCRUidOperatorDatasyncInternalKeys ) );
+        if( err == KErrNone )
+            {
+            rep->Get( KNsmlOpDsOperatorSyncServerId, value );
+            delete rep;
+
+            if ( serverIdUtf8.Compare( value ) == 0 )
+                {
+                return ETrue;
+                }
+            }
+        }
+
+    return EFalse;
+    }
 
 /*******************************************************************************
  * class TAspTask

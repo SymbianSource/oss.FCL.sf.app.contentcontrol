@@ -729,7 +729,7 @@ TBool CAspSyncUtil::CheckTaskAndProtocolL(TInt aProfileId ,const TDesC& aLocalDa
 			return EFalse;
 		}
 	
-	TInt dataProviderId = TUtil::ProviderIdFromAppId(iApplicationId);
+	TInt dataProviderId = TUtil::ProviderIdFromAppId(iApplicationId, CAspProfile::IsOperatorProfileL(profile));
 	iContentList->RemoveAllTasks();
 	iContentList->SetProfile(profile);
 	iContentList->InitAllTasksL();

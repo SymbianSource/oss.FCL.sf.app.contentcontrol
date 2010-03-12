@@ -25,7 +25,7 @@
 #include <f32file.h>
 #include <cntdb.h>
 #include <cntitem.h>
-#include "nsmlchangefinder.h"
+#include <MContactsModsFetcher.h>
 
 #include <CVPbkContactManager.h>
 #include <MVPbkContactStore.h>
@@ -41,13 +41,15 @@ const TInt KNSmlSnapshotSmallSize = 8;
 _LIT( KNSmlContactSyncNoSync, "none" ); // Taken from phonebook
 
 // CLASS DECLARATION
+class CNSmlChangeFinder;
+class TNSmlSnapshotItem;
 
 // ------------------------------------------------------------------------------------------------
 // CNSmlContactsModsFetcher
 //
 // @lib nsmlcontactsdataprovider.lib
 // ------------------------------------------------------------------------------------------------
-class CNSmlContactsModsFetcher : public CActive,
+class CNSmlContactsModsFetcher : public CActive, public MContactsModsFetcher,
 								MVPbkContactViewObserver,
 								MVPbkSingleContactOperationObserver,
 								MVPbkContactOperationBase
@@ -66,12 +68,6 @@ class CNSmlContactsModsFetcher : public CActive,
 		* Second phase constructor.
 		*/
 		void ConstructL();
-
-		/**
-		* Reads all modifications from clients contacts databse.
-		* @param		aStatus				On completion of the operation, contains the result code.
-		*/
-		void FetchModificationsL( TRequestStatus& aStatus );
 
 		/**
 		* ~CNSmlContactsModsFetcher() desctructor.
@@ -170,7 +166,20 @@ class CNSmlContactsModsFetcher : public CActive,
 		*						added to snapshot
 		*/
         void UpdateSnapshotL( MVPbkStoreContact* aContact );
-		
+
+    private: // from MContactsModsFetcher
+
+        /**
+        * Cancels the current asynchronous request
+        */
+        void CancelRequest( );
+
+        /**
+        * Reads all modifications from clients contacts databse.
+        * @param    aStatus   On completion of the operation, contains the result code.
+        */    
+        void FetchModificationsL( TRequestStatus& aStatus );
+
 	private: // data
 		TRequestStatus* iCallerStatus;
 		TTime iFromTime;

@@ -17,7 +17,7 @@
 
 
 // INCLUDES
-#include "NSmlDataModBase.h"
+#include <NSmlDataModBase.h>
 #include "nsmldebug.h"
 #include "nsmlconstants.h"
 
@@ -458,7 +458,6 @@ void CNSmlDataModBase::StripAllNotOnPartnerListL( CVersitParser* aEntity, TBool&
         for( TInt i = 0; i < allProps->Count(); ) // Variable i is not increased here because size of count might be changes during loop
             {
             const CParserProperty& ownProperty = *allProps->At( i );
-            TBuf8<30> name = ownProperty.Name();
             CParserPropertyValue* ownValue = ownProperty.Value();
 
             TBool removeMe( ETrue );
@@ -676,10 +675,10 @@ void CNSmlDataModBase::MergeEntityL( CVersitParser* aNewEntity, CVersitParser* a
 	// it was still sent to us.
 	StripAllNotOnPartnerListL( aNewEntity, aModified );
 	
-	// Remove all properties from old item that are supported by remote server.
-	// If it is field level then old this is not done.
 	if( !aFieldLevel )
 		{
+		// Remove all properties from old item that are supported by remote server.
+		// If it is field level then old this is not done.
 		StripAllOnPartnerListL( aOldEntity, aModified, ETrue );
 		CArrayPtr<CParserProperty>* mergeProps = aOldEntity->ArrayOfProperties( ETrue );
 		if( mergeProps )
@@ -694,9 +693,65 @@ void CNSmlDataModBase::MergeEntityL( CVersitParser* aNewEntity, CVersitParser* a
 			CleanupStack::PopAndDestroy(); // mergeProps
 		    }
 		}
-	else
-		{
-		User::Leave( KErrNotSupported );
+    else // Support for Field level merge
+        {
+        //Field level merge. Merge new item with old item. Properties of 
+        //the old item are copied to new item if the new item entity does not 
+        //contain certain property.
+        //------------------------------------------------------------------------
+        // Old                 New                          Merged                 
+        //------------------------------------------------------------------------
+        // BEGIN:VCARD       -> BEGIN:VCARD                 = BEGIN:VCARD 
+        // VERSION:2.1       -> VERSION:2.1                 = VERSION:2.1
+        // N:Smith;John      -> N:White;John                = N:White;John
+        // ORG:Firm                                         = ORG:Firm
+        // TITLE:Boss                                       = TITLE:Boss
+        //                   -> TEL;CELL;VOICE:1234         = TEL;CELL;VOICE:1234
+        // END:VCARD         -> END:VCARD                   = END:VCARD
+
+        CArrayPtr<CParserProperty>* newProps = aNewEntity->ArrayOfProperties( EFalse );
+        if( newProps )
+            {
+            CArrayPtr<CParserProperty>* oldProps = aOldEntity->ArrayOfProperties( EFalse );
+
+            // Iterate through old list of properties. Add missing properties from old 
+            // contact item, if some of the properties is not included in new item. 
+            for( TInt i = 0; i < oldProps->Count(); ) 
+                {
+                CParserProperty* oldProperty = oldProps->At( i );
+                
+                //Check if the property is included in received vCard
+                CArrayPtr<CParserProperty>* properties = aNewEntity->PropertyL( 
+                    oldProperty->Name(), oldProperty->Uid(), EFalse );
+
+                if ( !properties )
+                    {
+                    // New vCard does not include certain property. Copy all matching properties from 
+                    // existing contact item.
+                    CArrayPtr<CParserProperty>* oldProperties =
+                        aOldEntity->PropertyL( oldProperty->Name(), oldProperty->Uid(), ETrue );
+                    CleanupPtrArrayPushL( oldProperties );
+                    
+                    for ( TInt j = oldProperties->Count()-1; j >= 0; --j )
+                        {
+                        CParserProperty* property = oldProperties->At( j );
+                        oldProperties->Delete( j );
+                        CleanupStack::PushL( property );
+                        aNewEntity->AddPropertyL( property, EFalse );
+                        CleanupStack::Pop( property );
+                        aModified = ETrue;
+                        }       
+                    CleanupStack::PopAndDestroy( oldProperties );
+                    }
+                else
+                    {
+                    // If new vCard includes at least one property with same name we will not copy 
+                    // any any property with same name from existing contact item.
+                    delete properties;
+                     ++i;
+                    }
+                }
+            }
 		}
 	
 	#ifdef __NSML_DEBUG__

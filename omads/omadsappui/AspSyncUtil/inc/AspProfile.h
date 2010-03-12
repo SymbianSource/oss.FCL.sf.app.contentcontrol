@@ -37,6 +37,17 @@ const TInt KNsmlDsDefaultProfile = 0x0;
 
 // CONSTANTS
 
+// Visibility settings for operator specific sync profiles on UI
+// - Normal = Profile shown without any specific formatting
+// - ReadOnly = Profile fields locked (non-editable), deletion not allowed
+// - Hidden = Profile not shown in UI
+enum TOperatorProfileVisibility
+    {
+    EProfileVisibilityNormal = 0,
+    EProfileVisibilityReadOnly = 1,
+    EProfileVisibilityHidden = 2
+    };
+
 // FORWARD DECLARATIONS
 class CAspProfile;
 
@@ -1180,6 +1191,52 @@ NONSHARABLE_CLASS (CAspProfile) : public CBase
         */
         static TBool IsPCSuiteProfile(CAspProfile* aProfile);
         
+        /**
+        * Is this profile Operator specific profile.
+        * @param aProfile.
+        * @return Boolean.
+        */
+        static TBool IsOperatorProfileL(CAspProfile* aProfile);
+        
+        /**
+        * Get Operator adapter Uid.
+        * @return Operator adapter Uid .
+        */
+        static TInt OperatorAdapterUidL();  
+        
+        /**
+        * Get Profile adapter Uid.
+        * @return Profile adapter Uid .
+        */
+        static TInt ProfileAdapterUidL();
+
+        /**
+        * Get Operator profile visibility setting. 
+        * @return Visibility setting value.
+        */
+        static TInt ProfileVisibilityL();
+
+        
+        /**
+        * Is this profile read-only operator specific profile.
+        * @return Boolean.
+        */
+        TBool IsReadOnlyOperatorProfileL();
+        
+        /**
+        * Is this profile hidden operator specific profile.
+        * @return Boolean.
+        */
+        TBool IsHiddenOperatorProfileL();
+
+        /**
+         * Does the given serverID equal with the operator specific
+         * serverID value (defined in central repository).
+         * @param aServerId to be compared
+         * @return Boolean
+         */
+        static TBool EqualsToOperatorServerId( const TDesC& aServerId );
+
     public:
   		/**
 		* Check mandatory task data.

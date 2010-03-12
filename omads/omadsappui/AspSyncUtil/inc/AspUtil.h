@@ -134,7 +134,10 @@ NONSHARABLE_CLASS (TUtil)
 		static TBool IsEmpty(const TDesC& aText);
 		
 		static TInt ProviderIdFromAppId(TInt aApplicationId);
+		static TInt ProviderIdFromAppId(TInt aApplicationId, TBool aOperatorProfile);
+		static TInt OperatorProviderIdFromAppId(TInt aApplicationId);
 		static TInt AppIdFromProviderId(TInt aAdapterId);
+		static TInt AppIdFromOperatorSpecificProviderId(TInt aAdapterId);
 		static TBool IsValidAppId(TInt aApplicationId);
 		static TBool IsValidSID(TInt aApplicationId);
 		

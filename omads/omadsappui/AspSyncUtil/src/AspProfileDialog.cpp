@@ -416,7 +416,7 @@ void CAspProfileDialog::ProcessCommandL(TInt aCommandId)
 				// open editor for Yes/No setting
 				if (EditSettingItemListL(*item))
 					{
-					SetVisibility();
+					SetVisibilityL();
 					UpdateListBoxL(ListBox(), iSettingList);
 					}
 				}				
@@ -859,7 +859,7 @@ void CAspProfileDialog::HandleOKL()
 
 	if (EditSettingItemL(*item))
 		{
-		SetVisibility();
+		SetVisibilityL();
 		UpdateListBoxL(ListBox(), iSettingList);
 		}
 	}
@@ -910,7 +910,7 @@ void CAspProfileDialog::CreateSettingsListL()
 		InitSettingItemL((*iSettingList)[i]);
 		}
 
-	SetVisibility();  // find out what setting appear on UI
+	SetVisibilityL();  // find out what setting appear on UI
 
 	CleanupStack::PopAndDestroy(arr);
 	}
@@ -963,7 +963,27 @@ void CAspProfileDialog::AddContentItemsL()
 			{
 			continue;
 			}
-				
+		
+		// In Phonebooks syncronization settings, remove another provider from
+		// end of settings item list
+		if (appId == EApplicationIdContact)
+			{
+			TInt operatorUid = CAspProfile::OperatorAdapterUidL();
+			//if current profile is operator profile, don't display s60 contacts adapter
+			if (CAspProfile::IsOperatorProfileL(iProfile))
+				{
+				if (operatorUid != providerItem.iDataProviderId)
+					{
+					continue;
+					}
+				}
+            //if current profile is not operator profile, don't display operator adapter
+            else if (operatorUid == providerItem.iDataProviderId)
+                {
+                continue;
+                }
+			}
+
 		HBufC* firstLine = CAspResHandler::GetContentSettingLC(
 		                                   providerItem.iDataProviderId,
 		                                   providerItem.iDisplayName);
@@ -1042,11 +1062,11 @@ void CAspProfileDialog::UpdateListBoxL(CEikTextListBox* aListBox,
 
 
 // -----------------------------------------------------------------------------
-// CAspProfileDialog::SetVisibility
+// CAspProfileDialog::SetVisibilityL
 // 
 // -----------------------------------------------------------------------------
 //
-void CAspProfileDialog::SetVisibility()
+void CAspProfileDialog::SetVisibilityL()
 	{
     TBool isPCSuite = CAspProfile::IsPCSuiteProfile(iProfile);
     
@@ -1123,7 +1143,8 @@ void CAspProfileDialog::SetVisibility()
 #endif
 	
     if (iEditMode == EDialogModeReadOnly || 
-        iEditMode == EDialogModeSettingEnforcement)
+        iEditMode == EDialogModeSettingEnforcement ||
+        iProfile->IsReadOnlyOperatorProfileL() )
     	{
     	SetAllReadOnly();
     	}

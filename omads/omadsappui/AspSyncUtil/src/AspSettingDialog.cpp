@@ -2092,6 +2092,13 @@ void CAspSettingDialog::CreateProfileL()
 		UpdateNavipaneL(iCurrentProfileName);
 #endif
 		}
+	else
+	    {
+#ifdef RD_DSUI_TIMEDSYNC 
+    
+        UpdateTabsL();
+#endif
+	    }
 	}
 
 

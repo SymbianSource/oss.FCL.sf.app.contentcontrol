@@ -20,3 +20,5 @@
 #include "../oma_ds_presync_plugin_api/group/bld.inf"
 #include "../ds_agenda_handler_plugin_api/group/bld.inf"
 #include "../ds_folder_util_api/group/bld.inf"
+#include "../adapter_customization_api/group/bld.inf"
+#include "../ds_data_modification_api/group/bld.inf"

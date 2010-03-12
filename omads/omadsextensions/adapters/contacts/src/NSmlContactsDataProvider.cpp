@@ -34,10 +34,10 @@
 #include <vtoken.h>
 #include <e32property.h>
 #include <DataSyncInternalPSKeys.h>
-#include "NSmlContactsDataProvider.h"
+#include <NSmlContactsDataProvider.h>
 #include "nsmldebug.h"
 #include "nsmlconstants.h"
-#include "NSmlDataModBase.h"
+#include <NSmlDataModBase.h>
 #include "nsmldsimpluids.h"
 #include "nsmlchangefinder.h"
 
@@ -47,7 +47,7 @@
 // CNSmlContactsDataProvider::NewL
 // -----------------------------------------------------------------------------
 //
-CNSmlContactsDataProvider* CNSmlContactsDataProvider::NewL()
+EXPORT_C CNSmlContactsDataProvider* CNSmlContactsDataProvider::NewL()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::NewL(): begin");
 	CNSmlContactsDataProvider* self = NewLC();
@@ -60,7 +60,7 @@ CNSmlContactsDataProvider* CNSmlContactsDataProvider::NewL()
 // CNSmlContactsDataProvider::NewLC
 // -----------------------------------------------------------------------------
 //
-CNSmlContactsDataProvider* CNSmlContactsDataProvider::NewLC()
+EXPORT_C CNSmlContactsDataProvider* CNSmlContactsDataProvider::NewLC()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::NewLC(): begin");
 	
@@ -75,7 +75,7 @@ CNSmlContactsDataProvider* CNSmlContactsDataProvider::NewLC()
 // CNSmlContactsDataProvider::CNSmlContactsDataProvider
 // -----------------------------------------------------------------------------
 //
-CNSmlContactsDataProvider::CNSmlContactsDataProvider()
+EXPORT_C CNSmlContactsDataProvider::CNSmlContactsDataProvider()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::CNSmlContactsDataProvider(): begin");
 	_DBG_FILE("CNSmlContactsDataProvider::CNSmlContactsDataProvider(): end");
@@ -85,13 +85,14 @@ CNSmlContactsDataProvider::CNSmlContactsDataProvider()
 // CNSmlContactsDataProvider::ConstructL
 // -----------------------------------------------------------------------------
 //
-void CNSmlContactsDataProvider::ConstructL()
+EXPORT_C void CNSmlContactsDataProvider::ConstructL()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::ConstructL(): begin");
 	
 	User::LeaveIfError( iRfs.Connect() );
 
-	iContactsDataStore = CNSmlContactsDataStore::NewL();	
+	iContactsDataStore = CreateDataStoreLC();
+	CleanupStack::Pop( iContactsDataStore );
 	
 	iStringPool.OpenL();
 	
@@ -102,7 +103,7 @@ void CNSmlContactsDataProvider::ConstructL()
 // CNSmlContactsDataProvider::~CNSmlContactsDataProvider
 // -----------------------------------------------------------------------------
 //
-CNSmlContactsDataProvider::~CNSmlContactsDataProvider()
+EXPORT_C CNSmlContactsDataProvider::~CNSmlContactsDataProvider()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::~CNSmlContactsDataProvider(): begin");
 
@@ -122,7 +123,7 @@ CNSmlContactsDataProvider::~CNSmlContactsDataProvider()
 // CNSmlContactsDataProvider::DoOnFrameworkEvent
 // -----------------------------------------------------------------------------
 //
-void CNSmlContactsDataProvider::DoOnFrameworkEvent( TSmlFrameworkEvent /*aFrameworkEvent*/, TInt /*aParam1*/, TInt /*aParam2*/ )
+EXPORT_C void CNSmlContactsDataProvider::DoOnFrameworkEvent( TSmlFrameworkEvent /*aFrameworkEvent*/, TInt /*aParam1*/, TInt /*aParam2*/ )
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoOnFrameworkEvent(): begin");
 	_DBG_FILE("CNSmlContactsDataProvider::DoOnFrameworkEvent(): end");
@@ -132,7 +133,7 @@ void CNSmlContactsDataProvider::DoOnFrameworkEvent( TSmlFrameworkEvent /*aFramew
 // CNSmlContactsDataProvider::DoSupportsOperation
 // -----------------------------------------------------------------------------
 //
-TBool CNSmlContactsDataProvider::DoSupportsOperation( TUid aOpId ) const
+EXPORT_C TBool CNSmlContactsDataProvider::DoSupportsOperation( TUid aOpId ) const
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoSupportsOperation(): begin");
 
@@ -151,7 +152,7 @@ TBool CNSmlContactsDataProvider::DoSupportsOperation( TUid aOpId ) const
 // CNSmlContactsDataProvider::DoStoreFormatL
 // -----------------------------------------------------------------------------
 //
-const CSmlDataStoreFormat& CNSmlContactsDataProvider::DoStoreFormatL()
+EXPORT_C const CSmlDataStoreFormat& CNSmlContactsDataProvider::DoStoreFormatL()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoStoreFormatL(): begin");
 	
@@ -167,22 +168,8 @@ const CSmlDataStoreFormat& CNSmlContactsDataProvider::DoStoreFormatL()
     
 	TFileName resourceFileName;
 	resourceFileName.Copy( TParsePtrC( dllFileName ).Drive() );  
-	// Check correct Data Sync protocol
-    TInt value( EDataSyncNotRunning );
-    TInt error = RProperty::Get( KPSUidDataSynchronizationInternalKeys,
-                                 KDataSyncStatus,
-                                 value );
-    if ( error == KErrNone &&
-         value == EDataSyncRunning )
-        {
-        resourceFileName.Append(KNSmlContactsStoreFormatRsc_1_1_2);
-        parse.Set( resourceFileName, &KDC_RESOURCE_FILES_DIR, NULL );
-        }
-    else // error or protocol version 1.2 
-        {
-        resourceFileName.Append(KNSmlContactsStoreFormatRsc_1_2);
-        parse.Set( resourceFileName, &KDC_RESOURCE_FILES_DIR, NULL );
-        }		
+
+	parse.Set( GetStoreFormatResourceFileL(), &KDC_RESOURCE_FILES_DIR, NULL );
 
 	fileName = parse.FullName();
 
@@ -211,7 +198,7 @@ const CSmlDataStoreFormat& CNSmlContactsDataProvider::DoStoreFormatL()
 // CNSmlContactsDataProvider::DoListStoresLC
 // -----------------------------------------------------------------------------
 //
-CDesCArray* CNSmlContactsDataProvider::DoListStoresLC()
+EXPORT_C CDesCArray* CNSmlContactsDataProvider::DoListStoresLC()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoListStoresLC(): begin");
 	_DBG_FILE("CNSmlContactsDataProvider::DoListStoresLC(): end");
@@ -223,7 +210,7 @@ CDesCArray* CNSmlContactsDataProvider::DoListStoresLC()
 // CNSmlContactsDataProvider::DoDefaultStoreL
 // -----------------------------------------------------------------------------
 //
-const TDesC& CNSmlContactsDataProvider::DoDefaultStoreL()
+EXPORT_C const TDesC& CNSmlContactsDataProvider::DoDefaultStoreL()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoIdentifier(): begin");
 	_DBG_FILE("CNSmlContactsDataProvider::DoIdentifier(): end");
@@ -235,12 +222,11 @@ const TDesC& CNSmlContactsDataProvider::DoDefaultStoreL()
 // CNSmlContactsDataProvider::DoNewStoreInstanceLC
 // -----------------------------------------------------------------------------
 //
-CSmlDataStore* CNSmlContactsDataProvider::DoNewStoreInstanceLC()
+EXPORT_C CSmlDataStore* CNSmlContactsDataProvider::DoNewStoreInstanceLC()
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoNewStoreInstanceLC(): begin");
 
-	CNSmlContactsDataStore* newDataStore = CNSmlContactsDataStore::NewL();
-	CleanupStack::PushL( newDataStore );
+	CNSmlContactsDataStore* newDataStore = CreateDataStoreLC();
 
 	_DBG_FILE("CNSmlContactsDataProvider::DoNewStoreInstanceLC(): end");
 
@@ -251,7 +237,7 @@ CSmlDataStore* CNSmlContactsDataProvider::DoNewStoreInstanceLC()
 // CNSmlContactsDataProvider::DoSupportedServerFiltersL
 // 
 // ------------------------------------------------------------------------------------------------
-const RPointerArray<CSyncMLFilter>& CNSmlContactsDataProvider::DoSupportedServerFiltersL()
+EXPORT_C const RPointerArray<CSyncMLFilter>& CNSmlContactsDataProvider::DoSupportedServerFiltersL()
 	{
 	// This method returns empty array. It means that this Data Provider does not support filtering
 	_DBG_FILE("CNSmlContactsDataProvider::DoSupportedServerFiltersL(): BEGIN");
@@ -263,7 +249,7 @@ const RPointerArray<CSyncMLFilter>& CNSmlContactsDataProvider::DoSupportedServer
 // CNSmlContactsDataProvider::DoCheckSupportedServerFiltersL
 // 
 // ------------------------------------------------------------------------------------------------
-void CNSmlContactsDataProvider::DoCheckSupportedServerFiltersL( const CSmlDataStoreFormat& /*aServerDataStoreFormat*/, RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterChangeInfo& /*aChangeInfo*/ )
+EXPORT_C void CNSmlContactsDataProvider::DoCheckSupportedServerFiltersL( const CSmlDataStoreFormat& /*aServerDataStoreFormat*/, RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterChangeInfo& /*aChangeInfo*/ )
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoCheckSupportedServerFiltersL(): BEGIN");
 	User::Leave( KErrNotSupported );
@@ -274,7 +260,7 @@ void CNSmlContactsDataProvider::DoCheckSupportedServerFiltersL( const CSmlDataSt
 // CNSmlContactsDataProvider::CheckServerFiltersL
 // 
 // ------------------------------------------------------------------------------------------------
-void CNSmlContactsDataProvider::DoCheckServerFiltersL( RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterChangeInfo& /*aChangeInfo*/ )
+EXPORT_C void CNSmlContactsDataProvider::DoCheckServerFiltersL( RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterChangeInfo& /*aChangeInfo*/ )
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoCheckServerFiltersL(): BEGIN");
 	User::Leave( KErrNotSupported );
@@ -285,7 +271,7 @@ void CNSmlContactsDataProvider::DoCheckServerFiltersL( RPointerArray<CSyncMLFilt
 // CNSmlContactsDataProvider::DoGenerateRecordFilterQueryLC
 // 
 // ------------------------------------------------------------------------------------------------
-HBufC* CNSmlContactsDataProvider::DoGenerateRecordFilterQueryLC( const RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterMatchType /*aMatch*/, TDes& /*aFilterMimeType*/, TSyncMLFilterType& /*aFilterType*/, TDesC& /*aStoreName*/ )
+EXPORT_C HBufC* CNSmlContactsDataProvider::DoGenerateRecordFilterQueryLC( const RPointerArray<CSyncMLFilter>& /*aFilters*/, TSyncMLFilterMatchType /*aMatch*/, TDes& /*aFilterMimeType*/, TSyncMLFilterType& /*aFilterType*/, TDesC& /*aStoreName*/ )
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoGenerateRecordFilterQueryLC(): BEGIN");
 	User::Leave( KErrNotSupported );
@@ -297,12 +283,50 @@ HBufC* CNSmlContactsDataProvider::DoGenerateRecordFilterQueryLC( const RPointerA
 // CNSmlContactsDataProvider::DoGenerateFieldFilterQueryL
 // 
 // ------------------------------------------------------------------------------------------------
-void CNSmlContactsDataProvider::DoGenerateFieldFilterQueryL( const RPointerArray<CSyncMLFilter>& /*aFilters*/, TDes& /*aFilterMimeType*/, RPointerArray<CSmlDataProperty>& /*aProperties*/, TDesC& /*aStoreName*/ )
+EXPORT_C void CNSmlContactsDataProvider::DoGenerateFieldFilterQueryL( const RPointerArray<CSyncMLFilter>& /*aFilters*/, TDes& /*aFilterMimeType*/, RPointerArray<CSmlDataProperty>& /*aProperties*/, TDesC& /*aStoreName*/ )
 	{
 	_DBG_FILE("CNSmlContactsDataProvider::DoGenerateFieldFilterQueryL(): BEGIN");
 	User::Leave( KErrNotSupported );
 	_DBG_FILE("CNSmlContactsDataProvider::DoGenerateFieldFilterQueryL(): END");
 	}
+
+// ------------------------------------------------------------------------------------------------
+// CNSmlContactsDataProvider::GetStoreFormatResourceFileL
+// 
+// ------------------------------------------------------------------------------------------------
+EXPORT_C const TDesC& CNSmlContactsDataProvider::GetStoreFormatResourceFileL() const
+    {
+    _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL(): BEGIN");
+
+    // Check correct Data Sync protocol
+    TInt value( EDataSyncNotRunning );
+    TInt error = RProperty::Get( KPSUidDataSynchronizationInternalKeys,
+                                 KDataSyncStatus,
+                                 value );
+    if ( error == KErrNone &&
+         value == EDataSyncRunning )
+        {
+        return KNSmlContactsStoreFormatRsc_1_1_2;
+        }
+    else // error or protocol version 1.2 
+        {
+        return KNSmlContactsStoreFormatRsc_1_2;
+        }
+    _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL(): END");
+    }
+
+// ------------------------------------------------------------------------------------------------
+// CNSmlContactsDataProvider::CreateDataStoreLC
+// 
+// ------------------------------------------------------------------------------------------------
+EXPORT_C CNSmlContactsDataStore* CNSmlContactsDataProvider::CreateDataStoreLC() const
+    {
+    _DBG_FILE("CNSmlContactsDataProvider::CreateDataStoreLC(): BEGIN");    
+    CNSmlContactsDataStore* dataStore = CNSmlContactsDataStore::NewL();
+    CleanupStack::PushL( dataStore );
+    _DBG_FILE("CNSmlContactsDataProvider::CreateDataStoreLC(): END");
+    return dataStore;
+    }
 
 // -----------------------------------------------------------------------------
 // ImplementationGroupProxy array
