@@ -16,7 +16,7 @@
 */
 
 // INCLUDE FILES
-#include <eCom.h>
+#include <ecom.h>
 #include "nsmlagendaadapterhandler.h"
 
 // ============================ MEMBER FUNCTIONS ===============================

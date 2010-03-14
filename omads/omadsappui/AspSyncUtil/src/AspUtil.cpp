@@ -42,6 +42,7 @@
 #include <AspSyncUtil.rsg>
 
 #include <SyncMLErr.h>  // sync error codes
+#include <cmapplicationsettingsui.h>
 
 //#ifdef __SAP_POLICY_MANAGEMENT
 #include <SettingEnforcementInfo.h> // VSettingEnforcementInfo
@@ -2054,55 +2055,73 @@ void CAspAccessPointHandler::ConstructL(void)
 //
 TInt CAspAccessPointHandler::ShowApSelectDialogL(TAspAccessPointItem& aItem)
 	{
+	FLOG( _L("CAspAccessPointHandler::ShowApSelectDialogL START") );
+
 	aItem.iUid = KErrNotFound;
 	aItem.iName = KNullDesC;
 
-	TUint32 selectedAp = 0;
+	TInt err(KErrNone);
+	TInt retVal( KErrNone );
+	TCmSettingSelection selection;
+	TBearerFilterArray filterArray;
+
 	TUint32 currentAp = 0;
 	if (aItem.iUid2 != KAskAlways && aItem.iUid2 != KDefaultConnection)
 		{
-		//currentAp = aItem.iUid2;
-		
+		FLOG( _L("ShowApSelectDialogL aItem.iUid2 = %d"), aItem.iUid2 );        
 		// convert internet ap to Wap ap (CApSettingsHandler requires this)
-    	TRAP_IGNORE(currentAp = iApUtil->WapIdFromIapIdL(aItem.iUid2));
+		TRAP_IGNORE(currentAp = iApUtil->WapIdFromIapIdL(aItem.iUid2));
 		}
-	
-	
-	CApSettingsHandler* handler = NULL;
-	handler = CApSettingsHandler::NewLC( ETrue,
-	                                     EApSettingsSelListIsPopUp,
-	                                     EApSettingsSelMenuSelectNormal,
-	                                     KEApIspTypeAll,
-	                                     BearerFlags(),
-	    	                             KEApSortNameAscending);
+	else
+		{
+		FLOG( _L("ShowApSelectDialogL KAskAlways or KDefaultConnection"));
+		}
 
-	TInt ret = handler->RunSettingsL(currentAp, selectedAp);
-	CleanupStack::PopAndDestroy(handler);
+	// Mark the current selection
+	selection.iResult = CMManager::EConnectionMethod;
+	selection.iId = currentAp;
+	FLOG( _L("ShowApSelectDialogL selection.iId = %d"), selection.iId );        
 	
-	if (ret & KApUiEventSelected)
+	// Start the connection dialog
+	CCmApplicationSettingsUi* settings = CCmApplicationSettingsUi::NewL();
+	CleanupStack::PushL( settings );
+
+	TRAP ( err, retVal = settings->RunApplicationSettingsL( selection, 
+		CMManager::EShowConnectionMethods, // Show only access points
+		filterArray ) );
+    	
+	CleanupStack::PopAndDestroy(); // settings
+
+	if (err != KErrNone)
+	{
+		// Error showing dialogue, return
+		FLOG( _L("ShowApSelectDialogL err = %d"), err );
+		return EAspDialogCancel;
+	}
+
+	if (retVal)
 		{
 		TAspAccessPointItem item;
-		item.iUid = selectedAp;
+		item.iUid = selection.iId;
+		FLOG( _L("ShowApSelectDialogL Uid (%d)"), item.iUid );
 
-	    GetApInfo(item);
+		GetApInfo(item);
+
+		// convert Wap ap to internet ap
+		aItem.iUid = iApUtil->IapIdFromWapIdL(selection.iId);
+		FLOG( _L("ShowApSelectDialogL Uid Conv (%d)"), item.iUid );
 	    
-	    // convert Wap ap to internet ap
-	    aItem.iUid = iApUtil->IapIdFromWapIdL(selectedAp);
-	    
-	    //aItem.iUid = selectedAp;
-	    
-	    aItem.iName = item.iName;
-	    
+		aItem.iName = item.iName;
+
+		FLOG( _L("ShowApSelectDialogL RETURNING EAspDialogSelect") );
 		return EAspDialogSelect;
 		}
-    else if (ret & KApUiEventExitRequested)
-    	{
-    	return EAspDialogExit;
-    	}
-    else
-    	{
-    	return EAspDialogCancel;
-    	}
+	else
+		{
+		FLOG( _L("ShowApSelectDialogL RETURNING EAspDialogCancel") );
+		return EAspDialogCancel;
+		}
+	FLOG( _L("CAspAccessPointHandler::ShowApSelectDialogL END") );
 	}
 
 

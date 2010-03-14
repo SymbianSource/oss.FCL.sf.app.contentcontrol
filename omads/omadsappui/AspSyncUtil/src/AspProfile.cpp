@@ -1440,12 +1440,18 @@ void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
     TPckgC<TInt> pckgAppUIDValue( KCRUidNSmlDSApp.iUid );    
     calinfo->SetPropertyL( keyBuff, pckgAppUIDValue );
 
-
+    // Profile ID Meta Property
     keyBuff.Zero();
     keyBuff.AppendNum( EDeviceSyncProfileID );
     TPckgC<TInt> pckgProfileIdValue( currentProfileId );    
     calinfo->SetPropertyL( keyBuff, pckgProfileIdValue );
 
+    // Lock the SYNC option
+   keyBuff.Zero();
+   keyBuff.AppendNum( ESyncConfigEnabled );
+   TBool synclockstatus( ETrue );
+   TPckgC<TBool> pckgSyncLockValue( synclockstatus );
+   calinfo->SetPropertyL( keyBuff, pckgSyncLockValue );
     
     // Create the CalFile
     HBufC* calfilename = CCalenMultiCalUtil::GetNextAvailableCalFileL();
