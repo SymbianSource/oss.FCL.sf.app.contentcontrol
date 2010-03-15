@@ -33,8 +33,6 @@ DEFFILE			./def/bwinscwdatamod
 
 APP_LAYER_SYSTEMINCLUDE
 
-USERINCLUDE		../inc
-
 SOURCEPATH      ../src
 SOURCE          nsmldatamodbase.cpp
 SOURCE          NSmlProperty.cpp

@@ -125,7 +125,11 @@ EXPORT_C CNSmlContactsDataStore::CNSmlContactsDataStore() :
 	iStoreName = NULL;
 	iRetCommand = KErrNone;
 	iLastOperation = ENSmlNone;
-	
+	if(iDeleteAllOperation)
+	    {
+	    delete iDeleteAllOperation;
+	    iDeleteAllOperation = NULL;
+	    }
 	_DBG_FILE("CNSmlContactsDataStore::CNSmlContactsDataStore(): end");
 	}
 	
@@ -202,11 +206,13 @@ EXPORT_C CNSmlContactsDataStore::~CNSmlContactsDataStore()
 		{
 		TRAP_IGNORE( iChangeFinder->CloseL() );
 		delete iChangeFinder;
+		iChangeFinder = NULL;
 		}
 	
 	if(iIdConverter)
 		{
 		delete iIdConverter;
+		iIdConverter = NULL;
 		}
 	if(iContactLnks)
 		{
@@ -221,6 +227,7 @@ EXPORT_C CNSmlContactsDataStore::~CNSmlContactsDataStore()
 		{
 		iContactsModsFetcher->CancelRequest(); 
 		delete iContactsModsFetcher;
+		iContactsModsFetcher = NULL;
 		}
 	if ( iContactManager )
 		{
@@ -229,6 +236,7 @@ EXPORT_C CNSmlContactsDataStore::~CNSmlContactsDataStore()
 			iStore->Close( *this );	
 			}
 	    delete iContactManager;
+	    iContactManager = NULL;
 		}
 	
 	
@@ -274,6 +282,12 @@ EXPORT_C CNSmlContactsDataStore::~CNSmlContactsDataStore()
 	delete iStoreName;
 
 	iAddResultArray.Close();
+	
+	if(iDeleteAllOperation)
+	    {
+	    delete iDeleteAllOperation;
+	    iDeleteAllOperation = NULL;
+	    }
 	
 	}
 
@@ -360,6 +374,34 @@ EXPORT_C void CNSmlContactsDataStore::DoOpenL( const TDesC& aStoreName,
 EXPORT_C void CNSmlContactsDataStore::DoCancelRequest()
 	{
 	_DBG_FILE("CNSmlContactsDataStore::DoCancelRequest(): begin");
+	if(iLastOperation == ENSMLDeleteAllOp)
+	    {   
+	    if(iDeleteAllOperation)
+	        {
+	        delete iDeleteAllOperation;
+	        iDeleteAllOperation = NULL;
+	        }
+
+	    if( iChangeFinder )
+	        {
+            TRAP_IGNORE(iChangeFinder->ResetL());
+	        }
+	    iSnapshotRegistered = EFalse;
+
+	    if(iContactLnks)
+	        {
+	        delete iContactLnks;
+	        iContactLnks = NULL;
+			iContactLink = NULL;
+	        }
+
+	    if(iContactViewBase)
+	        {
+	        delete iContactViewBase;
+	        iContactViewBase = NULL;
+	        }
+	    User::RequestComplete( iCallerStatus, KErrCancel );  
+	    }
 		if(iContactsModsFetcher)
 		{
 		iContactsModsFetcher->CancelRequest();

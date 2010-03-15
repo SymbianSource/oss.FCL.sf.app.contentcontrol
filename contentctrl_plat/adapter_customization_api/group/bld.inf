@@ -23,9 +23,9 @@ DEFAULT
 
 PRJ_EXPORTS
 
-..\inc\NSmlContactsDataProvider.h APP_LAYER_PLATFORM_EXPORT_PATH(NSmlContactsDataProvider.h)
-..\inc\NSmlContactsDataStore.h APP_LAYER_PLATFORM_EXPORT_PATH(NSmlContactsDataStore.h)
-..\inc\MContactsModsFetcher.h APP_LAYER_PLATFORM_EXPORT_PATH(MContactsModsFetcher.h)
+../inc/NSmlContactsDataProvider.h APP_LAYER_PLATFORM_EXPORT_PATH(NSmlContactsDataProvider.h)
+../inc/NSmlContactsDataStore.h APP_LAYER_PLATFORM_EXPORT_PATH(NSmlContactsDataStore.h)
+../inc/MContactsModsFetcher.h APP_LAYER_PLATFORM_EXPORT_PATH(MContactsModsFetcher.h)
 
 PRJ_TESTMMPFILES
-..\tsrc\DummyAdapter\group\nsmldummydataprovider.mmp
+../tsrc/DummyAdapter/group/nsmldummydataprovider.mmp

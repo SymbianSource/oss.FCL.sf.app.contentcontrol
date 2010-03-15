@@ -765,6 +765,7 @@ class CNSmlContactsDataStore : public CSmlDataStore,
         CVPbkVCardEng* iVCardEngine ;
         MVPbkContactLink* iContactLink;
         CVPbkContactLinkArray* iContactLnks;
+		MVPbkContactOperationBase* iDeleteAllOperation;
 	};
 
 

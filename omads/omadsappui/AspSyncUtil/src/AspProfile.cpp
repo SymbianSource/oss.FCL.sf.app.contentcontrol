@@ -22,7 +22,7 @@
 #include <SyncMLTransportProperties.h>
 #include <featmgr.h>   // FeatureManager
 #include <centralrepository.h> // CRepository
-#include <NSmlOperatorDataCRKeys.h> // KCRUidOperatorDatasyncInternalKeys
+#include <NsmlOperatorDataCRKeys.h> // KCRUidOperatorDatasyncInternalKeys
 
 #include <calsession.h>
 #include <calcalendarinfo.h>
@@ -34,6 +34,7 @@
 #include "AspDialogUtil.h"
 #include "AspDebug.h"
 #include "AspSchedule.h"
+#include "AspDefines.h"
 #include <centralrepository.h> //CRepository
 #include <calenmulticaluids.hrh> // Calendar File Meta Data Properties
 #include <calenmulticalutil.h>
@@ -428,6 +429,14 @@ void CAspContentList::DoInitDataProvidersL()
 
 	    	TAspProviderItem item;
 		    ReadDataProviderItemL(provider, item);
+		    if( (item.iDataProviderId == KUidNsmlAdapterCntGrps.iUid) ||
+		             (item.iDataProviderId == KUidNSmlAdapterSms.iUid) || 
+		             (item.iDataProviderId == KUidNSmlAdapterMMS.iUid) ||
+		             (item.iDataProviderId == KUidNsmlAdapterMedia.iUid))
+		        {
+		          CleanupStack::PopAndDestroy(&provider);
+		          continue;
+		        }
             item.iIsIncludedInSync = EFalse;
 		    
 		    if (TUtil::IsEmpty(item.iDisplayName))

@@ -30,9 +30,11 @@
 #include <ecom/implementationinformation.h>
 #include <rconnmon.h>
 #include <e32std.h> //For TRequestStatus
+#include <e32property.h>
 #include "CPreSyncPlugin.h"
 #include "AspPreSyncPluginInterface.h"
 
+#include <DataSyncInternalPSKeys.h>
 
 
 /******************************************************************************
@@ -100,6 +102,7 @@ CAspSyncHandler::~CAspSyncHandler()
         }
 	delete iWait;
 	
+	RProperty::Delete(KPSUidNSmlDSSyncApp, KDsJobCancel);
 	
 	CloseSyncSession();
 	
@@ -128,7 +131,13 @@ void CAspSyncHandler::ConstructL()
 	iSyncSessionOpen = EFalse;
 	
 	iWait = new (ELeave) CActiveSchedulerWait();
-	
+	//Define property for cancel operation.
+    static _LIT_SECURITY_POLICY_PASS(KAllowAllPolicy);
+    static _LIT_SECURITY_POLICY_C1(KAllowWriteDeviceDataPolicy, ECapabilityWriteDeviceData);
+	RProperty::Define( KPSUidNSmlDSSyncApp,KDsJobCancel,RProperty::EInt,
+	        KAllowAllPolicy,KAllowWriteDeviceDataPolicy); 
+	RProperty::Set( KPSUidNSmlDSSyncApp,
+	            KDsJobCancel, KErrNone );   
 	FLOG( _L("CAspSyncHandler::ConstructL END") );
     }
 
@@ -179,6 +188,9 @@ void CAspSyncHandler::HandleDialogEventL(TInt aButtonId)
 	//  close handling (eg. end key)
 	if (aButtonId == EKeyPhoneEnd && syncRunning)
 		{
+        //Set Cancel  property when user cancel the Caopy All from Server. 
+		RProperty::Set( KPSUidNSmlDSSyncApp,
+		                KDsJobCancel, KErrCancel );
 		TRAPD(err, iSyncJob.StopL());
 
 		if (err != KErrNone)
@@ -206,6 +218,9 @@ void CAspSyncHandler::HandleDialogEventL(TInt aButtonId)
 	// cancel key handling
 	if (aButtonId == EEikBidCancel && syncRunning)
 		{
+        RProperty::Set( KPSUidNSmlDSSyncApp,
+                KDsJobCancel, KErrCancel );
+    
 		if (iStopEventReceived)
 			{
 			CompleteWithDelay(KErrNone);
@@ -419,6 +434,12 @@ void CAspSyncHandler::DoSynchronizeL(TAspSyncParam& aSyncParam)
 	{
 	FLOG( _L("CAspSyncHandler::DoSynchronizeL START") );
     
+	 //set the cancel Pub sub key to none
+	if(aSyncParam.iSyncDirection == ESyncDirectionRefreshFromServer)
+	    {
+	    RProperty::Set( KPSUidNSmlDSSyncApp,
+	            KDsJobCancel, KErrNone );
+	    }
 	iApplicationId = aSyncParam.iApplicationId;
 	iProfileId = aSyncParam.iProfileId;
 	if (aSyncParam.iDialogMode == EModeDialogWait)
@@ -491,7 +512,8 @@ void CAspSyncHandler::SynchronizeCompleted(TInt aError)
 	FLOG( _L("CAspSyncHandler::SynchronizeCompleted START") );
 	
 	iSyncRunning = EFalse;
-	
+	RProperty::Set( KPSUidNSmlDSSyncApp,
+	                           KDsJobCancel, KErrNone ); 
 	if (aError != KErrNone)
 		{
 		iSyncError = aError;
@@ -550,6 +572,9 @@ void CAspSyncHandler::OnSyncMLSessionEvent(TEvent aEvent, TInt aIdentifier, TInt
 	
 	if (aEvent == EJobStop)
 		{
+		RProperty::Set( KPSUidNSmlDSSyncApp,
+		                            KDsJobCancel, KErrNone );   
+		
 		iStopEventReceived = ETrue;
 		if (aError != KErrNone)
 			{
@@ -568,6 +593,8 @@ void CAspSyncHandler::OnSyncMLSessionEvent(TEvent aEvent, TInt aIdentifier, TInt
     	
 	if (aEvent == EJobStartFailed || aEvent == EJobRejected)
 		{
+		RProperty::Set( KPSUidNSmlDSSyncApp,
+		                            KDsJobCancel, KErrNone );   
 		CompleteWithDelay(aError);
 		}
 		

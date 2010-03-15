@@ -77,6 +77,8 @@ const TUid KUidNSmlAdapterNote      = { 0x101F8612 };
 const TUid KUidNSmlAdapterSms       = { 0x10206B5C };
 const TUid KUidNSmlAdapterMMS       = { 0x101FB0E9 };
 const TUid KUidNSmlAdapterBookmarks = { 0x102751BA };
+const TUid KUidNsmlAdapterCntGrps   = { 0x101FF972 };
+const TUid KUidNsmlAdapterMedia     = { 0x2001a9a1 };
 
 // convergence sync adapder uids
 //const TUid KUidNSmlAdapterCalendar  = { 0x10009FD1 };
