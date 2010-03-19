@@ -1,8 +1,0 @@
-EXPORTS
-	_Z24ImplementationGroupProxyRi @ 1 NONAME
-	_ZN31CNSmlDefaultAgendaHandlerPlugin4NewLEv @ 2 NONAME
-	_ZTI29CNSmlDefaultAgendaHandlerUtil @ 3 NONAME
-	_ZTI31CNSmlDefaultAgendaHandlerPlugin @ 4 NONAME
-	_ZTV29CNSmlDefaultAgendaHandlerUtil @ 5 NONAME
-	_ZTV31CNSmlDefaultAgendaHandlerPlugin @ 6 NONAME
-

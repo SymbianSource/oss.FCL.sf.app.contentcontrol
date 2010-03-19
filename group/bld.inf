@@ -23,10 +23,13 @@
 //Componets:
 
 //omads
-#include "../omads/group/bld.inf"
+//#include "../omads/group/bld.inf"
 
 //contentctrl_plat
-#include "../contentctrl_plat/group/bld.inf"
+//#include "../contentctrl_plat/group/bld.inf"
 
 //ds dcmo adapter
-#include "../dsdcmoadapter/group/bld.inf"
+//#include "../dsdcmoadapter/group/bld.inf"
+
+//connectivity modules
+#include "../connectivitymodules/group/bld.inf"
