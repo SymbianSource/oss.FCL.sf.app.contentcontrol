@@ -67,7 +67,7 @@ private:
 	* C++ constructor - not exported;
 	* implicitly called from NewLC()	
 	*/
-	CNSmlDefaultAgendaHandlerPlugin::CNSmlDefaultAgendaHandlerPlugin();	
+	CNSmlDefaultAgendaHandlerPlugin();	
 	
 	void ConstructL(); 
 	

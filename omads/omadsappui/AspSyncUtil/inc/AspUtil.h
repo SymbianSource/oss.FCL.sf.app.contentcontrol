@@ -323,7 +323,7 @@ NONSHARABLE_CLASS (CAspIdleWait) : public CBase
 		* @param  None.
 		* @return None.
 		*/
-		static void CAspIdleWait::WaitL();
+		static void WaitL();
 		
     private:
         static TInt IdleCallback(TAny* aThisPtr);        

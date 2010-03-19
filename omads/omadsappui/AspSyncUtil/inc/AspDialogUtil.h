@@ -371,7 +371,7 @@ NONSHARABLE_CLASS (CAspIndicatorHandler) : public CBase
         /**
         * C++ default constructor.
         */
-        CAspIndicatorHandler::CAspIndicatorHandler(MAknEditingStateIndicator* aIndicator);
+        CAspIndicatorHandler(MAknEditingStateIndicator* aIndicator);
 
 	public:
 

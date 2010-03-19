@@ -111,7 +111,7 @@ class CSmsAdapterMsvApi : public CBase, public MMsvSessionObserver
         *
         * @return   KErrNone in success. KErrInUse if folder was not deleted because it was not empty.                             
         */         
-        TInt CSmsAdapterMsvApi::DeleteUserFolderL( TMsvId aUid );
+        TInt DeleteUserFolderL( TMsvId aUid );
 
         /**
         * Retriveve SMS message from the message store.
@@ -150,7 +150,7 @@ class CSmsAdapterMsvApi : public CBase, public MMsvSessionObserver
        /**
         * Empties user folders under My Folders from SMS messages
         */       
-        void CSmsAdapterMsvApi::CleanUserFoldersL(); 
+        void CleanUserFoldersL(); 
         
        /**
         * Empties folder from SMS messages and returns list of deleted messages
