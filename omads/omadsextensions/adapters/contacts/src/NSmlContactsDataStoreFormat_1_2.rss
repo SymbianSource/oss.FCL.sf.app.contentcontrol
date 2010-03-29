@@ -450,7 +450,7 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 							display_name="Type";
 							name="TYPE";
 							data_type="";
-							enum_values={"POC", "SWIS", "VOIP"};
+							enum_values={"POC", "SWIS", "VOIP", "WORK", "HOME"};
 							}
 						};
 					},

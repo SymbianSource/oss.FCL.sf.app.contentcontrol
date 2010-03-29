@@ -23,7 +23,7 @@
 #include <favouritesdb.h>
 #include <nsmlchangefinder.h>
 
-#include <FeedsServerClient.h>
+#include <feedsserverclient.h>
 #include <feedsserverfolderitem.h>
 
 class CNSmlDataItemUidSet;

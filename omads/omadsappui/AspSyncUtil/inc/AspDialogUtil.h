@@ -45,7 +45,7 @@
 #ifdef RD_DSUI_TIMEDSYNC 
 
 #include <akntabgrp.h>
-#include <akntabobserver.h>
+#include <AknTabObserver.h>
 
 #endif
 

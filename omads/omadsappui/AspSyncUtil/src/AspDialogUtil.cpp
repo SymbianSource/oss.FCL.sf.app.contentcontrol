@@ -1038,16 +1038,15 @@ CAspTabbedNaviPaneHandler::CAspTabbedNaviPaneHandler(CEikStatusPane* aStatusPane
     if (iNaviPane)
         {
         TRAP_IGNORE(iNaviDecorator = iNaviPane->CreateTabGroupL(this));    
-        }
+        if (iNaviDecorator)
+            {
+            TRAP_IGNORE(iNaviPane->PushL(*iNaviDecorator));
+            iNavidecoratorPushed = ETrue;
     
-	if (iNaviDecorator)
-	    {
-       	TRAP_IGNORE(iNaviPane->PushL(*iNaviDecorator));
-    	iNavidecoratorPushed = ETrue;
-
-	    iTabGroup = static_cast<CAknTabGroup*>( iNaviDecorator->DecoratedControl() );
-	    }
-	}
+            iTabGroup = static_cast<CAknTabGroup*>( iNaviDecorator->DecoratedControl() );
+            }
+        }
+    }
 
 // -----------------------------------------------------------------------------
 // CAspTabbedNaviPaneHandler::SetTabWidthL

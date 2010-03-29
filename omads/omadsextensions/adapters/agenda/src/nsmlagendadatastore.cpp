@@ -34,7 +34,7 @@
 #include <SmlDataFormat.h>
 #include <SmlDataSyncDefs.h>
 #include <data_caging_path_literals.hrh>
-#include <nsmlagendadatastore_1_1_2.rsg>
+#include <NSmlAgendaDataStore_1_1_2.rsg>
 #include <e32property.h>
 #include <DataSyncInternalPSKeys.h>
 #include <CalenImporter.h>
@@ -1511,14 +1511,14 @@ void CNSmlAgendaDataStore::DoDeleteAllItemsL( TRequestStatus& aStatus )
         delete calfilename;
         }
         
+    iSnapshotRegistered = EFalse;
+    
     // Update changefinder
     if ( iChangeFinder )
         {
         iChangeFinder->ResetL();
+        RegisterSnapshotL();
         }
-    iSnapshotRegistered = EFalse;
-    RegisterSnapshotL();
-    
     User::RequestComplete( iCallerStatus, KErrNone );
     
     FLOG(_L("CNSmlAgendaDataStore::DoDeleteAllItemsL: END"));
@@ -3267,6 +3267,13 @@ HBufC* CNSmlAgendaDataStore::CreateCalFileL( HBufC* aProfileName, TInt aProfileI
     keyBuff.AppendNum( EDeviceSyncProfileID );
     TPckgC<TInt> pckgProfileIdValue( aProfileId );    
     calinfo->SetPropertyL( keyBuff, pckgProfileIdValue );
+    
+    // Lock the SYNC option
+    keyBuff.Zero();
+    keyBuff.AppendNum( ESyncConfigEnabled );
+    TBool synclockstatus( ETrue );
+    TPckgC<TBool> pckgSyncLockValue( synclockstatus );
+    calinfo->SetPropertyL( keyBuff, pckgSyncLockValue );
        
     // Create the CalFile
     HBufC* calfilename = CCalenMultiCalUtil::GetNextAvailableCalFileL();

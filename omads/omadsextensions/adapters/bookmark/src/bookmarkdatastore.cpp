@@ -18,10 +18,10 @@
 
 #include <sysutil.h> 
 #include <favouritesitem.h>
-#include <FavouritesItemList.h> 
+#include <favouritesitemlist.h> 
 
-#include <FeedsServerClient.h>
-#include <FeedsServerFeed.h>
+#include <feedsserverclient.h>
+#include <feedsserverfeed.h>
 #include <feedsserverfolderitem.h>
 
 #include "bookmarkdatastore.h"
