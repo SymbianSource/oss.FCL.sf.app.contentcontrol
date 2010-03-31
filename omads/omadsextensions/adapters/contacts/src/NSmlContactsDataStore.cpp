@@ -183,6 +183,7 @@ EXPORT_C void CNSmlContactsDataStore::ConstructL(
     iPacketStoreName = HBufC::NewL(dataBase.Length());
     TPtr pktStorePtr(iPacketStoreName->Des());
     pktStorePtr.Copy(dataBase);
+    iDeleteAllOperation = NULL;
         
     _DBG_FILE("CNSmlContactsDataStore::ConstructL(): end");    
     }
@@ -216,13 +217,15 @@ EXPORT_C CNSmlContactsDataStore::~CNSmlContactsDataStore()
 		}
 	if(iContactLnks)
 		{
-		delete iContactLnks;
+        delete iContactLnks;
+		iContactLnks = NULL;
 		}
-	if(iContactLink)
-		{
-		delete iContactLink;	
-		}
-	delete iContactViewBase;
+
+	if(iContactViewBase)
+	    {
+	    delete iContactViewBase;
+	    iContactViewBase = NULL;
+	    }
 	if ( iContactsModsFetcher )
 		{
 		iContactsModsFetcher->CancelRequest(); 
@@ -2383,6 +2386,10 @@ EXPORT_C void CNSmlContactsDataStore::OperationCompleteL()
 		}
 		else
 		{
+		if(iLastOperation == ENSMLDeleteAllOp)
+	        {
+	        iDeleteAllOperation = NULL;
+	        }
 		if( iChangeFinder )
 			{
 			iChangeFinder->ResetL();		
@@ -2435,7 +2442,7 @@ EXPORT_C void CNSmlContactsDataStore::DoDeleteAllContactsL()
 			CleanupStack::Pop();
 		}
 	
-	iContactManager->DeleteContactsL( *iContactLnks, *this );
+	iDeleteAllOperation = iContactManager->DeleteContactsL( *iContactLnks, *this );
 	
 	}
 
