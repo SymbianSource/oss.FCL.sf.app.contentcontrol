@@ -17,6 +17,7 @@
 
 
 // INCLUDE FILES
+#include <nsmlconstants.h>
 #include "AspPreSyncPluginInterface.h"
 #include "CPreSyncPlugin.h"
 
@@ -96,15 +97,18 @@ CPreSyncPlugin* CPreSyncPluginInterface::InstantiateRoamingPluginLC( TSmlProfile
     CPreSyncPlugin* syncPlugin = NULL;
     CPreSyncPlugin* defaultSyncPlugin = NULL;
 
+	CleanupRImplInfoPtrArrayPushL( &infoArray );
+
     // Get list of all implementations
     TRAPD(error, ListAllImplementationsL( infoArray ));
     
     if (error != KErrNone)
         {
+		CleanupStack::PopAndDestroy( &infoArray );
         return NULL;
         }
     // Instantiate plugins for all impUIds by calling 
-    // InstantiatePlugInFromImpUidLC
+    // InstantiatePlugInFromImpUidL
     for ( TInt i=0; i<infoArray.Count(); i++ )
         {
         // Get imp info
@@ -116,12 +120,12 @@ CPreSyncPlugin* CPreSyncPluginInterface::InstantiateRoamingPluginLC( TSmlProfile
         if ( info.DisplayName().Compare(kDefault) == 0 )
             {			
 	        //instantiate plugin for impUid
-	        defaultSyncPlugin = InstantiatePlugInFromImpUidLC( impUid );
-	        defaultSyncPlugin->SetProfile(aProfileId);
+	        defaultSyncPlugin = InstantiatePlugInFromImpUidL( impUid );
+			defaultSyncPlugin->SetProfile(aProfileId);
             }
 		else
 		    {
-			syncPlugin = InstantiatePlugInFromImpUidLC( impUid );
+			syncPlugin = InstantiatePlugInFromImpUidL( impUid );
 			syncPlugin->SetProfile(aProfileId);
 			if(syncPlugin->IsSupported())
 			    {
@@ -130,23 +134,25 @@ CPreSyncPlugin* CPreSyncPluginInterface::InstantiateRoamingPluginLC( TSmlProfile
 			    }
 			else
 			    {
-			    CleanupStack::PopAndDestroy(syncPlugin);
+                delete syncPlugin;
 			    }
 		    }
         }
 
-    infoArray.ResetAndDestroy();
+    CleanupStack::PopAndDestroy( &infoArray );
 	if(bHandleSync)
 	{		
 		//delete defaultSyncPlugin;
 	    if(defaultSyncPlugin != NULL)
 	    {
-	    CleanupStack::PopAndDestroy(defaultSyncPlugin);
+	    delete defaultSyncPlugin;
 	    }
+	    CleanupStack::PushL(syncPlugin);
 		return syncPlugin;
 	}
 	else
-	{
+	{      
+        CleanupStack::PushL(defaultSyncPlugin);
 		return defaultSyncPlugin;
 	}    
  }
@@ -161,14 +167,13 @@ void CPreSyncPluginInterface::UnloadPlugIns()
 }
 
 // ----------------------------------------------------------------------------
-// CPreSyncPluginInterface::InstantiatePlugInFromImpUidLC
+// CPreSyncPluginInterface::InstantiatePlugInFromImpUidL
 // Instantiates plugin
 // ---------------------------------------------------------------------------- 
-CPreSyncPlugin* CPreSyncPluginInterface::InstantiatePlugInFromImpUidLC( const TUid& aImpUid )
+CPreSyncPlugin* CPreSyncPluginInterface::InstantiatePlugInFromImpUidL( const TUid& aImpUid )
 {    
    // REComSession
     CPreSyncPlugin *preSyncPlugin = CPreSyncPlugin::NewL(aImpUid);    
-    CleanupStack::PushL(preSyncPlugin);
     return preSyncPlugin;
 }
     

@@ -421,14 +421,7 @@ TBool CAspSyncUtil::SelectProfileL(TInt& aProfileId, TInt& aTaskId,
     	ret = EFalse;
 		}
 		
-	else if (profileList->Count() == 1)
-		{
-		TAspProfileItem& item = profileList->Item(0);
-		aProfileId = item.iProfileId;
-		aTaskId = item.iTaskId;
-       	ret = ETrue;
-		}
-		
+			
 	else
 		{
 		if(aCheckId)

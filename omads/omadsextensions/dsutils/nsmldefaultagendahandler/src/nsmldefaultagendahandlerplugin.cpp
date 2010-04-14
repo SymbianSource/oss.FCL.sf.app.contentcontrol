@@ -332,8 +332,10 @@ TCalLocalUid CNSmlDefaultAgendaHandlerPlugin::CreateFolderL( RBufReadStream& aSt
         if( agendautil->iName != NULL )
             {
             calinfo->SetNameL( agendautil->iName->Des() );
-            TRAP( err, calsession->CreateCalFileL( agendautil->iName->Des(), *calinfo ) );
-            }
+			HBufC* calfilename = CCalenMultiCalUtil::GetNextAvailableCalFileL();
+            TRAP( err, calsession->CreateCalFileL( *calfilename, *calinfo ) );
+			delete calfilename;
+			}
         else
             {
             err = KErrNotFound;

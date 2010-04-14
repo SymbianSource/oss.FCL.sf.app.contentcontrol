@@ -112,7 +112,7 @@ class CPreSyncPluginInterface: public CBase
 		* Instantiates a PCS plug-in, knowing the implementation uid.
 		* @param aImpUid imp uID
 		*/
-		CPreSyncPlugin* InstantiatePlugInFromImpUidLC( const TUid& aImpUid );
+		CPreSyncPlugin* InstantiatePlugInFromImpUidL( const TUid& aImpUid );
 
 
 	private: 
