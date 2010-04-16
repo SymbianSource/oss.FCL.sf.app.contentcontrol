@@ -521,6 +521,7 @@ void CSConSBEClient::ProcessListDataOwnersL()
         {
         LOGGER_WRITE_2("handling do: %d, count: %d", i, dataOwners.Count());
         CSConDataOwner* dataOwner = new (ELeave) CSConDataOwner();
+        CleanupStack::PushL( dataOwner );
         // default values
         TSecureId sid( 0 );
         includeToList = ETrue;
@@ -704,24 +705,27 @@ void CSConSBEClient::ProcessListDataOwnersL()
         if( includeToList ) 
             {
             LOGGER_WRITE_1( "Appending to list, uid: 0x%08x", dataOwner->iUid.iUid );
-            iCurrentTask->iListDataOwnersParams->iDataOwners.Append( dataOwner );
+            iCurrentTask->iListDataOwnersParams->iDataOwners.AppendL( dataOwner );
+            CleanupStack::Pop( dataOwner );
             }
         
         if( sid )
             {
             LOGGER_WRITE_1( "Appending package sid to list, sid: 0x%08x", sid.iId );
             CSConDataOwner* packageDataOwner = dataOwner->CopyL();
+            CleanupStack::PushL( packageDataOwner );
             //Clear package name
             packageDataOwner->iPackageName = KNullDesC();
             //Add sid
             packageDataOwner->iUid.iUid = sid.iId;
-            iCurrentTask->iListDataOwnersParams->iDataOwners.Append( packageDataOwner );
+            iCurrentTask->iListDataOwnersParams->iDataOwners.AppendL( packageDataOwner );
+            CleanupStack::PopAndDestroy( packageDataOwner );
             }
         
         if( !includeToList )
             {
             //Not included to list => delete memory allocation
-            delete dataOwner;
+            CleanupStack::PopAndDestroy( dataOwner );
             }
         }
         

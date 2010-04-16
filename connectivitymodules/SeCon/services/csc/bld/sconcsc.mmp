@@ -53,8 +53,8 @@ SOURCE          sconversioninfo.cpp
 USERINCLUDE     ../inc
 USERINCLUDE     ../../../inc
 
-// Default system include paths for middleware layer modules.
-MW_LAYER_SYSTEMINCLUDE
+// Default system include paths.
+APP_LAYER_SYSTEMINCLUDE
 
 DEBUGLIBRARY    flogger.lib
 LIBRARY         euser.lib
@@ -71,9 +71,7 @@ LIBRARY         apgrfx.lib
 LIBRARY         apparc.lib
 LIBRARY         sisregistryclient.lib
 LIBRARY         SyncMLClientAPI.lib
-// Currently Java is on APP layer, we can't have dependencies to APP layer
-// LIBRARY         javaregistryclient.lib
+LIBRARY         javaregistryclient.lib
 LIBRARY         sysversioninfo.lib
 LIBRARY         Etel3rdParty.lib
 LIBRARY         platformver.lib
-

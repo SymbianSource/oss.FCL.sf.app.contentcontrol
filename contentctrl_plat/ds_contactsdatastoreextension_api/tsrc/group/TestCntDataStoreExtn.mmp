@@ -1,0 +1,57 @@
+/*
+* Copyright (c) 2002 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description: definition of dm constants/exported methods
+* 	This is part of remotemgmt_plat.
+*
+*/
+
+
+#if defined(__S60_)
+        // To get the MW_LAYER_SYSTEMINCLUDE-definition
+        #include <platform_paths.hrh>
+#endif
+
+TARGET          TestCntDataStoreExtn.dll
+TARGETTYPE      dll
+UID             0x1000008D 0x2002DC82
+
+CAPABILITY      ALL -TCB
+
+DEFFILE         TestCntDataStoreExtn.def
+
+SOURCEPATH      ../src
+SOURCE          TestCntDataStoreExtn.cpp
+SOURCE          TestCntDataStoreExtnBlocks.cpp
+
+
+USERINCLUDE     ../inc 
+
+#if defined(__S60_)
+    MW_LAYER_SYSTEMINCLUDE
+    APP_LAYER_SYSTEMINCLUDE
+#else
+    SYSTEMINCLUDE   /epoc32/include 
+#endif
+
+LIBRARY         euser.lib
+LIBRARY			efsrv.lib 
+LIBRARY         stiftestinterface.lib
+LIBRARY         charconv.lib 
+LIBRARY			bafl.lib 
+LIBRARY 		nsmlcontactsdatastoreextension.lib
+
+LANG            SC
+
+
+SMPSAFE

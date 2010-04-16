@@ -28,18 +28,17 @@
 
 #include "sconfshandler.h"
 #include "sconconsts.h"
-// cntparser is dropped as it depends on APP-layer. TODO: Check howto get this working
-// #include "IrMCConsts.h"
-// #include "cntparserclient.h"
-// #include "CntParserInfoLog.h"
+#include "IrMCConsts.h"
+#include "cntparserclient.h"
+#include "CntParserInfoLog.h"
 #include "debug.h"
 
 // cntparser related constants
 _LIT(KPhoneBookIrMCL2Request,"telecom/pb.vcf");
 _LIT(KInfoLogIrMCL2Request,"telecom/pb/info.log");
-// _LIT(KInfoLogIrMCL2File,"IrMC\\info.log");
-// _LIT(KInfoLogPathAndFileName,"c:\\IrMC\\info.log");
-// _LIT(KPbPathAndFileName,"c:\\IrMC\\pb.vcf");
+_LIT(KInfoLogIrMCL2File,"IrMC\\info.log");
+_LIT(KInfoLogPathAndFileName,"c:\\IrMC\\info.log");
+_LIT(KPbPathAndFileName,"c:\\IrMC\\pb.vcf");
 
 // ============================= MEMBER FUNCTIONS ===============================
 
@@ -483,8 +482,6 @@ TInt CSConFsHandler::GetFileObjectL( CObexFileObject*& aFileObject,
     If the request is made, then the requested phonebook file and
     info log -file are created. Path and filename is also changed 
     to point to these created files.*/
-    // cntparser is dropped as it depends on APP-layer. TODO: Check howto get this working
-    /*
     if( aFileName == KPhoneBookIrMCL2Request || 
     aFileName == KInfoLogIrMCL2Request )
         {
@@ -549,10 +546,10 @@ TInt CSConFsHandler::GetFileObjectL( CObexFileObject*& aFileObject,
             }
         }       
     else
-        {*/
+        {
         pathBufPtr.Copy( aPathName );
         pathBufPtr.Append( aFileName );         
-        //}
+        }
     
     LOGGER_WRITE( "CSConFsHandler::GetFileObjectL() : aFileObject->InitFromFileL( pathBufPtr )" );
     TRAP( ret, aFileObject->InitFromFileL( pathBufPtr ) );

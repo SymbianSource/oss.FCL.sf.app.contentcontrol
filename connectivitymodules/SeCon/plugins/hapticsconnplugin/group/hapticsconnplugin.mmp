@@ -42,7 +42,7 @@ START RESOURCE 2001FE54.rss
   TARGET        hapticsconnplugin.rsc
 END 
 
-MW_LAYER_SYSTEMINCLUDE
+APP_LAYER_SYSTEMINCLUDE
 SYSTEMINCLUDE /epoc32/include/stdapis
 
 USERINCLUDE     ../inc

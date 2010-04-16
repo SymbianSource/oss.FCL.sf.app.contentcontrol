@@ -51,8 +51,8 @@ USERINCLUDE     ../../../services/pcd/inc
 USERINCLUDE     ../../../services/csc/inc
 USERINCLUDE     ../../../wbxml/conmlhandler/inc
 
-// Default system include paths for middleware layer modules.
-MW_LAYER_SYSTEMINCLUDE
+// Default system include paths.
+APP_LAYER_SYSTEMINCLUDE
 
 LIBRARY         euser.lib
 LIBRARY         estor.lib       // RMemWriteStream, RMemReadStream

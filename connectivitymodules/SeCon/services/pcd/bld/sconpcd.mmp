@@ -68,7 +68,7 @@ LIBRARY         euser.lib
 LIBRARY         swinstcli.lib
 LIBRARY         sbeclient.lib
 LIBRARY         sisregistryclient.lib
-// LIBRARY         javaregistryclient.lib // Java dependencies reoved as it was on APP layer
+LIBRARY         javaregistryclient.lib
 LIBRARY         platformenv.lib
 LIBRARY         efsrv.lib
 LIBRARY         sysutil.lib

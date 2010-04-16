@@ -210,7 +210,7 @@ private:
 private:
     void ConstructL();
     CSConConMLGenerator();
-    void AddElement( CXMLElement* aElement );
+    void AddElementL( CXMLElement* aElement );
 
 private:
     // Parser

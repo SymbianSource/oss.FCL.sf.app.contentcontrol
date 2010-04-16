@@ -24,9 +24,9 @@
 #include <swi/sisregistrysession.h>
 #include <SWInstDefs.h>
 #include <mmf/common/mmfcontrollerpluginresolver.h>
-// #include <javaregistry.h> // All dependencies to APP layer must be reoved
+#include <javaregistry.h>
 
-//using namespace Java;
+using namespace Java;
 
 #include "debug.h"
 #include "sconinstaller.h"
@@ -443,12 +443,9 @@ void CSConAppInstaller::UninstallSisL( const CSConUninstall& aUninstallParams )
 // Uninstall java package
 // -----------------------------------------------------------------------------
 //
-void CSConAppInstaller::UninstallJavaL( const TUid& /*aUid*/, const TSConInstallMode /*aMode*/ )
+void CSConAppInstaller::UninstallJavaL( const TUid& aUid, const TSConInstallMode aMode )
 	{
 	TRACE_FUNC_ENTRY;
-	// Removed Java related functionality as it was on APP layer
-	User::Leave( KErrNotSupported );
-	/*
 	CJavaRegistry* javaRegistry = CJavaRegistry::NewLC( );
 	TBool entryExist = javaRegistry->RegistryEntryExistsL( aUid );
 	CleanupStack::PopAndDestroy( javaRegistry ); 
@@ -474,7 +471,6 @@ void CSConAppInstaller::UninstallJavaL( const TUid& /*aUid*/, const TSConInstall
         LOGGER_WRITE( "CSConAppInstaller::UninstallJavaL java entry does not exist -> Leave" )
         User::Leave( KErrNotFound );
         }
-        */
     TRACE_FUNC_EXIT;
 	}
 

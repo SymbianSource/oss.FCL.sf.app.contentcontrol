@@ -30,10 +30,12 @@
 //
 CSConBackupRestoreQueue* CSConBackupRestoreQueue::NewL( const TInt aMaxObjectSize, RFs& aFs )
 	{
+	TRACE_FUNC_ENTRY;
 	CSConBackupRestoreQueue* self = new (ELeave) CSConBackupRestoreQueue();
 	CleanupStack::PushL( self );
 	self->ConstructL( aMaxObjectSize, aFs );
 	CleanupStack::Pop( self );
+	TRACE_FUNC_EXIT;
     return self;
 	}
 	
@@ -54,9 +56,11 @@ CSConBackupRestoreQueue::CSConBackupRestoreQueue() :
 //
 void CSConBackupRestoreQueue::ConstructL( const TInt aMaxObjectSize, RFs& aFs )
 	{
+	TRACE_FUNC_ENTRY;
 	iBackupRestore = CSConBackupRestore::NewL( this, aMaxObjectSize, aFs );
 	CActiveScheduler::Add( iBackupRestore );
 	User::LeaveIfError( iTimer.CreateLocal() );
+	TRACE_FUNC_EXIT;
 	}
 	
 // -----------------------------------------------------------------------------
@@ -84,6 +88,7 @@ CSConBackupRestoreQueue::~CSConBackupRestoreQueue()
 //
 void CSConBackupRestoreQueue::StartQueue()	
 	{
+	TRACE_FUNC_ENTRY;
 	if( IsActive() )
 		{
 		Cancel();
@@ -91,6 +96,7 @@ void CSConBackupRestoreQueue::StartQueue()
 		
 	iTimer.After( iStatus, KSConTimerValue );
 	SetActive();
+	TRACE_FUNC_EXIT;
 	}
 	
 // -----------------------------------------------------------------------------
@@ -100,7 +106,9 @@ void CSConBackupRestoreQueue::StartQueue()
 //
 void CSConBackupRestoreQueue::StopQueue()	
 	{
+	TRACE_FUNC_ENTRY;
 	iTimer.Cancel();
+	TRACE_FUNC_EXIT;
 	}
 
 // -----------------------------------------------------------------------------
@@ -131,6 +139,7 @@ TInt CSConBackupRestoreQueue::AddNewTask( CSConTask*& aNewTask, TInt aTaskId )
 		}
 
 	ret = iQueue.InsertInOrder( aNewTask, CSConTaskQueue::Compare );
+	LOGGER_WRITE_1( "CSConBackupRestoreQueue::AddNewTask() : returned %d", ret );
 	return ret;
 	}
 
@@ -180,6 +189,7 @@ void CSConBackupRestoreQueue::Reset()
 //
 void CSConBackupRestoreQueue::QueueAddress( CSConInstallerQueue*& aTaskQueue )
 	{
+	TRACE_FUNC;
 	iInstQueueAddress = aTaskQueue;
 	}
 
@@ -243,11 +253,14 @@ void CSConBackupRestoreQueue::DoCancel()
 //
 void CSConBackupRestoreQueue::RunL()
 	{
+	TRACE_FUNC_ENTRY;
+	LOGGER_WRITE_1( "There are still %d tasks in this queue", iQueue.Count() );
 	if( iQueue.Count() > 0 )
 		{
 		PollQueue();
 		StartQueue();
 		}
+	TRACE_FUNC_EXIT;
 	}
 
 // End of file

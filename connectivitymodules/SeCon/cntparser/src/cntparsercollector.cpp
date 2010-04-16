@@ -52,7 +52,7 @@ CCntParserCollector::~CCntParserCollector()
     {
     LOGGER_ENTERFN( "CntParserCollector::~CCntParserCollector()" );
 
-    if( iVersitTLS != NULL )
+    if( iVersitTLS )
         {
         iVersitTLS->VersitTlsDataClose(); //Close reference 
         }

@@ -49,7 +49,7 @@ public:
         * @param none
         * @return none
         */
-	inline void Push( T* aItem );
+	inline void PushL( T* aItem );
 	
 	/**
         * Returns the number of items in the stack

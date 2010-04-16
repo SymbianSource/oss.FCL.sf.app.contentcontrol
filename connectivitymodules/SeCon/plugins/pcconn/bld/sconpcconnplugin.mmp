@@ -16,7 +16,6 @@
 */
 
 
-// To get the MW_LAYER_SYSTEMINCLUDE-definition
 #include <platform_paths.hrh>
 #include <data_caging_paths.hrh>
 
@@ -41,8 +40,8 @@ START RESOURCE 101f9688.rss
   TARGET        sconpcconnplugin.rsc
 END
 
-// Default system include paths for middleware layer modules.
-MW_LAYER_SYSTEMINCLUDE
+// Default system include paths.
+APP_LAYER_SYSTEMINCLUDE
 
 USERINCLUDE     ../inc
 USERINCLUDE     ../../../inc 

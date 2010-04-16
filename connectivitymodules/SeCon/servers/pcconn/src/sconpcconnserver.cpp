@@ -1357,6 +1357,7 @@ TInt CSConPCConnSession::TaskGetDataSizeL(ConML_GetDataSizePtr_t aContent )
                 p && p->data; p=p->next )
             {
             CSConDataOwner* dataOwner = new (ELeave) CSConDataOwner();
+            CleanupStack::PushL( dataOwner );
             if ( p->data->type )
                 {
                 dataOwner->iType = TSConDOType (DesToInt( 
@@ -1385,7 +1386,8 @@ TInt CSConPCConnSession::TaskGetDataSizeL(ConML_GetDataSizePtr_t aContent )
                 TInt intValue = DesToInt( p->data->transferDataType->Data() );
                 dataOwner->iTransDataType = static_cast<TSConTransferDataType> (intValue);
                 }
-            task->iGetDataSizeParams->iDataOwners.Append( dataOwner );
+            task->iGetDataSizeParams->iDataOwners.AppendL( dataOwner );
+            CleanupStack::Pop( dataOwner );
             }
         }
     ret = iPCDHandler->PutTaskL( task );
@@ -1540,7 +1542,7 @@ TInt CSConPCConnSession::TaskListPublicFilesL(
         for ( ConML_SIDListPtr_t p = aContent->sid; p && p->data; p = p->next )
             {
             CSConDataOwner* dataOwner = new (ELeave) CSConDataOwner();
-            
+            CleanupStack::PushL( dataOwner );
             if ( p->data->type )                
                 {
                 dataOwner->iType = TSConDOType ( DesToInt( 
@@ -1571,7 +1573,8 @@ TInt CSConPCConnSession::TaskListPublicFilesL(
                         dataOwner->iPackageName, 
                         p->data->packageInfo->name->Data());
                 }
-            task->iPubFilesParams->iDataOwners.Append( dataOwner );
+            task->iPubFilesParams->iDataOwners.AppendL( dataOwner );
+            CleanupStack::Pop( dataOwner );
             }
         }
     ret = iPCDHandler->PutTaskL( task );
@@ -1667,6 +1670,7 @@ TInt CSConPCConnSession::TaskGetDataOwnerStatusL
                 p && p->data; p=p->next )
             {
             CSConDataOwner* dataOwner = new (ELeave) CSConDataOwner();
+            CleanupStack::PushL( dataOwner );
             if ( p->data->type )    
                 {
                 dataOwner->iType = TSConDOType (DesToInt(
@@ -1686,7 +1690,8 @@ TInt CSConPCConnSession::TaskGetDataOwnerStatusL
                     CleanupStack::PopAndDestroy(); //DesToHashLC()
                     }
                 }           
-            task->iGetDataOwnerParams->iDataOwners.Append( dataOwner );
+            task->iGetDataOwnerParams->iDataOwners.AppendL( dataOwner );
+            CleanupStack::Pop( dataOwner );
             }
         }
     ret = iPCDHandler->PutTaskL( task );

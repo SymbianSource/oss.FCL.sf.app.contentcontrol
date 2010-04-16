@@ -41,8 +41,8 @@ START RESOURCE 101f9686.rss
   TARGET        sconftpplugin.rsc
 END
 
-// Default system include paths for middleware layer modules.
-MW_LAYER_SYSTEMINCLUDE
+// Default system include paths.
+APP_LAYER_SYSTEMINCLUDE
 
 USERINCLUDE     ../inc 
 USERINCLUDE     ../../../inc 

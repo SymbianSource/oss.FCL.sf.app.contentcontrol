@@ -18,13 +18,7 @@
 
 // INCLUDE FILES
 #include <obexutilsmessagehandler.h>
-
-// btmsgtypeuid.h is on APP layer, we can't use it.
-// define KUidMsgTypeBt locally here for now. this need's to be
-// changed back after moving component to APP-layer
-//#include <btmsgtypeuid.h>    // BT Message Uid
-const TInt32 KUidMsgTypeBtTInt32 = 0x10009ED5;
-const TUid KUidMsgTypeBt = {KUidMsgTypeBtTInt32};
+#include <btmsgtypeuid.h>    // BT Message Uid
 
 #include "sconinboxhandler.h"
 #include "debug.h"

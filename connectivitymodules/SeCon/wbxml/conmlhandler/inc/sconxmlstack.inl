@@ -43,7 +43,7 @@ inline CXMLStack<T>* CXMLStack<T>::NewL()
 	CXMLStack<T>* self = new (ELeave) CXMLStack<T>();
 	CleanupStack::PushL(self);
 	self->iStack = new (ELeave) RPointerArray<T>();
-	CleanupStack::Pop(); // self
+	CleanupStack::Pop(self);
 	return self;
 	}
 
@@ -69,9 +69,9 @@ inline T* CXMLStack<T>::Top()
 
 // ------------------------------------------------------------------------------------------------
 template<class T>
-inline void CXMLStack<T>::Push( T* aItem )
+inline void CXMLStack<T>::PushL( T* aItem )
 	{
-	iStack->Append(aItem);
+	iStack->AppendL(aItem);
 	}
 
 // ------------------------------------------------------------------------------------------------

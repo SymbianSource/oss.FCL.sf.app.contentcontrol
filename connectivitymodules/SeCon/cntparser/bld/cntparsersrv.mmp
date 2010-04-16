@@ -46,8 +46,8 @@ SOURCE          cntparserinfolog.cpp
 USERINCLUDE     ../inc
 USERINCLUDE     ../../inc
 
-// Default system include paths for middleware layer modules.
-MW_LAYER_SYSTEMINCLUDE
+// Default system include paths.
+APP_LAYER_SYSTEMINCLUDE
 
 LIBRARY         euser.lib
 LIBRARY	        cntmodel.lib

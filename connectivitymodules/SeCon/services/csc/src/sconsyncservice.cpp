@@ -23,9 +23,8 @@
 #include <swi/sisregistryentry.h>   // for searching app name from installer
 #include <swi/sisregistrypackage.h>
 #include <swi/sisregistrysession.h>
-// Currently Java is on APP layer, we can't have dependencies to APP layer
-//#include <javaregistryincludes.h>
-//using namespace Java;
+#include <javaregistryincludes.h>
+using namespace Java;
 
 #include "sconsyncservice.h"
 #include "capability.h"
@@ -289,7 +288,6 @@ void CSConSyncService::GetInstPackageCaptionL( TDes& aCaption, const TUid aPacka
         {
         // not sis app, might be java app.
         LOGGER_WRITE("SIS package not found");
-        /*
         CJavaRegistry* javaRegistry = CJavaRegistry::NewLC( );
         TBool entryExist = javaRegistry->RegistryEntryExistsL( aPackageUid );
         if ( entryExist )
@@ -303,7 +301,6 @@ void CSConSyncService::GetInstPackageCaptionL( TDes& aCaption, const TUid aPacka
             }
         
         CleanupStack::PopAndDestroy( javaRegistry ); 
-        */
         }
     
     CleanupStack::PopAndDestroy( &sisRegistry );

@@ -265,17 +265,7 @@ void CSConTaskQueue::CompleteTask( TInt aTask, TInt aError )
             
             default :
                 iQueue[index]->SetCompleteValue( complete );
-                if ( aError < KErrNone && aError >= KErrCorruptSurrogateFound )
-                    {
-                    // aError is always negative
-                    //  -> returned errorcode is from KSConCodeFirstSymbianErr...n
-                    progress = KSConCodeFirstSymbianErr - aError;
-                    }
-                else
-                    {
-                    progress = KSConCodeConflict;
-                    }
-                
+                progress = KSConCodeConflict;
                 break;
             }
             

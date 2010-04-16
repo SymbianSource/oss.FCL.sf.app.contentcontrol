@@ -85,6 +85,7 @@ CSConDataOwner::~CSConDataOwner()
 CSConDataOwner* CSConDataOwner::CopyL()
     {
     CSConDataOwner* copy = new (ELeave) CSConDataOwner();
+    CleanupStack::PushL( copy );
     copy->iType = iType;
     copy->iUid = iUid;
     copy->iDriveList.Copy( iDriveList );
@@ -105,9 +106,9 @@ CSConDataOwner* CSConDataOwner::CopyL()
             delete copy->iJavaHash;
             copy->iJavaHash = NULL;
             }
-        copy->iJavaHash = iJavaHash->Alloc();
+        copy->iJavaHash = iJavaHash->AllocL();
         }
-                        
+    CleanupStack::Pop( copy );
     return copy;
     }
     
@@ -211,6 +212,7 @@ CSConListInstApps::~CSConListInstApps()
 CSConListInstApps* CSConListInstApps::CopyL()
     {
     CSConListInstApps* copy = new (ELeave) CSConListInstApps();
+    CleanupStack::PushL( copy );
     copy->iAllApps = iAllApps;
     copy->iDriveList = iDriveList;
             
@@ -219,9 +221,12 @@ CSConListInstApps* CSConListInstApps::CopyL()
         
     for( TInt i = 0; i < iApps.Count(); i++ )
         {
-        copy->iApps.Append( iApps[i]->CopyL() );
+        CSConInstApp* temp = iApps[i]->CopyL();
+        CleanupStack::PushL( temp );
+        copy->iApps.AppendL( temp );
+        CleanupStack::Pop( temp );
         }
-            
+    CleanupStack::Pop( copy );
     return copy;
     }
 
@@ -364,7 +369,10 @@ CSConListDataOwners* CSConListDataOwners::CopyL()
     CleanupStack::PushL( copy );
     for( TInt i = 0; i < iDataOwners.Count(); i++ )
         {
-        copy->iDataOwners.Append( iDataOwners[i]->CopyL() );
+        CSConDataOwner* temp = iDataOwners[i]->CopyL();
+        CleanupStack::PushL( temp );
+        copy->iDataOwners.AppendL( temp );
+        CleanupStack::Pop( temp );
         }
     CleanupStack::Pop( copy );
     
@@ -454,7 +462,10 @@ CSConGetDataSize* CSConGetDataSize::CopyL()
     CleanupStack::PushL( copy );
     for( TInt i = 0; i < iDataOwners.Count(); i++ )
         {
-        copy->iDataOwners.Append( iDataOwners[i]->CopyL() );
+        CSConDataOwner* temp = iDataOwners[i]->CopyL();
+        CleanupStack::PushL( temp );
+        copy->iDataOwners.AppendL( temp );
+        CleanupStack::Pop( temp );
         }
     CleanupStack::Pop( copy );
     copy->iComplete = iComplete;
@@ -508,12 +519,18 @@ CSConListPublicFiles* CSConListPublicFiles::CopyL()
     CleanupStack::PushL( copy );
     for( TInt i = 0; i < iFiles.Count(); i++ )
         {
-        copy->iFiles.Append( iFiles[i]->CopyL() );
+        CSConFile* temp = iFiles[i]->CopyL();
+        CleanupStack::PushL( temp );
+        copy->iFiles.AppendL( temp );
+        CleanupStack::Pop( temp );
         }
         
     for( TInt j = 0; j < iDataOwners.Count(); j++ )
         {
-        copy->iDataOwners.Append( iDataOwners[j]->CopyL() );
+        CSConDataOwner* temp = iDataOwners[j]->CopyL();
+        CleanupStack::PushL( temp );
+        copy->iDataOwners.AppendL( temp );
+        CleanupStack::Pop( temp );
         }
     CleanupStack::Pop( copy );
     
@@ -642,7 +659,10 @@ CSConGetDataOwnerStatus* CSConGetDataOwnerStatus::CopyL()
     CleanupStack::PushL( copy );
     for( TInt i = 0; i < iDataOwners.Count(); i++ )
         {
-        copy->iDataOwners.Append( iDataOwners[i]->CopyL() );
+        CSConDataOwner* temp = iDataOwners[i]->CopyL();
+        CleanupStack::PushL( temp );
+        copy->iDataOwners.AppendL( temp );
+        CleanupStack::Pop( temp );
         }           
     CleanupStack::Pop( copy );
     
@@ -1512,6 +1532,7 @@ void CSConTaskReply::InitializeL( TSConMethodName aMethod,
 CSConTaskReply* CSConTaskReply::CopyAndFreeL()  
     {
     CSConTaskReply* copy = new (ELeave) CSConTaskReply();
+    CleanupStack::PushL( copy );
     copy->iTaskId = iTaskId;
     copy->iMethod = iMethod;
     
@@ -1619,7 +1640,7 @@ CSConTaskReply* CSConTaskReply::CopyAndFreeL()
         delete iGetMetadataParams;
         iGetMetadataParams = NULL;
         }
-    
+    CleanupStack::Pop( copy );
     return copy;
     }
 

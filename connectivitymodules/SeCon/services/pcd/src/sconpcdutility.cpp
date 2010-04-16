@@ -22,19 +22,19 @@
 #include <swi/sisregistrypackage.h>
 #include <stringresourcereader.h>
 #include <WidgetRegistryClient.h>
-// #include <javaregistryincludes.h> // All APP-layer dependencias must be removed
-// #include <appversion.h>
+#include <javaregistryincludes.h>
+#include <appversion.h>
 #include <mmf/common/mmfcontrollerpluginresolver.h>
 #include <sconftp.rsg>              // Resource to be read header 
 
-// using namespace Java;
+using namespace Java;
 
 #include "debug.h"
 #include "sconpcdutility.h"
 #include "sconconmltask.h"
 
 // localized "unknown vendor".
-//_LIT( KSConResourceName, "z:\\Resource\\sconftp.rsc" );
+_LIT( KSConResourceName, "z:\\Resource\\sconftp.rsc" );
 
 
 
@@ -211,11 +211,10 @@ void SConPcdUtility::AppendInstalledSisL( CSConListInstApps& aListInstApps )
 // Appends installed java packages to aApps array.
 //----------------------------------------------------------------------------
 //
-void SConPcdUtility::AppendInstalledJavaL( CSConListInstApps& /*aListInstApps*/ )
+void SConPcdUtility::AppendInstalledJavaL( CSConListInstApps& aListInstApps )
     {
     TRACE_FUNC_ENTRY;
     // Java related functionality was removed as it was on APP layer.
-    /*
     CJavaRegistry* javaRegistry = CJavaRegistry::NewLC( );
     RArray<TUid> packageUids;
     CleanupClosePushL( packageUids );
@@ -300,7 +299,6 @@ void SConPcdUtility::AppendInstalledJavaL( CSConListInstApps& /*aListInstApps*/ 
     
     CleanupStack::PopAndDestroy( &packageUids );
     CleanupStack::PopAndDestroy( javaRegistry );
-    */
     TRACE_FUNC_EXIT;
     }
 

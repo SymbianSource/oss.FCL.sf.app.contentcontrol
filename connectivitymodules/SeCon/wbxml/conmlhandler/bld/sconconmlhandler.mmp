@@ -48,11 +48,9 @@ SOURCE          sconxmlworkspace.cpp
 USERINCLUDE     ../inc
 USERINCLUDE     ../../../inc
 
-// Default system include paths for middleware layer modules.
-MW_LAYER_SYSTEMINCLUDE
-SYSTEMINCLUDE   /epoc32/include/libc 
-
-LANG            SC
+// Default system include paths.
+APP_LAYER_SYSTEMINCLUDE
+SYSTEMINCLUDE   /epoc32/include/libc
 
 LIBRARY         euser.lib
 LIBRARY         estor.lib

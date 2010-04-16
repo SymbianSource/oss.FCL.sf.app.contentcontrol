@@ -421,16 +421,22 @@ TInt CSConPCD::GetStatusL( TInt aTask, TBool aAll )
         
     for ( TInt i = 0; i < installerReply->iTasks.Count(); i++ )
         {
-        mergeReply->iTasks.Append( installerReply->iTasks[i]->CopyAndFreeL() );
+        CSConTaskReply* temp = installerReply->iTasks[i]->CopyAndFreeL();
+        CleanupStack::PushL( temp );
+        mergeReply->iTasks.AppendL( temp );
+        CleanupStack::Pop( temp );
         }
     
     // installer replys are copied to mergereply, delete installerReply
     CleanupStack::PopAndDestroy( installerReply );
     
     // do same for br reply
-    for ( TInt j = 0; j < brReply->iTasks.Count(); j++ )
+    for ( TInt i = 0; i < brReply->iTasks.Count(); i++ )
         {
-        mergeReply->iTasks.Append( brReply->iTasks[j]->CopyAndFreeL() );
+        CSConTaskReply* temp = brReply->iTasks[i]->CopyAndFreeL();
+        CleanupStack::PushL( temp );
+        mergeReply->iTasks.AppendL( temp );
+        CleanupStack::Pop( temp );
         }
     
     CleanupStack::PopAndDestroy( brReply );

@@ -132,14 +132,17 @@ void CSConConMLGenerator::StartElementL( TWBXMLTag aTag )
     LOGGER_ENTERFN( "CSConConMLGenerator::StartElementL()" );
     if( iCmdStack->Top() != 0 )
         {
-        AddElement(iCmdStack->Top()->BeginElementL( 
+        AddElementL(iCmdStack->Top()->BeginElementL( 
             aTag, TXMLElementParams(iCallback, iCmdStack, iCleanupStack ) ) );
         }
     else
         {
         if( aTag == EConML )
             {
-            AddElement(new (ELeave) ConML_ConML_t());
+            ConML_ConML_t* element = new (ELeave) ConML_ConML_t();
+            CleanupStack::PushL( element );
+            AddElementL( element );
+            CleanupStack::Pop( element );
             }
         else
             {
@@ -153,15 +156,15 @@ void CSConConMLGenerator::StartElementL( TWBXMLTag aTag )
 // -----------------------------------------------------------------------------
 // AddElement
 // -----------------------------------------------------------------------------
-void CSConConMLGenerator::AddElement( CXMLElement* aElement )
+void CSConConMLGenerator::AddElementL( CXMLElement* aElement )
     {
     LOGGER_ENTERFN( "CSConConMLGenerator::AddElement()" );
     if( aElement )
         {
-        iCmdStack->Push(aElement);
+        iCmdStack->PushL(aElement);
         if( aElement->NeedsCleanup() )
             {
-            iCleanupStack->Push(aElement);
+            iCleanupStack->PushL(aElement);
             }
         }
     LOGGER_LEAVEFN( "CSConConMLGenerator::AddElement()" );

@@ -16,7 +16,6 @@
 */
 
 
-// To get the MW_LAYER_SYSTEMINCLUDE-definition
 #include <platform_paths.hrh>
 #include <data_caging_paths.hrh>
 
@@ -46,11 +45,10 @@ SOURCE          sconinboxhandler.cpp
 
 USERINCLUDE     ../../../inc
 USERINCLUDE     ../inc
-// cntparser is dropped as it depends on APP-layer. TODO: Check howto get this working
-// USERINCLUDE     ../../../cntParser/inc
+USERINCLUDE     ../../../cntParser/inc
 
-
-MW_LAYER_SYSTEMINCLUDE
+// Default system include paths.
+APP_LAYER_SYSTEMINCLUDE
 
 
 START RESOURCE  ../src/sconftp.rss
@@ -69,8 +67,7 @@ LIBRARY         charconv.lib            // For Unicode conversion
 LIBRARY         bafl.lib                // Basic Application Framework Library
 LIBRARY         commonengine.lib        // For resource reader
 LIBRARY         platformenv.lib         // For pathinfo
-// cntparser is dropped as it depends on APP-layer. TODO: Check howto get this working
-// LIBRARY         CntParserServer.lib     // for contacts
+LIBRARY         CntParserServer.lib     // for contacts
 LIBRARY         directorylocalizer.lib  // For localizing directories
 LIBRARY         sysutil.lib
 LIBRARY         centralrepository.lib
