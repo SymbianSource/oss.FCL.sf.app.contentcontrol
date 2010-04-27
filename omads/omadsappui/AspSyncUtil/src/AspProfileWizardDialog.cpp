@@ -60,7 +60,7 @@ CAspTextSettingPage::CAspTextSettingPage(TInt aResourceID, TDes& aText,
 //
 CAspTextSettingPage::~CAspTextSettingPage()
 	{
-	delete iIndicatorHandler;
+	delete iNaviPaneHandler;
 	}
 
 
@@ -133,14 +133,14 @@ TBool CAspTextSettingPage::PostDisplayCheckL()
 //
 void CAspTextSettingPage::UpdateNaviPaneL()
     {
-    if (!iIndicatorHandler)
-    	{
-    	iIndicatorHandler = new (ELeave) CAspIndicatorHandler(
-    	                                 iAvkonEnv->EditingStateIndicator());
-    	}
-    	
-    iIndicatorHandler->SetIndicatorStateL(
-              EAknNaviPaneEditorIndicatorMessageLength, iParam.iPageText);
+    
+    if (!iNaviPaneHandler)
+           {
+           iNaviPaneHandler = new (ELeave) CAspNaviPaneHandler(
+                                  iEikonEnv->AppUiFactory()->StatusPane());
+           }
+           
+       iNaviPaneHandler->SetNaviPaneTitleL(iParam.iPageText);
     }
     
 
@@ -256,18 +256,17 @@ void CAspRadioButtonSettingPage::UpdateNaviPaneL()
 
 void CAspRadioButtonSettingPage::HandleListBoxEventL(CEikListBox* aListBox, TListBoxEvent aEventType)
 {
-	if( AknLayoutUtils::PenEnabled() )
-	{
-	  	switch(aEventType)
-		{  
-		   case EEventItemSingleClicked:
-       			 this->ProcessCommandL(EAknSoftkeySelect);	
-        		 break;
-		  	default:
-				break;
-    		
-		}	
-	}
+
+    TInt oldSelect = ListBoxControl()->CurrentItemIndex();
+    CAknRadioButtonSettingPage::HandleListBoxEventL( aListBox, aEventType );
+    if ( oldSelect != ListBoxControl()->CurrentItemIndex() )
+
+    {
+
+       TBuf<KBufSize> buf;
+       buf.Num(oldSelect);
+       TBool ret = iParam.iObserver->CheckValidity(buf, iParam.iSettingType);
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -321,7 +320,7 @@ CAspAlphaPasswordSettingPage::CAspAlphaPasswordSettingPage(TInt aResourceID,
 //
 CAspAlphaPasswordSettingPage::~CAspAlphaPasswordSettingPage()
 	{
-	delete iIndicatorHandler;
+	delete iNaviPaneHandler;
 	}
 
 
@@ -357,14 +356,14 @@ TBool CAspAlphaPasswordSettingPage::PostDisplayCheckL()
 //
 void CAspAlphaPasswordSettingPage::UpdateNaviPaneL()
     {
-    if (!iIndicatorHandler)
-    	{
-    	iIndicatorHandler = new (ELeave) CAspIndicatorHandler(
-    	                                 iAvkonEnv->EditingStateIndicator());
-    	}
-    	
-    iIndicatorHandler->SetIndicatorStateL(
-              EAknNaviPaneEditorIndicatorMessageLength, iParam.iPageText);
+    
+    if (!iNaviPaneHandler)
+               {
+               iNaviPaneHandler = new (ELeave) CAspNaviPaneHandler(
+                                      iEikonEnv->AppUiFactory()->StatusPane());
+               }
+               
+           iNaviPaneHandler->SetNaviPaneTitleL(iParam.iPageText);
     }
 
 

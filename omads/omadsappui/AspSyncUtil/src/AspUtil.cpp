@@ -397,7 +397,7 @@ TInt TUtil::OperatorProviderIdFromAppId(TInt aApplicationId)
          delete repository;
         }
 
-    if ( (id == KErrNotFound) || (err != KErrNone) )
+    if ( (id == KErrNotFound) || (err != KErrNone) || (id == 0) )
         {
         // Use default adapter
         id = ProviderIdFromAppId(aApplicationId);        

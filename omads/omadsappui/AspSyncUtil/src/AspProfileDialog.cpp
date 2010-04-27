@@ -964,25 +964,31 @@ void CAspProfileDialog::AddContentItemsL()
 			continue;
 			}
 		
-		// In Phonebooks syncronization settings, remove another provider from
-		// end of settings item list
-		if (appId == EApplicationIdContact)
-			{
-			TInt operatorUid = CAspProfile::OperatorAdapterUidL();
-			//if current profile is operator profile, don't display s60 contacts adapter
-			if (CAspProfile::IsOperatorProfileL(iProfile))
-				{
-				if (operatorUid != providerItem.iDataProviderId)
-					{
-					continue;
-					}
-				}
-            //if current profile is not operator profile, don't display operator adapter
-            else if (operatorUid == providerItem.iDataProviderId)
+        // In Phonebooks synchronization settings, remove another provider from
+        //  end of settings item list (unless platform's contacts adapter is
+        //  is defined as operator specific adapter and thus there is no dedicated
+        //  operator specific adapter)
+        if (appId == EApplicationIdContact)
+            {
+            TInt operatorUid = CAspProfile::OperatorAdapterUidL();
+            if ( operatorUid != KUidNSmlAdapterContact.iUid &&
+                operatorUid != 0 )
                 {
-                continue;
+                // Operator profile: do not display s60 contacts adapter
+                if (CAspProfile::IsOperatorProfileL(iProfile))
+                    {
+                    if (operatorUid != providerItem.iDataProviderId)
+                        {
+                        continue;   
+                        }
+                    }
+                // Non-operator profile: Do not display operator adapter
+                else if (operatorUid == providerItem.iDataProviderId)
+                    {
+                    continue;                    
+                    }                    
                 }
-			}
+            }
 
 		HBufC* firstLine = CAspResHandler::GetContentSettingLC(
 		                                   providerItem.iDataProviderId,

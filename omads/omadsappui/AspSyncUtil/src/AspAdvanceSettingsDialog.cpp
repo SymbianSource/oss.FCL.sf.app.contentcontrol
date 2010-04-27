@@ -332,6 +332,7 @@ void CAspAdvanceSettingsDialog::ProcessCommandL(TInt aCommandId)
 	switch (aCommandId)
 		{
 		case EAspMenuCmdHelp:
+		case EAknCmdHelp:
 			{
 			TUtil::LaunchHelpAppL(iEikonEnv);
             break;

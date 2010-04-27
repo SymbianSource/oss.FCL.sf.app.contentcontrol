@@ -449,21 +449,39 @@ void CAspContentList::DoInitDataProvidersL()
 
 		    if ( iApplicationId == 0 )
 		        {
-		        if ( operatorProfile )
-		            {
-		            if ( id != KUidNSmlAdapterContact.iUid )
-		                {
-		                User::LeaveIfError(iProviderList.Append(item)); 
-		                }
-		            }
-		        else
-		            {
-		            if ( id != operatorUid && id != profileUid )
-		                {
-		                User::LeaveIfError(iProviderList.Append(item));
-		                }
-		            }
-		        }
+                if( operatorUid != KUidNSmlAdapterContact.iUid &&
+                    operatorUid != 0 )
+                    {
+                    // Dedicated operator specific adapter in use
+                    if ( operatorProfile )
+                        {
+                        // Operator profile: show other adapters than platform's 
+                        //  contacts adapter
+                        if ( id != KUidNSmlAdapterContact.iUid )
+                            {
+                            User::LeaveIfError(iProviderList.Append(item)); 
+                            }
+                        }
+                    else
+                        {
+                        // Non-operator profile: show other adapters than
+                        //  operator specific contacts adapter & profile adapter
+                        if ( id != operatorUid && id != profileUid )
+                            {
+                            User::LeaveIfError(iProviderList.Append(item));
+                            }
+                        }
+                    }
+                else
+                    {
+                    // Platform's contacts adapter used as operator adapter
+                    if( operatorProfile || 
+                        ( !operatorProfile && id != profileUid ) )
+                        {
+                        User::LeaveIfError(iProviderList.Append(item));
+                        }
+                    }
+                }
 		    else
 		        {
                 User::LeaveIfError(iProviderList.Append(item));

@@ -117,7 +117,7 @@ NONSHARABLE_CLASS (CAspTextSettingPage) : public CAknTextSettingPage
 	    
 	private:
 	    TAspSettingPageParam& iParam;
-	    CAspIndicatorHandler* iIndicatorHandler;
+	    CAspNaviPaneHandler* iNaviPaneHandler;
 	};
 
 
@@ -202,8 +202,8 @@ NONSHARABLE_CLASS (CAspAlphaPasswordSettingPage) : public CAknAlphaPasswordSetti
 
 	private:
 	    TAspSettingPageParam& iParam;
-	    //CAspNaviPaneHandler* iNaviPaneHandler;
-	    CAspIndicatorHandler* iIndicatorHandler;
+	    CAspNaviPaneHandler* iNaviPaneHandler;
+	   
 	};
 
 
