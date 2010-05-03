@@ -137,25 +137,32 @@ TInt CNsmlContactsDataStoreExtensionPrivate::ExportContactsL( const TUid &uid, C
     DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ExportContactsL: BEGIN: UID: %d"), uid);
    
     TInt error(KErrNone);
+    QList<QContact> contacts;
     QBuffer contactsbuf;
     contactsbuf.open(QBuffer::ReadWrite);    
-    mWriter->setDevice( &contactsbuf );    
-    QVersitDocument::VersitType versitType(QVersitDocument::VCard21);
-    
+    mWriter->setDevice( &contactsbuf );  
     QContact contact = mContactManager->contact( uid.iUid );
-    /*error = mContactManager->error();
+    error = mContactManager->error();
     if( error != QContactManager::NoError )
         {
         DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ExportContactsL:Error %d"), error );
         return error; 
-        }*/
+        }
+	contacts.append( contact );    
     
-    QVersitDocument document = mExporter->exportContact( contact,versitType );    
-    mWriter->setVersitDocument( document );    
-    bool status = mWriter->writeAll();    
-    DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ExportContactsL:status %d"), status);    
-    contactbufbase.InsertL( contactbufbase.Size(), *XQConversions::qStringToS60Desc8( contactsbuf.data() ) );
-    
+    if( mExporter->exportContacts( contacts, QVersitDocument::VCard21Type ) )
+        {
+        QList<QVersitDocument> documents = mExporter->documents();        
+        mWriter->startWriting( documents );
+        bool status = mWriter->waitForFinished();  
+        DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ExportContactsL:status %d"), status);    
+        contactbufbase.InsertL( contactbufbase.Size(), *XQConversions::qStringToS60Desc8( contactsbuf.data() ) );
+        }
+    else
+        {
+        error = KErrGeneral;
+        DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ExportContactsL:Error in exporting %d"), error );
+        }
     
     TPtr8 ptrbuf(contactbufbase.Ptr(0));
     DBG_DUMP( (void*)ptrbuf.Ptr(), ptrbuf.Length(),
@@ -176,7 +183,7 @@ CArrayFixFlat<TUid>* CNsmlContactsDataStoreExtensionPrivate::ImportContactsL( co
     DBG_DUMP((void*)contactbufbase.Ptr(), contactbufbase.Length(),
         _S8("CNsmlContactsDataStoreExtensionPrivate::ImportContactsL: To DB :"));      
     
-    TInt error(KErrNone);
+    TBool ret( ETrue );
     CArrayFixFlat<TUid>* contactItems = new(ELeave) CArrayFixFlat<TUid>(4);
     QBuffer contactsbuf;
     contactsbuf.open(QBuffer::ReadWrite);
@@ -186,27 +193,33 @@ CArrayFixFlat<TUid>* CNsmlContactsDataStoreExtensionPrivate::ImportContactsL( co
     contactsbuf.seek(0);
     
     mReader->setDevice(&contactsbuf);
-    mReader->readAll(); 
-    
-    foreach (QVersitDocument document, mReader->result()) 
-    {
-        QContact contact = mImporter->importContact(document);
-        mContactManager->saveContact(&contact);
-        error = mContactManager->error();
-        DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ImportContactsL:Error %d"), error );
-        if( error == QContactManager::NoError )
+    if (mReader->startReading() && mReader->waitForFinished()) 
         {
-            TUint contactid = contact.id().localId();
-            contactItems->AppendL( TUid::Uid( contactid ) );
-            DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ImportContactsL:UID %d"), contactid );
+        DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::Buffer Count: %d"), mReader->results().count() );
+        
+        QList<QContact> contacts = mImporter->importContacts(mReader->results());
+        QMap<int, QContactManager::Error> errorMap;
+        ret = mContactManager->saveContacts( &contacts, &errorMap );           
+        DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::Import Status: %d"), ret );
+        if( ret )
+            {
+            foreach (QContact contact, contacts ) 
+                {
+                TUint contactid = contact.id().localId();
+                
+                DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::Contact ID: %d"), contactid );
+                
+                contactItems->AppendL( TUid::Uid( contactid ) );
+                }
+            }
+            
+        if( contactItems->Count() <= 0 )
+            {
+            delete contactItems;
+            contactItems = NULL;
+            }
         }
-    }
-    DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ImportContactsL:Count %d"), contactItems->Count() );
-    if( contactItems->Count() <= 0 )
-    {
-        delete contactItems;
-        contactItems = NULL;
-    }
+    
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::ImportContactsL: END");
     
     return contactItems;
@@ -222,12 +235,12 @@ TInt CNsmlContactsDataStoreExtensionPrivate::ReadContactL( const TUid &uid, CNsm
     TInt error(KErrNone);
     
     QContact contact = mContactManager->contact( uid.iUid );
-    /*error = mContactManager->error();
+    error = mContactManager->error();
     if( error != QContactManager::NoError )
         {
         DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ReadContactL:Error %d"), error );
         return error;
-        }*/
+        }
         
     // Fetch the contact details
     QContactTimestamp timestamp = contact.detail( QContactTimestamp::DefinitionName );
@@ -280,16 +293,15 @@ TBool CNsmlContactsDataStoreExtensionPrivate::DeleteContactsL( CArrayFixFlat<TUi
     {
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::DeleteContactsL: BEGIN");
     
-    TBool ret = ETrue;
+    QList<QContactLocalId> contacts;
     for( TInt count = 0; count < arrDelete->Count(); count++ )
-    {
-        ret = mContactManager->removeContact( arrDelete->At( count ).iUid );
-        if( EFalse == ret )
         {
-            DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::DeleteContactsL:ERROR : %d"), ret );
-            return ret;
+        contacts.append( arrDelete->At( count ).iUid );
         }
-    }
+    
+    QMap<int, QContactManager::Error> errorMap;
+    TBool ret = mContactManager->removeContacts( &contacts, &errorMap );
+    
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::DeleteContactsL: END");
     
     return ret;
@@ -302,22 +314,14 @@ TBool CNsmlContactsDataStoreExtensionPrivate::DeleteAllContactsL()
     {
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::DeleteAllContactsL: BEGIN");
     
-    QList<QContactManager::Error> err;
-    TBool ret = ETrue;
     QContactLocalId selfcontactid = mContactManager->selfContactId();
-    QList<QContactLocalId> contactIds = mContactManager->contacts();
-    int index = contactIds.indexOf( selfcontactid );
+    QList<QContactLocalId> contactIds = mContactManager->contactIds();
+    int index = contactIds.indexOf( selfcontactid );   
     contactIds.removeAt( index );
-    err = mContactManager->removeContacts( &contactIds );
     
-    foreach ( const QContactManager::Error error, err )
-    {
-        if( error != QContactManager::NoError )
-        {
-            ret = EFalse;
-            break;
-        }
-    }
+    QMap<int, QContactManager::Error> errorMap;
+    TBool ret = mContactManager->removeContacts( &contactIds, &errorMap );
+    
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::DeleteAllContactsL: END");
     
     return ret;
@@ -347,10 +351,13 @@ TInt64 CNsmlContactsDataStoreExtensionPrivate::MachineIdL()
     {
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::MachineIdL: BEGIN");
     
-    TInt64 machineid = DefaultHash::Des16( *XQConversions::qStringToS60Desc( 
-                                                                    mContactManager->managerUri() ) );
+    DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::manageruri: %S"), XQConversions::qStringToS60Desc( 
+                                                                           mContactManager->managerUri() ) );
     
-    DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::MachineIdL: %d"), machineid );
+    TInt64 machineid = DefaultHash::Des16( XQConversions::qStringToS60Desc( 
+                                                                    mContactManager->managerUri() )->Des() );
+    
+    DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::MachineIdL: %ld"), machineid );
     
     return machineid;
     }
@@ -362,7 +369,7 @@ void CNsmlContactsDataStoreExtensionPrivate::ListContactsL( CArrayFixFlat<TUid> 
     {
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::ListContactsL: BEGIN");
     
-    QList<QContactLocalId> contactIds = mContactManager->contacts();    
+    QList<QContactLocalId> contactIds = mContactManager->contactIds();    
      
     foreach (QContactLocalId id, contactIds )
         {

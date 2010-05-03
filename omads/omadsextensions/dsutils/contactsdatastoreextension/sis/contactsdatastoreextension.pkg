@@ -17,7 +17,8 @@
 &EN
 
 ; SIS header: name, uid, version
-#{"contactsdatastoreextension"},(0x2002DC83),1,0,0
+#{"contactsdatastoreextension"},(0x2002E6D9),1,0,0, TYPE=SP
+
 
 ; Localised Vendor name
 %{"Vendor"}

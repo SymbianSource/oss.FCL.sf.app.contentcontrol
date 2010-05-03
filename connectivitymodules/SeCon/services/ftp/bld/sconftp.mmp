@@ -45,7 +45,7 @@ SOURCE          sconinboxhandler.cpp
 
 USERINCLUDE     ../../../inc
 USERINCLUDE     ../inc
-USERINCLUDE     ../../../cntParser/inc
+USERINCLUDE     ../../../cntparser/inc
 
 // Default system include paths.
 APP_LAYER_SYSTEMINCLUDE
@@ -60,14 +60,14 @@ END
 
 LIBRARY         efsrv.lib               // For File server
 LIBRARY         euser.lib               // Base library
-LIBRARY         IrObex.lib              // For Object exchange
+LIBRARY         irobex.lib              // For Object exchange
 LIBRARY         obexutils.lib
 LIBRARY         msgs.lib                // For Inbox entry
 LIBRARY         charconv.lib            // For Unicode conversion
 LIBRARY         bafl.lib                // Basic Application Framework Library
 LIBRARY         commonengine.lib        // For resource reader
 LIBRARY         platformenv.lib         // For pathinfo
-LIBRARY         CntParserServer.lib     // for contacts
+LIBRARY         cntparserserver.lib     // for contacts
 LIBRARY         directorylocalizer.lib  // For localizing directories
 LIBRARY         sysutil.lib
 LIBRARY         centralrepository.lib

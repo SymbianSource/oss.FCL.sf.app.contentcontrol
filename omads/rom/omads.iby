@@ -19,6 +19,9 @@
 #ifndef __OMADS_IBY__
 #define __OMADS_IBY__
 
+REM stub sis file
+data=ZSYSTEM\install\omads_stub.sis     System\Install\omads_stub.sis
+
 REM SyncML  Data Synchronisation plug-in adapters
 
 #ifdef  __SYNCML_DS_CAL // SyncML data synchronization calendar plug-in
@@ -26,6 +29,11 @@ ECOM_PLUGIN(nsmlagendadataprovider.dll,nsmlagendadataprovider.rsc)
 data=DATAZ_\RESOURCE_FILES_DIR\NSmlAgendaDataStore_1_1_2.rsc		RESOURCE_FILES_DIR\NSmlAgendaDataStore_1_1_2.rsc
 data=DATAZ_\RESOURCE_FILES_DIR\NSmlAgendaDataStore_1_2.rsc			RESOURCE_FILES_DIR\NSmlAgendaDataStore_1_2.rsc
 #endif // __SYNCML_DS_CAL
+
+#ifdef  __SYNCML_DS_NOTEPAD
+ECOM_PLUGIN(nsmlnotepaddataprovider.dll,nsmlnotepaddataprovider.rsc)
+data=DATAZ_\RESOURCE_FILES_DIR\nsmlnotepaddatastoreformat.rsc		RESOURCE_FILES_DIR\nsmlnotepaddatastoreformat.rsc
+#endif
 
 #ifdef __SYNCML_DS_CON //  SyncML data synchronization contacts plug-in
 ECOM_PLUGIN(nsmlcontactsdataprovider.dll,nsmlcontactsdataprovider.rsc)

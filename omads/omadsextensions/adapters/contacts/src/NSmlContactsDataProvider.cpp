@@ -164,10 +164,14 @@ EXPORT_C const CSmlDataStoreFormat& CNSmlContactsDataProvider::DoStoreFormatL()
     
 	TFileName resourceFileName;
 	resourceFileName.Copy( TParsePtrC( dllFileName ).Drive() );  
+	
+	resourceFileName.Append( GetStoreFormatResourceFileL() );
 
-	parse.Set( GetStoreFormatResourceFileL(), &KDC_RESOURCE_FILES_DIR, NULL );
+	parse.Set( resourceFileName, &KDC_RESOURCE_FILES_DIR, NULL );
 
 	fileName = parse.FullName();
+	
+	DBG_ARGS(_S("CNSmlContactsDataProvider::SetOwnStoreFormatL(): '%S'"), &parse.FullName());
 
 	RResourceFile resourceFile; 
 	BaflUtils::NearestLanguageFile( iRfs, fileName );
@@ -301,12 +305,12 @@ EXPORT_C const TDesC& CNSmlContactsDataProvider::GetStoreFormatResourceFileL() c
 	                                 value );
 	if ( error == KErrNone && value == EDataSyncRunning )
 	    {
-        _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL(): END");
+        _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL() 1.1.2 : END");
 	    return KNSmlContactsStoreFormatRsc_1_1_2;
 	    }
 	else // error or protocol version 1.2 
 	    {
-        _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL(): END");
+        _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL() 1.2 : END");
 	    return KNSmlContactsStoreFormatRsc_1_2;
 	    }
     }

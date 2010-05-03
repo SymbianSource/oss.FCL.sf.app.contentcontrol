@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2006 Nokia Corporation and/or its subsidiary(-ies). 
+* Copyright (c) 2002 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -11,16 +11,16 @@
 *
 * Contributors:
 *
-* Description:  
+* Description:  DS notepad definitions.
 *
 */
 
-#include <platform_paths.hrh>
 
-PRJ_EXPORTS
+#ifndef __NSMLNOTEPADDEFS_H__ 
+#define __NSMLNOTEPADDEFS_H__ 
 
-//for IAD support
-omads_stub.sis  /epoc32/data/z/system/install/omads_stub.sis
-../rom/omads.iby      CORE_APP_LAYER_IBY_EXPORT_PATH(omads.iby)
+#include <e32std.h>
 
-#include "../omadsextensions/group/bld.inf"
+static const TUint KNSmlNotepadAdapterImplUid = 0x101F8612;
+
+#endif // __NSMLNOTEPADDEFS_H__

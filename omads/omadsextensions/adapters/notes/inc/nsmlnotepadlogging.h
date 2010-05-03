@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2006 Nokia Corporation and/or its subsidiary(-ies). 
+* Copyright (c) 2003 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -11,16 +11,22 @@
 *
 * Contributors:
 *
-* Description:  
+* Description:  calss which directly deal with notepad database.
 *
 */
 
-#include <platform_paths.hrh>
 
-PRJ_EXPORTS
+#ifndef __NSMLNOTEPADLOGGING_H__
+#define __NSMLNOTEPADLOGGING_H__
 
-//for IAD support
-omads_stub.sis  /epoc32/data/z/system/install/omads_stub.sis
-../rom/omads.iby      CORE_APP_LAYER_IBY_EXPORT_PATH(omads.iby)
+#define _NOTEPAD_DBG_FILE(p)
 
-#include "../omadsextensions/group/bld.inf"
+#ifdef _DEBUG_
+#include "nsmldebug.h"
+
+#define _NOTEPAD_DBG_FILE(p) _DBG_FILE(p)
+
+#endif
+
+
+#endif //__NSMLNOTEPADLOGGING_H__

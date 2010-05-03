@@ -23,7 +23,7 @@ PRJ_PLATFORMS
 DEFAULT 
 
 PRJ_EXPORTS
-./sbeconfig.xml	/epoc32/data/Z/private/10202D56/sbeconfig.xml
+./sbeconfig.xml /epoc32/data/z/private/10202d56/sbeconfig.xml
 
 PRJ_MMPFILES
 sconpcd.mmp

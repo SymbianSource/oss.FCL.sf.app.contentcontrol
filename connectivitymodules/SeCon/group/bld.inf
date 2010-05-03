@@ -32,9 +32,9 @@
 PRJ_EXPORTS
 
 // Export stub files
-stubs/secon_stub.SIS                /epoc32/data/z/system/install/secon_stub.SIS
-stubs/sconpcconnplugin_stub.SIS     /epoc32/data/z/system/install/sconpcconnplugin_stub.SIS
-stubs/sconftpplugin_stub.SIS        /epoc32/data/z/system/install/sconftpplugin_stub.SIS
+stubs/secon_stub.sis                /epoc32/data/z/system/install/secon_stub.sis
+stubs/sconpcconnplugin_stub.sis     /epoc32/data/z/system/install/sconpcconnplugin_stub.sis
+stubs/sconftpplugin_stub.sis        /epoc32/data/z/system/install/sconftpplugin_stub.sis
 
 ../rom/sconpcd.iby                  CORE_MW_LAYER_IBY_EXPORT_PATH(sconpcd.iby)
 ../rom/sconpcconnplugin.iby         CORE_MW_LAYER_IBY_EXPORT_PATH(sconpcconnplugin.iby)

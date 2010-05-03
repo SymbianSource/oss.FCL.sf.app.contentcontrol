@@ -26,4 +26,7 @@ PRJ_EXPORTS
 #include "../agenda/bld/bld.inf"
 #endif
 
+#ifdef  __SYNCML_DS_NOTEPAD
+#include "../notes/group/bld.inf"
+#endif
 

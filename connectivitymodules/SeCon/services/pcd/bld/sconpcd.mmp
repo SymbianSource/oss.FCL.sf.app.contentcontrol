@@ -73,16 +73,16 @@ LIBRARY         platformenv.lib
 LIBRARY         efsrv.lib
 LIBRARY         sysutil.lib
 LIBRARY         commonengine.lib        // For resource reader
-LIBRARY         WidgetRegistryClient.lib
+LIBRARY         widgetregistryclient.lib
 LIBRARY         metadatautility.lib
 LIBRARY         exiflib.lib
 LIBRARY         charconv.lib
 LIBRARY         caf.lib                 // for Content Access
-LIBRARY         MediaClientVideo.lib    // for CVideoPlayerUtility
+LIBRARY         mediaclientvideo.lib    // for CVideoPlayerUtility
 LIBRARY         ws32.lib                // for RWsSession
-LIBRARY         TNEEngine.lib           // for CTNEVideoClipInfo
-LIBRARY         ImageConversion.lib         // for CImageEncoder
-LIBRARY         MMFControllerFramework.lib  // for CMMFMetaDataEntry
+LIBRARY         tneengine.lib           // for CTNEVideoClipInfo
+LIBRARY         imageconversion.lib         // for CImageEncoder
+LIBRARY         mmfcontrollerframework.lib  // for CMMFMetaDataEntry
 LIBRARY         bafl.lib                    // for BaflUtils
 DEBUGLIBRARY    flogger.lib
 // End of file

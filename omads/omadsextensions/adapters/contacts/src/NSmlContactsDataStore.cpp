@@ -508,10 +508,21 @@ EXPORT_C void CNSmlContactsDataStore::SetOwnStoreFormatL()
 		{
 		TFileName fileName;
 		TParse parse;
+		
+		// Locate the resource file
+        TFileName dllFileName;
+        Dll::FileName( dllFileName );
+        
+        TFileName resourceFileName;
+        resourceFileName.Copy( TParsePtrC( dllFileName ).Drive() );  
+        
+        resourceFileName.Append( GetStoreFormatResourceFileL() );
 
-	    parse.Set( GetStoreFormatResourceFileL(), &KDC_RESOURCE_FILES_DIR, NULL  );		
+        parse.Set( resourceFileName, &KDC_RESOURCE_FILES_DIR, NULL );
 
 		fileName = parse.FullName();
+		
+		DBG_ARGS(_S("CNSmlContactsDataStore::SetOwnStoreFormatL(): '%S'"), &parse.FullName());
 
 		RResourceFile resourceFile; 
 		BaflUtils::NearestLanguageFile( iRfs, fileName );
@@ -652,8 +663,8 @@ EXPORT_C void CNSmlContactsDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
 	
 	if ( iState != ENSmlOpenAndWaiting )
 		{
+        _DBG_FILE("CNSmlContactsDataStore::DoCreateItemL - KErrNotReady: END");
 		User::RequestComplete( iCallerStatus, KErrNotReady );
-		_DBG_FILE("CNSmlContactsDataStore::DoCreateItemL - KErrNotReady: END");
 		return;
 		}
 		
@@ -685,8 +696,8 @@ EXPORT_C void CNSmlContactsDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
 	    // Allow using custom MIME type defined in store format resource file
 	    ( aMimeType.MatchF( iUsedMimeType ) < 0 ) )
 		{
+        _DBG_FILE("CNSmlContactsDataStore::DoCreateItemL - KErrNotSupported: END");
 		User::RequestComplete( iCallerStatus, KErrNotSupported );
-		_DBG_FILE("CNSmlContactsDataStore::DoCreateItemL - KErrNotSupported: END");
 		return;
 		}
     
@@ -1242,18 +1253,16 @@ EXPORT_C void CNSmlContactsDataStore::DoResetChangeInfoL( TRequestStatus& aStatu
 	_DBG_FILE("CNSmlContactsDataStore::DoResetChangeInfoL(): begin");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
-	TInt error(KErrNone);
+	
+	iSnapshotRegistered = EFalse;
 	
 	if( iChangeFinder )
 		{
 		iChangeFinder->ResetL();
+		FetchModificationsL();
 		}
-		
-	iSnapshotRegistered = EFalse;
 	
-	error = FetchModificationsL();
-	
-    User::RequestComplete( iCallerStatus, error );
+    User::RequestComplete( iCallerStatus, KErrNone );
 	
 	_DBG_FILE("CNSmlContactsDataStore::DoResetChangeInfoL(): end");
 	}
@@ -1526,11 +1535,31 @@ EXPORT_C TInt CNSmlContactsDataStore::LdoUpdateItemL( TSmlDbItemUid aUid,
 	*hItemBuf = bItem->Ptr(0);
 	CleanupStack::PopAndDestroy(); // bItem
 	CleanupStack::PushL( hItemBuf );
-	//StripPropertyL( hItemBuf, KVersitTokenUID() );
+	StripPropertyL( hItemBuf, KVersitTokenUID() );
+	
 	TPtr8 hItemPtr( hItemBuf->Des() );
+	HBufC8* endPropBuf = HBufC8::NewLC( KVersitTokenEND().Length() + KVersitTokenCRLF().Length() + KVersitTokenColon().Length() );
+	TPtr8 endPropPtr( endPropBuf->Des() );
+	endPropPtr.Append( KVersitTokenCRLF() );
+	endPropPtr.Append( KVersitTokenEND() ); 
+	endPropPtr.Append( KVersitTokenColon() ); 
+	TInt endPos = hItemPtr.Find( endPropPtr );
+	if( endPos == KErrNotFound )
+		{
+		User::Leave( KErrNotSupported );
+		}
+	hItemPtr.Insert( endPos, KVersitTokenCRLF() );
+	endPos += KVersitTokenCRLF().Length();
+	hItemPtr.Insert( endPos, KVersitTokenUID() );
+	endPos += KVersitTokenUID().Length();
+	hItemPtr.Insert( endPos, KVersitTokenColon() );
+	endPos += KVersitTokenColon().Length();
+	hItemPtr.Insert( endPos, *contactitem->iGuid );
 	
 	DBG_DUMP((void*)hItemPtr.Ptr(), hItemPtr.Length(),
 	            _S8("CNSmlContactsDataStore::LdoUpdateItemL(): MergedItem:"));
+	
+	CleanupStack::PopAndDestroy( endPropBuf );
 
 	// TODO: Get it reviewed
 	CArrayFixFlat<TUid>* entryArray = NULL;
@@ -1740,12 +1769,12 @@ EXPORT_C const TDesC& CNSmlContactsDataStore::GetStoreFormatResourceFileL() cons
                                      value );
     if ( error == KErrNone && value == EDataSyncRunning )
         {
-        _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL(): END");
+        _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL() 1.1.2: END");
         return KNSmlContactsStoreFormatRsc_1_1_2;
         }
     else // error or protocol version 1.2 
         {
-        _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL(): END");
+        _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL() 1.2: END");
         return KNSmlContactsStoreFormatRsc_1_2;
         }
     }

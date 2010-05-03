@@ -975,13 +975,13 @@ void CNSmlAgendaDataStore::DoDeleteAllItemsL( TRequestStatus& aStatus )
     iEntryView->DeleteL( uidArray, aNumSuccessfulDeleted );
 	CleanupStack::PopAndDestroy( &uidArray ); // uidArray
 
+	iSnapshotRegistered = EFalse;
     // Update changefinder
 	if ( iChangeFinder )
 		{
 		iChangeFinder->ResetL();
+		RegisterSnapshotL();
 		}
-	iSnapshotRegistered = EFalse;
-	RegisterSnapshotL();
 	
 	User::RequestComplete( iCallerStatus, KErrNone );
 	

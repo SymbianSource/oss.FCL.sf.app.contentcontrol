@@ -70,8 +70,8 @@ LIBRARY	        centralrepository.lib
 LIBRARY         apgrfx.lib
 LIBRARY         apparc.lib
 LIBRARY         sisregistryclient.lib
-LIBRARY         SyncMLClientAPI.lib
+LIBRARY         syncmlclientapi.lib
 LIBRARY         javaregistryclient.lib
 LIBRARY         sysversioninfo.lib
-LIBRARY         Etel3rdParty.lib
+LIBRARY         etel3rdparty.lib
 LIBRARY         platformver.lib

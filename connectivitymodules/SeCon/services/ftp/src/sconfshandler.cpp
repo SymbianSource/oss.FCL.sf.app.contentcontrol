@@ -28,9 +28,9 @@
 
 #include "sconfshandler.h"
 #include "sconconsts.h"
-#include "IrMCConsts.h"
+#include "irmcconsts.h"
 #include "cntparserclient.h"
-#include "CntParserInfoLog.h"
+#include "cntparserinfolog.h"
 #include "debug.h"
 
 // cntparser related constants

@@ -22,13 +22,13 @@ PRJ_PLATFORMS
 DEFAULT
 
 PRJ_EXPORTS
-./101F9698.xml  /epoc32/data/Z/private/101F99F6/capability/101F9698.xml
-./fwdcomp.xml   /epoc32/data/Z/private/101F99F6/capability/fwdcomp.xml
-./101F99F6.xml  /epoc32/data/Z/private/101F99F6/capability/101F99F6.xml
+./101f9698.xml  /epoc32/data/z/private/101f99f6/capability/101f9698.xml
+./fwdcomp.xml   /epoc32/data/z/private/101f99f6/capability/fwdcomp.xml
+./101f99f6.xml  /epoc32/data/z/private/101f99f6/capability/101f99f6.xml
 
-./101F9698.xml  /epoc32/RELEASE/winscw/udeb/Z/private/101F99F6/capability/101F9698.xml
-./fwdcomp.xml   /epoc32/RELEASE/winscw/udeb/Z/private/101F99F6/capability/fwdcomp.xml
-./101F99F6.xml  /epoc32/RELEASE/winscw/udeb/Z/private/101F99F6/capability/101F99F6.xml
+./101f9698.xml  /epoc32/release/winscw/udeb/z/private/101f99f6/capability/101f9698.xml
+./fwdcomp.xml   /epoc32/release/winscw/udeb/z/private/101f99f6/capability/fwdcomp.xml
+./101f99f6.xml  /epoc32/release/winscw/udeb/z/private/101f99f6/capability/101f99f6.xml
 
 
 PRJ_MMPFILES
