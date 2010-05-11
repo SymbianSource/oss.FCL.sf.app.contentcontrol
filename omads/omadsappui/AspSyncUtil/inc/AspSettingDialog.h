@@ -674,6 +674,9 @@ NONSHARABLE_CLASS (CAspSettingDialog) : public CAknDialog, public MEikListBoxObs
         
 		// for bearer type list construction
 		CAspBearerHandler* iBearerHandler;
+		
+		// to know whether autosyncdialog is active or not
+		TBool iAutoSyncDialog;
 
 #ifdef RD_DSUI_TIMEDSYNC	
 		// Tab group owned by the navigation decorator.

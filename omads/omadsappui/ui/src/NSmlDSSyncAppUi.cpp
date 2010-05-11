@@ -66,7 +66,11 @@ void CNSmlDSSyncAppUi::ConstructL()
 
 	    TBuf<KBufSize128> buf;
 	    CNSmlDSSyncDocument* document= STATIC_CAST(CNSmlDSSyncDocument*, Document());
-	    document->Model()->ShowSettingsL(0, KModeDialogNoWait, buf);
+	    TRAPD(err, document->Model()->ShowSettingsL(0, KModeDialogNoWait, buf));
+	    if(err != KErrNone)
+	        {
+            iAvkonAppUi->Exit();
+	        }
 		}
 
     FLOG( _L("CNSmlDSSyncAppUi::ConstructL END") );

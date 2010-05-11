@@ -237,6 +237,9 @@ void CNSmlDefaultAgendaHandlerPlugin::SynchronizableCalendarIdsL( CArrayFixFlat<
         if( err != KErrNone )
             {
             FLOG(_L("CNSmlDefaultAgendaHandlerPlugin::SynchronizableCalendarIdsL: Error while retrieving CalFile Property: '%d'"), err);
+			CleanupStack::PopAndDestroy(caleninfo);
+            CleanupStack::PopAndDestroy(vCalSubSession);  	  	 
+            continue;
             }
         
         //Get OWNER value associated with the CalFile

@@ -136,6 +136,8 @@ void CAspSettingDialog::ConstructL()
 	iStatusPaneHandler = CStatusPaneHandler::NewL(iAvkonAppUi);
 	iStatusPaneHandler->StoreOriginalTitleL();
 	
+	iAutoSyncDialog = EFalse;
+	
 #ifdef RD_DSUI_TIMEDSYNC 
 
     iTabHandler = new (ELeave) CAspTabbedNaviPaneHandler(iAvkonAppUi->StatusPane() ,this);
@@ -386,7 +388,14 @@ TBool CAspSettingDialog::OkToExitL(TInt aButtonId)
 	// Back key (cba)
 	if (aButtonId == EAknSoftkeyBack)
         {
-		return ETrue;
+        if( iAutoSyncDialog )
+            {
+            return EFalse;
+            }
+        else
+            {
+            return ETrue;
+            }
 		}
 
     // Exit key (cba)
@@ -1841,8 +1850,10 @@ void CAspSettingDialog::ShowAutoSyncDialogL()
     param.iProfileList = iProfileList;
 	param.iProfile = NULL;
 	param.iContentList = iContentList;
+	iAutoSyncDialog = ETrue;
  	CAspScheduleDialog::ShowDialogL(param);
-
+ 	iAutoSyncDialog = EFalse;
+ 	
 #ifdef RD_DSUI_TIMEDSYNC 
 	UpdateTabsL();
 #endif
