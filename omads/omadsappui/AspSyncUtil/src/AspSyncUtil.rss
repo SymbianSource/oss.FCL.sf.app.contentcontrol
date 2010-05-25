@@ -1925,7 +1925,7 @@ RESOURCE MENU_PANE r_asp_setting_dialog_menu_pane
 		MENU_ITEM { command=EAspMenuCmdSync;           txt=qtn_sml_cmd_sync; },
 		MENU_ITEM { command=EAspMenuCmdNewSet;         txt=qtn_sml_cmd_create_new; },
 		MENU_ITEM { command=EAspMenuCmdEdit;           txt=qtn_sml_cmd_edit; },
-		MENU_ITEM { command=EAspMenuCmdAdvanceSettings; txt=qtn_sml_cmd_advanced_settings; },
+		//MENU_ITEM { command=EAspMenuCmdAdvanceSettings; txt=qtn_sml_cmd_advanced_settings; },
 		MENU_ITEM { command=EAspMenuCmdChangeProfile;  txt=qtn_sml_cmd_change_profile; },
     	MENU_ITEM { command=EAspMenuCmdDelete;         txt=qtn_sml_cmd_delete; },
     	MENU_ITEM { command=EAspMenuCmdAutoSync;       txt=qtn_sml_cmd_automatic_sync; },

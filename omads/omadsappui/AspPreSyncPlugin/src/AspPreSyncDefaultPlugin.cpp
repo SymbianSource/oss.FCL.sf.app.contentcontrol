@@ -191,6 +191,8 @@ TBool CPreSyncDefaultPlugin::IsSupported()
 //
 TBool CPreSyncDefaultPlugin::CanSyncL()
     {
+    return ETrue;
+    /*
     TBool ret = ETrue;
     TInt value(0);
     
@@ -241,6 +243,7 @@ TBool CPreSyncDefaultPlugin::CanSyncL()
     
     CleanupStack::PopAndDestroy(roamingCheck);
     return ret;
+    */
     }
 
 // -------------------------------------------------------------------------------

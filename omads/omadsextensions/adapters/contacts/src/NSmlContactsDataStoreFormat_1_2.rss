@@ -169,7 +169,7 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 							display_name="Type";
 							name="TYPE";
 							data_type="";
-							enum_values={"INTERNET", "HOME", "WORK"};
+							enum_values={"INTERNET", "HOME", "WORK", "PREF"};
 							}
 						};
 					},
