@@ -49,7 +49,7 @@ const TInt KNSmlCompactAfterChanges        = 30;
 const TInt KNSmlDefaultStoreNameMaxSize    = 256;
 const TInt KNSmlItemDataExpandSize         = 1024;
 _LIT( KNSmlDriveC, "C" );
-_LIT( KNSmlAgendaStoreNameForDefaultDB, "Calendar" );
+_LIT( KNSmlAgendaStoreNameForDefaultDB, "C:Calendar" );
 _LIT8( KNSmlMRUtilitiesEComPlugInUID,   "AgnEntryUi" );
 _LIT8( KNSmlVersitTokenRecurrenceID, 	"RECURRENCE-ID");
 _LIT8( KNSmlVersitTokenXRecurrenceID, 	"X-RECURRENCE-ID");
