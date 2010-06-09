@@ -321,7 +321,7 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 					data_type="";
 					enum_values={};
 					flags= 0;
-					max_size=256;
+					max_size=1000;
 					max_occur=0;
 					params={};
 					},
