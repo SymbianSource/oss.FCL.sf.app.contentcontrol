@@ -197,10 +197,14 @@ CArrayFixFlat<TUid>* CNsmlContactsDataStoreExtensionPrivate::ImportContactsL( co
         {
         DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::Buffer Count: %d"), mReader->results().count() );
         
-        QList<QContact> contacts = mImporter->importContacts(mReader->results());
-        QMap<int, QContactManager::Error> errorMap;
-        ret = mContactManager->saveContacts( &contacts, &errorMap );           
-        DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::Import Status: %d"), ret );
+        QList<QContact> contacts;
+        if ( mImporter->importDocuments( mReader->results() ) )
+            {
+            contacts = mImporter->contacts();
+            QMap<int, QContactManager::Error> errorMap;
+            ret = mContactManager->saveContacts( &contacts, &errorMap );           
+            DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::Import Status: %d"), ret );
+            }
         if( ret )
             {
             foreach (QContact contact, contacts ) 
@@ -300,7 +304,7 @@ TBool CNsmlContactsDataStoreExtensionPrivate::DeleteContactsL( CArrayFixFlat<TUi
         }
     
     QMap<int, QContactManager::Error> errorMap;
-    TBool ret = mContactManager->removeContacts( &contacts, &errorMap );
+    TBool ret = mContactManager->removeContacts( contacts, &errorMap );
     
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::DeleteContactsL: END");
     
@@ -320,7 +324,7 @@ TBool CNsmlContactsDataStoreExtensionPrivate::DeleteAllContactsL()
     contactIds.removeAt( index );
     
     QMap<int, QContactManager::Error> errorMap;
-    TBool ret = mContactManager->removeContacts( &contactIds, &errorMap );
+    TBool ret = mContactManager->removeContacts( contactIds, &errorMap );
     
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::DeleteAllContactsL: END");
     

@@ -36,6 +36,7 @@
 #include <msvapi.h>
 #include <CalenImporter.h>
 #include <CalenExporter.h>
+#include <calinstanceview.h>
 #include <CalenInterimUtils2.h>
 #include <versittls.h>
 
@@ -566,6 +567,9 @@ class CNSmlAgendaDataStore : public CSmlDataStore
 	    CCalenImporter* iImporter;
 	    // Exporter
 	    CCalenExporter* iExporter;
+	    
+	    //Instance View
+	    CCalInstanceView*   iInstanceView;
 	    
 	    // Entry view
         CCalEntryView* iEntryView;

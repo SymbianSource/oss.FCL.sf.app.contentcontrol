@@ -32,7 +32,6 @@
 
 #include "nsmlnotepadlogging.h"
 
-
 // -----------------------------------------------------------------------------
 // CNSmlNotepadDatabase::NewL
 // -----------------------------------------------------------------------------
@@ -58,11 +57,6 @@ CNSmlNotepadDatabase::~CNSmlNotepadDatabase()
 	{
 	_NOTEPAD_DBG_FILE("CNSmlNotepadDatabase::~CNSmlNotepadDatabase(): begin");
 	
-	if(iDataFile)
-        {
-        delete iDataFile;
-        iDataFile = NULL;	
-        }	
 	CloseAgendaSessions();
 
 	_NOTEPAD_DBG_FILE("CNSmlNotepadDatabase::~CNSmlNotepadDatabase(): end");
@@ -92,10 +86,6 @@ void CNSmlNotepadDatabase::ConstructL()
 	// Instantiate the Session variable
 	iSession = CCalSession::NewL();
 	
-	iDataFile = HBufC::NewL(KMaxFileLength); 
-	TPtr obptr = iDataFile->Des();
-    obptr = iSession->DefaultFileNameL(); 
-	
     _NOTEPAD_DBG_FILE("CNSmlNotepadDatabase::ConstructL: end");
 	}
 
@@ -111,11 +101,11 @@ void CNSmlNotepadDatabase::OpenL(const TDesC& aStoreName)
     TInt err = KErrNone;    
     iSession = CCalSession::NewL();
     
-    TRAP( err,iSession->OpenL(iSession->DefaultFileNameL()) );
+    TRAP( err,iSession->OpenL( aStoreName ) );
     if(err == KErrNotFound)
         {
-        iSession->CreateCalFileL( iSession->DefaultFileNameL() );
-        iSession->OpenL(iSession->DefaultFileNameL());
+        iSession->CreateCalFileL( aStoreName );
+        iSession->OpenL( aStoreName );
         }
     else if( err != KErrNone )
         {
@@ -366,36 +356,6 @@ TBool CNSmlNotepadDatabase::IsOpen()
     return iOpened;
     }
 
-// -----------------------------------------------------------------------------
-// void CNSmlNotepadDatabase::GetDefaultDatastoreName(TDes& aStoreName)
-// -----------------------------------------------------------------------------
-//    
-void CNSmlNotepadDatabase::GetDefaultDatastoreName(TDes& aStoreName)
-    {
-	_NOTEPAD_DBG_FILE("CCNSmlNotepadDatabase::GetDefaultDatastoreName(): begin");
-	
-	aStoreName.Copy(*iDataFile);
-	
-	_NOTEPAD_DBG_FILE("CNSmlNotepadDatabase::GetDefaultDatastoreName(): end");
-    } 
-
-// -----------------------------------------------------------------------------
-// CDesCArray* CNSmlNotepadDatabase::ListDatabasesL()
-// -----------------------------------------------------------------------------
-//
-CDesCArray* CNSmlNotepadDatabase::ListDatabasesL()
-    {
-    _NOTEPAD_DBG_FILE("CNSmlNotepadDatabase::ListDatabasesL(): begin");
-    
-    CDesCArrayFlat *arr = new (ELeave)CDesCArrayFlat(1);
-    CleanupStack::PushL(arr);
-    arr->AppendL(*iDataFile);
-    CleanupStack::Pop(arr);
-       
-    _NOTEPAD_DBG_FILE("CNSmlNotepadDatabase::ListDatabasesL(): end");
-    
-    return arr;
-    } 
 
 // ------------------------------------------------------------------------------------------------
 // CArrayPtr<CNpdItem>* CNSmlNotepadDatabase::FetchItemsLC(TBool aIncludeText,

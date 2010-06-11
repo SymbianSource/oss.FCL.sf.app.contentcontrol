@@ -31,6 +31,8 @@ const TInt KSnapshotGranularity = 8;
 
 
 _LIT(KNSmlNotepadStoreFormatRsc,"NSmlNotepadDataStoreFormat.rsc");
+_LIT(KNSmlNotepadStoreName, "C:Note" );
+_LIT(KNSmlNotepadDefaultStoreName, "C:Calendar" );
 _LIT(  KNSmlDriveC, "C" );
 _LIT8( KMimePlainText, "text/plain" );
 _LIT8( KMimePlainTextVersion, "1.0" );
