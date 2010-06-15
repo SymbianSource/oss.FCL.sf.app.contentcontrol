@@ -61,7 +61,7 @@
 // -----------------------------------------------------------------------------
 //
 CNSmlAgendaDataStore::CNSmlAgendaDataStore() :
-	iKey( TKeyArrayFix( _FOFF( TNSmlSnapshotItem, ItemId() ), ECmpTInt ) ),
+	iKey( TKeyArrayFix( _FOFF_DYNAMIC( TNSmlSnapshotItem, ItemId() ), ECmpTInt ) ),
 	iPos( -1 ),
 	iHasHistory( EFalse ),
 	iModificationCount( KNSmlCompactAfterChanges ),

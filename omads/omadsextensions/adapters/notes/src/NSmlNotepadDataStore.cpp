@@ -126,7 +126,7 @@ CNSmlNotepadDataStore::~CNSmlNotepadDataStore()
 // ----------------------------------------------------------------------------
 // CNSmlNotepadDataStore::CNSmlNotepadDataStore() 
 // ----------------------------------------------------------------------------
-CNSmlNotepadDataStore::CNSmlNotepadDataStore() : iOpenedStoreId(KNSmlNotepadAdapterImplUid),iKey( TKeyArrayFix( _FOFF( TNSmlSnapshotItem,ItemId() ),ECmpTInt ))
+CNSmlNotepadDataStore::CNSmlNotepadDataStore() : iOpenedStoreId(KNSmlNotepadAdapterImplUid),iKey( TKeyArrayFix( _FOFF_DYNAMIC( TNSmlSnapshotItem,ItemId() ),ECmpTInt ))
 	{
 	_NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::CNSmlNotepadDataStore(): begin");
 	iSyncHistory = EFalse;

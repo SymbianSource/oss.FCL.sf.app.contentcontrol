@@ -81,7 +81,7 @@ EXPORT_C CNSmlContactsDataStore* CNSmlContactsDataStore::NewL()
 // ----------------------------------------------------------------------------
 // CNSmlContactsDataStore::CNSmlContactsDataStore() 
 // ----------------------------------------------------------------------------
-EXPORT_C CNSmlContactsDataStore::CNSmlContactsDataStore() : iKey( TKeyArrayFix( _FOFF( TNSmlSnapshotItem,ItemId() ),ECmpTInt ))
+EXPORT_C CNSmlContactsDataStore::CNSmlContactsDataStore() : iKey( TKeyArrayFix( _FOFF_DYNAMIC( TNSmlSnapshotItem,ItemId() ),ECmpTInt ))
 	{
 	_DBG_FILE("CNSmlContactsDataStore::CNSmlContactsDataStore(): begin");
 	iSyncHistory = EFalse;

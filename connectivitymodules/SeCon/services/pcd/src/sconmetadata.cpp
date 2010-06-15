@@ -1037,7 +1037,7 @@ TInt SConMetadata::ConvertRationalTag( const CExifTag& aTag, TDes& aPosDegrees )
 			seconds = numer/denom;
 			}
 		}
-	_LIT(KFormat, "%.0f°%.0f'%.2f\"" );
+	_LIT(KFormat, "%.0f\xB0%.0f'%.2f\"" );
 	aPosDegrees.Format( KFormat, degrees, minutes, seconds );
 	TRACE_FUNC_EXIT;
 	return KErrNone;
