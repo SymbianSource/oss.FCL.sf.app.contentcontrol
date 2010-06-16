@@ -29,7 +29,7 @@ TARGETTYPE      dll
 
 UID             0x10009d8d 0x101F99F8
 
-#if defined(ARMCC)
+#if defined(EABI)
 DEFFILE	./def/eabiu
 #elif defined(WINSCW) 
 DEFFILE	./def/bwinscw
