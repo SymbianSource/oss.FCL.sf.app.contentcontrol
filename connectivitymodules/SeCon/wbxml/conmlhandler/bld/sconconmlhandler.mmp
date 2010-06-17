@@ -28,7 +28,7 @@ TARGET          sconconmlhandler.dll
 TARGETTYPE      DLL
 UID             0x10009D8D 0x101F99FA
 
-#if defined(ARMCC)
+#if defined(EABI)
 DEFFILE	./def/eabi
 #elif defined(WINSCW) 
 DEFFILE	./def/bwinscw

@@ -27,7 +27,7 @@ TARGETTYPE      PLUGIN
 UID             0x10009D8D 0x101F6DDD
 VENDORID		VID_DEFAULT
 
-#if defined(ARMCC)
+#if defined(EABI)
 DEFFILE		./def/eabicontactsdataprovider
 #elif defined(WINSCW)
 DEFFILE		./def/bwinscwcontactsdataprovider

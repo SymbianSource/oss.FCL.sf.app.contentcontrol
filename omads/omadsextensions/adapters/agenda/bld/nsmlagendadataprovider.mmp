@@ -26,7 +26,7 @@ UID			0x10009d8d 0x101F6DDE
 CAPABILITY	CAP_ECOM_PLUGIN
 VENDORID	VID_DEFAULT
 
-#if defined(ARMCC)
+#if defined(EABI)
 DEFFILE		./def/eabinsmlagendadataprovider
 #elif defined(WINSCW)
 DEFFILE		./def/bwinscwnsmlagendadataprovider

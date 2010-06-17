@@ -27,7 +27,7 @@ TARGETTYPE      PLUGIN
 UID             0x10009D8D 0x101F8612
 VENDORID		VID_DEFAULT
 
-#if defined(ARMCC)
+#if defined(EABI)
 DEFFILE		./def/eabinotepaddataprovider
 #elif defined(WINSCW)
 DEFFILE		./def/bwinscwnotepaddataprovider
