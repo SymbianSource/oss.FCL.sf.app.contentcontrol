@@ -777,9 +777,11 @@ void CNSmlAgendaDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
         // Check the Sync Status
         if( iIsHierarchicalSyncSupported )
             {
-            if( !iAgendaAdapterHandler->FolderSyncStatusL( aParent ) )
+            TBool syncstatus( EFalse );
+            TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( aParent ) );
+            if( err || !syncstatus  )
                 {
-                User::RequestComplete( iCallerStatus, KErrGeneral );
+                User::RequestComplete( iCallerStatus, err );
                 FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL - Sync Disabled: END"));
                 return;
                 }
@@ -947,10 +949,11 @@ void CNSmlAgendaDataStore::DoReplaceItemL( TSmlDbItemUid aUid,
             FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - Sync Disabled: END"));
             return;
             }         
-        
-        if( !iAgendaAdapterHandler->FolderSyncStatusL( parentid ) )
+        TBool syncstatus( EFalse );
+        TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( parentid ) );
+        if( err || !syncstatus  )
             {
-            User::RequestComplete( iCallerStatus, KErrGeneral );
+            User::RequestComplete( iCallerStatus, err );
             FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - Sync Disabled: END"));
             return;
             }
@@ -1252,10 +1255,11 @@ void CNSmlAgendaDataStore::DoDeleteItemL( TSmlDbItemUid aUid,
             FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL - Sync Disabled: END"));
             return;
             }    
-        
-        if( !iAgendaAdapterHandler->FolderSyncStatusL( parentid ) )
+        TBool syncstatus( EFalse );
+        TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( parentid ) );
+        if( err || !syncstatus )
             {
-            User::RequestComplete( iCallerStatus, KErrGeneral );
+            User::RequestComplete( iCallerStatus, err );
             FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL - Sync Disabled: END"));
             return;
             }
