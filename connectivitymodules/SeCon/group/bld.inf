@@ -22,9 +22,15 @@
 #include "../services/csc/bld/bld.inf"
 #include "../services/ftp/bld/bld.inf"
 #include "../services/pcd/bld/bld.inf"
+// #include "../services/oviaccounthandler/group/bld.inf"
+
 #include "../wbxml/conmlhandler/bld/bld.inf"
 #include "../servers/pcconn/bld/bld.inf"
+#include "../servers/syncserver/group/bld.inf"
+
 #include "../clients/pcconn/bld/bld.inf"
+#include "../clients/syncclient/group/bld.inf"
+
 #include "../plugins/pcconn/bld/bld.inf"
 #include "../plugins/ftp/bld/bld.inf"
 #include "../plugins/hapticsconnplugin/group/bld.inf"
@@ -36,12 +42,6 @@ stubs/secon_stub.sis                /epoc32/data/z/system/install/secon_stub.sis
 stubs/sconpcconnplugin_stub.sis     /epoc32/data/z/system/install/sconpcconnplugin_stub.sis
 stubs/sconftpplugin_stub.sis        /epoc32/data/z/system/install/sconftpplugin_stub.sis
 
-../rom/sconpcd.iby                  CORE_MW_LAYER_IBY_EXPORT_PATH(sconpcd.iby)
-../rom/sconpcconnplugin.iby         CORE_MW_LAYER_IBY_EXPORT_PATH(sconpcconnplugin.iby)
-../rom/sconpcconnclientserver.iby   CORE_MW_LAYER_IBY_EXPORT_PATH(sconpcconnclientserver.iby)
-../rom/sconftpresources.iby         LANGUAGE_MW_LAYER_IBY_EXPORT_PATH(sconftpresources.iby)
-../rom/sconftpplugin.iby            CORE_MW_LAYER_IBY_EXPORT_PATH(sconftpplugin.iby)
-../rom/sconftp.iby                  CORE_MW_LAYER_IBY_EXPORT_PATH(sconftp.iby)
-../rom/sconcsc.iby                  CORE_MW_LAYER_IBY_EXPORT_PATH(sconcsc.iby)
-../rom/cntparser.iby                CORE_MW_LAYER_IBY_EXPORT_PATH(cntparser.iby)
+../rom/sconpcconnclientserver.iby   CORE_APP_LAYER_IBY_EXPORT_PATH(sconpcconnclientserver.iby)
+
 

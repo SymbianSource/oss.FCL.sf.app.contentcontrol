@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2009 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -24,15 +24,15 @@
 #include "debug.h"
 
 // -----------------------------------------------------------------------------
-// CSConBackupRestoreQueue::NewL( const TInt aMaxObjectSize )
+// CSConBackupRestoreQueue::NewL( RFs& aFs )
 // Two-phase constructor
 // -----------------------------------------------------------------------------
 //
-CSConBackupRestoreQueue* CSConBackupRestoreQueue::NewL( const TInt aMaxObjectSize, RFs& aFs )
+CSConBackupRestoreQueue* CSConBackupRestoreQueue::NewL( RFs& aFs )
 	{
 	CSConBackupRestoreQueue* self = new (ELeave) CSConBackupRestoreQueue();
 	CleanupStack::PushL( self );
-	self->ConstructL( aMaxObjectSize, aFs );
+	self->ConstructL( aFs );
 	CleanupStack::Pop( self );
     return self;
 	}
@@ -45,17 +45,17 @@ CSConBackupRestoreQueue* CSConBackupRestoreQueue::NewL( const TInt aMaxObjectSiz
 CSConBackupRestoreQueue::CSConBackupRestoreQueue() : 
 					CActive( EPriorityStandard )
 	{
+    CActiveScheduler::Add( this );
 	}
 	
 // -----------------------------------------------------------------------------
-// CSConBackupRestoreQueue::ConstructL( const TInt aMaxObjectSize )
+// CSConBackupRestoreQueue::ConstructL( RFs& aFs )
 // Initializes member data
 // -----------------------------------------------------------------------------
 //
-void CSConBackupRestoreQueue::ConstructL( const TInt aMaxObjectSize, RFs& aFs )
+void CSConBackupRestoreQueue::ConstructL( RFs& aFs )
 	{
-	iBackupRestore = CSConBackupRestore::NewL( this, aMaxObjectSize, aFs );
-	CActiveScheduler::Add( iBackupRestore );
+	iBackupRestore = CSConBackupRestore::NewL( this, aFs );
 	User::LeaveIfError( iTimer.CreateLocal() );
 	}
 	
@@ -192,7 +192,7 @@ TSConMethodName CSConBackupRestoreQueue::GetTaskMethodL( TInt aTaskId )
 	{
 	TRACE_FUNC_ENTRY;
 	CSConTask* task = NULL;
-	CSConTaskQueue::GetTask( aTaskId, task );
+	User::LeaveIfError( CSConTaskQueue::GetTask( aTaskId, task ) );
 	LOGGER_WRITE_1( "CSConBackupRestoreQueue::GetTaskMethodL( TInt aTaskId ) : returned %d",
         task->GetServiceId() );
 	return task->GetServiceId();

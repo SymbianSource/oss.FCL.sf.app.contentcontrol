@@ -64,14 +64,14 @@ NONSHARABLE_CLASS ( CSConTaskQueue )
 		 * @param aError The task error code
     	 * @return none
 		 */
-		virtual void CompleteTask( TInt aTask, TInt aError );
+		virtual TInt CompleteTask( TInt aTask, TInt aError );
 		/**
 		 * Set the task progress value
 		 * @param aTask The task number
 		 * @param aProgressValue The progress value
     	 * @return none
 		 */
-		virtual void SetTaskProgress( TInt aTask, TInt aProgressValue );
+		virtual TInt SetTaskProgress( TInt aTask, TInt aProgressValue );
 		/**
 		 * Receives a specified task
 		 * @param aTaskId The task number
@@ -82,9 +82,9 @@ NONSHARABLE_CLASS ( CSConTaskQueue )
 		/**
 		 * Removes a task from the queue
 		 * @param aTask The task number
-    	 * @return none
+    	 * @return KErrNone if no errors, else system wide error codes
 		 */
-		virtual void RemoveTask( TInt aTask );	
+		virtual TInt RemoveTask( TInt aTask );	
 		/**
 		 * Cancels a task
 		 * @param aTask The task number

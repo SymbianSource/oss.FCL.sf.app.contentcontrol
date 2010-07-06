@@ -17,30 +17,36 @@
 
 
 // INCLUDE FILES
+#include <s32mem.h> // For RBufWriteStream
+#include <utf.h>  // for CnvUtfConverter
+//#include <pathinfo.h>
+#include <usif/sif/sifcommon.h>
 
-#include <pathinfo.h>
-#include <swi/sisregistryentry.h>
-#include <swi/sisregistrypackage.h>
-#include <swi/sisregistrysession.h>
-#include <SWInstDefs.h>
-#include <mmf/common/mmfcontrollerpluginresolver.h>
-#include <javaregistry.h>
-
-using namespace Java;
+using namespace Usif;
 
 #include "debug.h"
 #include "sconinstaller.h"
 #include "sconpcdconsts.h"
 #include "sconpcdutility.h"
 
-_LIT8( KWidgetMimeType, "application/x-nokia-widget");
 
 const TInt KSConSeConUidValue = 0x101f99f6;
 const TUid KSConSeConUid = {KSConSeConUidValue};
 
+_LIT8(KValSep, "=");
+_LIT8(KComma, ",");
+_LIT8(KLineEnd, "\r\n");
+
 // ============================= MEMBER FUNCTIONS ===============================
 
-
+CSConAppInstaller* CSConAppInstaller::NewL( CSConInstallerQueue* aQueue, RFs& aFs )
+    {
+    CSConAppInstaller* self = new (ELeave) CSConAppInstaller( aQueue, aFs );
+    CleanupStack::PushL( self );
+    self->ConstructL();
+    CleanupStack::Pop( self );
+    return self;
+    }
 // -----------------------------------------------------------------------------
 // CSConAppInstaller::CSConAppInstaller( CSConInstallerQueue* aQueue )
 // Constructor
@@ -49,7 +55,13 @@ const TUid KSConSeConUid = {KSConSeConUidValue};
 CSConAppInstaller::CSConAppInstaller( CSConInstallerQueue* aQueue, RFs& aFs ) :
     CActive( EPriorityStandard ), iQueue( aQueue ), iFs( aFs )
     {
-    TRACE_FUNC;
+    CActiveScheduler::Add( this );
+    }
+
+void CSConAppInstaller::ConstructL()
+    {
+    iSifOptions = COpaqueNamedParams::NewL();
+    iSifResults = COpaqueNamedParams::NewL();
     }
 
 // -----------------------------------------------------------------------------
@@ -60,7 +72,10 @@ CSConAppInstaller::CSConAppInstaller( CSConInstallerQueue* aQueue, RFs& aFs ) :
 CSConAppInstaller::~CSConAppInstaller()
     {
     TRACE_FUNC;
-    iSWInst.Close();
+    Cancel();
+    iSwInstaller.Close();
+    delete iSifOptions;
+    delete iSifResults;
     }
 
 // -----------------------------------------------------------------------------
@@ -79,7 +94,7 @@ void CSConAppInstaller::StartInstaller( TInt& aTaskId )
     
     if( aTaskId > 0 && ret != KErrNotFound )
         {
-        if ( iInstallerState != EIdle || IsActive() )
+        if ( IsActive() )
             {
             LOGGER_WRITE("WARNING! SConAppInstaller was not on idle state!");
             iQueue->CompleteTask( aTaskId, KErrInUse );
@@ -95,32 +110,24 @@ void CSConAppInstaller::StartInstaller( TInt& aTaskId )
             {
             case EInstall :
                 iQueue->ChangeQueueProcessStatus();
-                err = iSWInst.Connect();
-                
+                err = iSwInstaller.Connect();
                 if( err == KErrNone )
                     {
-                    if ( task->iInstallParams->iMode == ESilentInstall )
-                    	{
-                    	LOGGER_WRITE( "Begin silent installation.. " );
-                    	iOptions.iUntrusted = SwiUI::EPolicyNotAllowed;
-                        iOptions.iOCSP = SwiUI::EPolicyNotAllowed;
-                        iOptionsPckg = iOptions;
-                        iInstallerState = ESilentInstalling;
-                    	iSWInst.SilentInstall( iStatus, task->iInstallParams->iPath, iOptionsPckg );
-                    	}
-                    else
-                    	{
-                    	LOGGER_WRITE( "Begin to install.. " );
-                    	iInstallerState = EInstalling;
-                        iSWInst.Install( iStatus, task->iInstallParams->iPath );
-                    	}
+                    TRAP(err, ProcessInstallL( *task->iInstallParams ));
+                    if( err != KErrNone )
+                        {
+                        LOGGER_WRITE_1( "StartInstaller ProcessInstallL err: %d", err );
+                        iStatus = KRequestPending;
+                        SetActive();
+                        status = &iStatus;
+                        User::RequestComplete( status, err );
+                        }
                     }
                 
                 break;
             case EUninstall :
                 iQueue->ChangeQueueProcessStatus();
-                err = iSWInst.Connect();
-                
+                err = iSwInstaller.Connect();
                 if( err == KErrNone )
                     {
                     LOGGER_WRITE( "Begin to uninstall.. " );
@@ -129,6 +136,8 @@ void CSConAppInstaller::StartInstaller( TInt& aTaskId )
                     if( err != KErrNone )
                         {
                         LOGGER_WRITE_1( "StartInstaller ProcessUninstallL err: %d", err );
+                        iStatus = KRequestPending;
+                        SetActive();
                         status = &iStatus;
                         User::RequestComplete( status, err );
                         }
@@ -137,7 +146,8 @@ void CSConAppInstaller::StartInstaller( TInt& aTaskId )
                 break;
             case EListInstalledApps :
                 iQueue->ChangeQueueProcessStatus();
-                iInstallerState = EListingInstalledApps;
+                iStatus = KRequestPending;
+                SetActive();
                 TRAP( err, ProcessListInstalledAppsL() );
                 status = &iStatus;
                 User::RequestComplete( status, err );
@@ -145,8 +155,6 @@ void CSConAppInstaller::StartInstaller( TInt& aTaskId )
             default :
                 break;
             }
-
-        SetActive();
         }
     TRACE_FUNC_EXIT;
     }
@@ -163,7 +171,7 @@ void CSConAppInstaller::StopInstaller( TInt& aTaskId )
     if( iCurrentTask == aTaskId )
         {
         Cancel();
-        iSWInst.Close();
+        iSwInstaller.Close();
         }
     TRACE_FUNC_EXIT;
     }
@@ -175,14 +183,7 @@ void CSConAppInstaller::StopInstaller( TInt& aTaskId )
 //
 TBool CSConAppInstaller::InstallerActive() const
     {
-    if ( iInstallerState == EIdle )
-        {
-        return EFalse;
-        }
-    else
-        {
-        return ETrue;
-        }
+    return IsActive();
     }
 
 // -----------------------------------------------------------------------------
@@ -194,38 +195,9 @@ void CSConAppInstaller::DoCancel()
     {
     TRACE_FUNC_ENTRY;
     
-    switch (iInstallerState)
-        {
-        case EInstalling:
-            LOGGER_WRITE("Cancel normal install");
-            iSWInst.CancelAsyncRequest( SwiUI::ERequestInstall );
-            break;
-        case ESilentInstalling:
-            LOGGER_WRITE("Cancel silent install");
-            iSWInst.CancelAsyncRequest( SwiUI::ERequestSilentInstall );
-            break;
-        case EUninstalling:
-            LOGGER_WRITE("Cancel normal uninstall");
-            iSWInst.CancelAsyncRequest( SwiUI::ERequestUninstall );
-            break;
-        case ESilentUninstalling:
-            LOGGER_WRITE("Cancel silent uninstall");
-            iSWInst.CancelAsyncRequest( SwiUI::ERequestSilentUninstall );
-            break;
-        case ECustomUninstalling: 
-            LOGGER_WRITE("Cancel custom uninstall");
-            iSWInst.CancelAsyncRequest( SwiUI::ERequestCustomUninstall );
-            break;
-        case ESilentCustomUnistalling:
-            LOGGER_WRITE("Cancel silent custom uninstall");
-            iSWInst.CancelAsyncRequest( SwiUI::ERequestSilentCustomUninstall );
-            break;
-        default:
-            LOGGER_WRITE("WARNING! Unknown state");
-            break;
-        }
-    iInstallerState = EIdle;
-    
+    LOGGER_WRITE("Cancel iSwInstaller");
+    iSwInstaller.CancelOperation();
+    /*
     // find and complete current task
     CSConTask* task = NULL;
     TInt ret = iQueue->GetTask( iCurrentTask, task );
@@ -245,6 +217,7 @@ void CSConAppInstaller::DoCancel()
                 break;
             }
         }
+        */
     TRACE_FUNC_EXIT;
     }
 
@@ -256,19 +229,24 @@ void CSConAppInstaller::DoCancel()
 void CSConAppInstaller::RunL()
     {
     TRACE_FUNC_ENTRY;
-    iInstallerState = EIdle;
-    iSWInst.Close();
+    iSwInstaller.Close();
     iQueue->ChangeQueueProcessStatus();
     TInt err( iStatus.Int() );
     LOGGER_WRITE_1( "CSConAppInstaller::RunL() iStatus.Int() : returned %d", err );
     
     CSConTask* task = NULL;
     TInt taskErr = iQueue->GetTask( iCurrentTask, task );
-    
-    LOGGER_WRITE_1( "CSConAppInstaller::RunL() GetTask %d", taskErr );
-        
     if( taskErr == KErrNone )
         {
+        if ( task->GetServiceId() == EInstall || task->GetServiceId() == EUninstall )
+            {
+            TRAPD(dataErr, WriteTaskDataL( *task ));
+            if (dataErr)
+                {
+                LOGGER_WRITE_1("WriteTaskDataL err: %d", dataErr);
+                }
+            }
+        
         if( task->GetServiceId() == EInstall && err == KErrNone )
             {
             LOGGER_WRITE( "CSConAppInstaller::RunL() : before DeleteFile" );
@@ -281,10 +259,190 @@ void CSConAppInstaller::RunL()
     TRACE_FUNC_EXIT;
     }
 
+// -----------------------------------------------------------------------------
+// CSConAppInstaller::WriteTaskDataL()
+// Writes data to task
+// -----------------------------------------------------------------------------
+//
+void CSConAppInstaller::WriteTaskDataL( CSConTask& aTask )
+    {
+    TRACE_FUNC_ENTRY;
+    CBufFlat* buffer = CBufFlat::NewL(200);
+    CleanupStack::PushL(buffer);
+    RBufWriteStream stream( *buffer );
+    CleanupClosePushL( stream );
+    
+    ExternalizeResultArrayIntValL( KSifOutParam_ComponentId , stream);
+    ExternalizeResultIntValL( KSifOutParam_ErrCategory , stream);
+    ExternalizeResultIntValL( KSifOutParam_ErrCode , stream);
+    ExternalizeResultIntValL( KSifOutParam_ExtendedErrCode , stream);
+    ExternalizeResultStringValL( KSifOutParam_ErrMessage , stream);
+    ExternalizeResultStringValL( KSifOutParam_ErrMessageDetails , stream);
+    
+    stream.CommitL();
+    
+    buffer->Compress();
+    
+    HBufC8* data = HBufC8::NewL( buffer->Size() );
+    TPtr8 dataPtr = data->Des();
+    buffer->Read( 0, dataPtr, buffer->Size() );
+    
+    if ( aTask.GetServiceId() == EInstall )
+        {
+        if ( aTask.iInstallParams->iData )
+            {
+            delete aTask.iInstallParams->iData;
+            aTask.iInstallParams->iData = NULL;
+            }
+        aTask.iInstallParams->iData = data;
+        data = NULL;
+        }
+    else if ( aTask.GetServiceId() == EUninstall )
+        {
+        if ( aTask.iUninstallParams->iData )
+            {
+            delete aTask.iUninstallParams->iData;
+            aTask.iUninstallParams->iData = NULL;
+            }
+        aTask.iUninstallParams->iData = data;
+        data = NULL;
+        }
+    else
+        {
+        delete data;
+        data = NULL;
+        }
+    
+    CleanupStack::PopAndDestroy( &stream );
+    CleanupStack::PopAndDestroy( buffer );
+    TRACE_FUNC_EXIT;
+    }
+
+void CSConAppInstaller::ExternalizeResultArrayIntValL( const TDesC& aName, RWriteStream& aStream )
+    {
+    TRACE_FUNC_ENTRY;
+    RArray<TInt> valueArray;
+    TRAPD(err, valueArray = iSifResults->IntArrayByNameL(aName));
+    if ( !err && valueArray.Count() > 0 )
+        {
+        LOGGER_WRITE_1("count: %d", valueArray.Count());
+        TBuf8<100> nameBuf;
+        err = CnvUtfConverter::ConvertFromUnicodeToUtf8( nameBuf, aName );
+        if (!err)
+            {
+            LOGGER_WRITE("2");
+            aStream.WriteL( nameBuf, nameBuf.Length() );
+            aStream.WriteL( KValSep, 1 );
+            aStream.WriteInt32L( valueArray[0] );
+            for (TInt i=1; i<valueArray.Count(); i++)
+                {
+                aStream.WriteL( KComma, 1 );
+                aStream.WriteInt32L( valueArray[i] );
+                }
+            aStream.WriteL( KLineEnd, 2 );
+            }
+        }
+    TRACE_FUNC_EXIT;
+    }
+// -----------------------------------------------------------------------------
+// CSConAppInstaller::ExternalizeResultIntValL()
+// Read integer value and write it to stream
+// -----------------------------------------------------------------------------
+//
+void CSConAppInstaller::ExternalizeResultIntValL( const TDesC& aName, RWriteStream& aStream )
+    {
+    TRACE_FUNC_ENTRY;
+    TInt value;
+    TBool found(EFalse);
+    found = iSifResults->GetIntByNameL(aName, value);
+
+    if (found)
+        {
+        TBuf8<100> nameBuf;
+        TInt err = CnvUtfConverter::ConvertFromUnicodeToUtf8( nameBuf, aName );
+        if (!err)
+            {
+            aStream.WriteL( nameBuf, nameBuf.Length() );
+            aStream.WriteL( KValSep, 1 );
+            aStream.WriteInt32L( value );
+            aStream.WriteL( KLineEnd, 2 );
+            }
+        }
+    TRACE_FUNC_EXIT;
+    }
+
+// -----------------------------------------------------------------------------
+// CSConAppInstaller::ExternalizeResultStringValL()
+// Read string value and write it to stream
+// -----------------------------------------------------------------------------
+//
+void CSConAppInstaller::ExternalizeResultStringValL( const TDesC& aName, RWriteStream& aStream )
+    {
+    TRACE_FUNC_ENTRY;
+    const TDesC& strValue = iSifResults->StringByNameL( aName );
+    if (strValue.Length() > 0)
+        {
+        TBuf8<100> nameBuf;
+        TInt err = CnvUtfConverter::ConvertFromUnicodeToUtf8( nameBuf, aName );
+        if (!err)
+            {
+            HBufC8* nameVal = CnvUtfConverter::ConvertFromUnicodeToUtf8L( strValue );
+            CleanupStack::PushL( nameVal );
+            aStream.WriteL( nameBuf, nameBuf.Length() );
+            aStream.WriteL( KValSep, 1 );
+            aStream.WriteL( nameVal->Des(), nameVal->Length() );
+            aStream.WriteL( KLineEnd, 2 );
+            CleanupStack::PopAndDestroy( nameVal );
+            }
+        }
+    TRACE_FUNC_EXIT;
+    }
+
+// -----------------------------------------------------------------------------
+// CSConAppInstaller::ProcessInstallL()
+// Executes Install task
+// -----------------------------------------------------------------------------
+//
+void CSConAppInstaller::ProcessInstallL( const CSConInstall& aInstallParams )
+    {
+    TRACE_FUNC_ENTRY;
+    iSifOptions->Cleanup();
+    iSifResults->Cleanup();
+    
+    if ( aInstallParams.iMode == ESilentInstall )
+        {
+        LOGGER_WRITE( "Begin silent installation.. " );
+        
+        iSifOptions->AddIntL( Usif::KSifInParam_InstallSilently, ETrue );
+        iSifOptions->AddIntL( Usif::KSifInParam_PerformOCSP, EFalse );   
+        // Note if upgrade is allowed, see NeedsInstallingL function.
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowUpgrade, ETrue );
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowUntrusted, EFalse );
+        iSifOptions->AddIntL( Usif::KSifInParam_GrantCapabilities, EFalse ); 
+        // Defined for the install.
+        iSifOptions->AddIntL( Usif::KSifInParam_InstallOptionalItems, ETrue );          
+        iSifOptions->AddIntL( Usif::KSifInParam_IgnoreOCSPWarnings, ETrue );            
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowAppShutdown, ETrue );
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowDownload, ETrue );
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowOverwrite, ETrue );
+
+        iSwInstaller.Install( aInstallParams.iPath, *iSifOptions,
+                *iSifResults, iStatus, ETrue );
+        }
+    else
+        {
+        LOGGER_WRITE( "Begin to install.. " );
+        
+        iSwInstaller.Install( aInstallParams.iPath, *iSifOptions,
+                *iSifResults, iStatus, ETrue );
+        }
+    SetActive();
+    TRACE_FUNC_EXIT;
+    }
 
 // -----------------------------------------------------------------------------
 // CSConAppInstaller::ProcessUninstallL( const CSConUninstall& aUninstallParams )
-// Execures UnInstall task
+// Executes UnInstall task
 // -----------------------------------------------------------------------------
 //
 void CSConAppInstaller::ProcessUninstallL( const CSConUninstall& aUninstallParams )
@@ -295,209 +453,29 @@ void CSConAppInstaller::ProcessUninstallL( const CSConUninstall& aUninstallParam
     LOGGER_WRITE_1( "aVendor: %S", &aUninstallParams.iVendor );
     LOGGER_WRITE_1( "aType: %d", aUninstallParams.iType );
     LOGGER_WRITE_1( "aMode: %d", aUninstallParams.iMode );
-    switch ( aUninstallParams.iType )
-	    {
-	    case ESisApplication:
-	    case ESisAugmentation:
-	    	UninstallSisL( aUninstallParams );
-	    	break;
-	    case EJavaApplication:
-	    	UninstallJavaL( aUninstallParams.iUid,
-    			aUninstallParams.iMode);
-	    	break;
-	    case EWidgetApplication:
-	    	UninstallWidget( aUninstallParams.iUid,
-	    		aUninstallParams.iMode );
-	    	break;
-	    default:
-	    	User::Leave( KErrNotSupported );
-	    }
     
-    TRACE_FUNC_EXIT;
-    }
-
-// -----------------------------------------------------------------------------
-// CSConAppInstaller::UninstallSisL( const CSConUninstall& aUninstallParams )
-// Uninstall sis package or augmentation
-// -----------------------------------------------------------------------------
-//
-void CSConAppInstaller::UninstallSisL( const CSConUninstall& aUninstallParams )
-	{
-	TRACE_FUNC_ENTRY;
-
-	if ( aUninstallParams.iUid == KSConSeConUid )
+    if ( aUninstallParams.iUid == KSConSeConUid )
 	    {
 	    LOGGER_WRITE("Cannot uninstall itself, leave");
 	    // cannot uninstall itself
-	    User::Leave( SwiUI::KSWInstErrFileInUse );
+	    User::Leave( KErrInUse ); //SwiUI::KSWInstErrFileInUse );
 	    }
-	
-	Swi::RSisRegistrySession sisRegistry;
-    User::LeaveIfError( sisRegistry.Connect() );
-    CleanupClosePushL( sisRegistry );
-    //Check if uid belongs to SIS package
-    if( !sisRegistry.IsInstalledL( aUninstallParams.iUid ) )
-        {
-        CleanupStack::PopAndDestroy( &sisRegistry );
-        User::Leave( KErrNotFound );
-        }
+    TComponentId componentId = aUninstallParams.iUid.iUid;
+    iSifOptions->Cleanup();
+    iSifResults->Cleanup();
     
-    Swi::RSisRegistryEntry entry;
-    CleanupClosePushL(entry);
-    User::LeaveIfError( entry.Open( sisRegistry, aUninstallParams.iUid ) );
-    if ( aUninstallParams.iType == ESisAugmentation )
+    if ( aUninstallParams.iMode == ESilentInstall)
         {
-        // augmentation pkg
-        LOGGER_WRITE( "CSConAppInstaller::ProcessUninstallL ESisAugmentation" );
-        
-        TBool augmentationFound(EFalse);
-        // Get possible augmentations
-        RPointerArray<Swi::CSisRegistryPackage> augPackages;
-        CleanupResetAndDestroyPushL( augPackages );
-        entry.AugmentationsL( augPackages );
-        for ( TInt j( 0 ); j < augPackages.Count() && !augmentationFound; j++ )
-            {
-            Swi::RSisRegistryEntry augmentationEntry;
-            CleanupClosePushL( augmentationEntry );
-            augmentationEntry.OpenL( sisRegistry, *augPackages[j] );
-            
-            HBufC* augPackageName = augmentationEntry.PackageNameL();
-            CleanupStack::PushL( augPackageName );
-            HBufC* augUniqueVendorName = augmentationEntry.UniqueVendorNameL();
-            CleanupStack::PushL( augUniqueVendorName );
-            
-            if ( !augmentationEntry.IsInRomL() 
-                && augmentationEntry.IsPresentL()
-                && aUninstallParams.iName.Compare( *augPackageName ) == 0
-                && aUninstallParams.iVendor.Compare( *augUniqueVendorName ) == 0 )
-                {
-                // Correct augmentation found, uninstall it.
-                augmentationFound = ETrue;
-                TInt augmentationIndex = augPackages[j]->Index();
-                LOGGER_WRITE_1( "CSConAppInstaller::ProcessUninstallL augmentationIndex %d", augmentationIndex );
-        
-                SwiUI::TOpUninstallIndexParam params;
-                params.iUid = aUninstallParams.iUid;
-                params.iIndex = augmentationIndex;
-                SwiUI::TOpUninstallIndexParamPckg pckg( params );
-                SwiUI::TOperation operation( SwiUI::EOperationUninstallIndex );
-                if( aUninstallParams.iMode == ESilentInstall )
-                    {
-                    LOGGER_WRITE( "CSConAppInstaller::ProcessUninstallL : silent aug-sis-uninstall" );
-                    SwiUI::TUninstallOptionsPckg options;
-                    iInstallerState = ESilentCustomUnistalling;
-                    iSWInst.SilentCustomUninstall( iStatus, operation, options, pckg, KSISMIMEType );
-                    }
-                else
-                    {
-                    LOGGER_WRITE( "CSConAppInstaller::ProcessUninstallL : unsilent aug-sis-uninstall" )
-                    iInstallerState = ECustomUninstalling;
-                    iSWInst.CustomUninstall( iStatus, operation, pckg, KSISMIMEType );
-                    }
-                }
-            CleanupStack::PopAndDestroy( augUniqueVendorName );
-            CleanupStack::PopAndDestroy( augPackageName );
-            CleanupStack::PopAndDestroy( &augmentationEntry );
-            }  
-        CleanupStack::PopAndDestroy( &augPackages );
-        
-        if ( !augmentationFound )
-            {
-            LOGGER_WRITE( "CSConAppInstaller::ProcessUninstallL augmentation not found -> Leave" );
-            User::Leave( KErrNotFound );
-            }
+        iSifOptions->AddIntL( Usif::KSifInParam_InstallSilently, ETrue );
+        iSwInstaller.Uninstall( componentId, *iSifOptions, *iSifResults, iStatus, ETrue );
         }
     else
         {
-        // Only uninstall if not in rom and is present
-        if ( !entry.IsInRomL() && entry.IsPresentL() )
-            { 
-            if ( aUninstallParams.iMode == ESilentInstall )
-                {
-                LOGGER_WRITE( "CSConAppInstaller::ProcessUninstallL : silent sis-uninstall" );
-                SwiUI::TUninstallOptionsPckg options;
-                iInstallerState = ESilentUninstalling;
-                iSWInst.SilentUninstall( iStatus, aUninstallParams.iUid, options, KSISMIMEType );
-                }
-            else
-                {
-                LOGGER_WRITE( "CSConAppInstaller::ProcessUninstallL : unsilent sis-uninstall" )
-                iInstallerState = EUninstalling;
-                iSWInst.Uninstall( iStatus, aUninstallParams.iUid, KSISMIMEType );
-                }
-            }
-        else
-            {
-            LOGGER_WRITE( "CSConAppInstaller::ProcessUninstallL sis not present -> Leave" );
-            User::Leave( KErrNotFound );
-            }
+        iSwInstaller.Uninstall( componentId, *iSifOptions, *iSifResults, iStatus, ETrue );
         }
-    
-    CleanupStack::PopAndDestroy( &entry );
-	CleanupStack::PopAndDestroy( &sisRegistry );
-	TRACE_FUNC_EXIT;
-	}
-
-// -----------------------------------------------------------------------------
-// CSConAppInstaller::UninstallJavaL( const TUid& aUid, const TSConInstallMode aMode )
-// Uninstall java package
-// -----------------------------------------------------------------------------
-//
-void CSConAppInstaller::UninstallJavaL( const TUid& aUid, const TSConInstallMode aMode )
-	{
-	TRACE_FUNC_ENTRY;
-	CJavaRegistry* javaRegistry = CJavaRegistry::NewLC( );
-	TBool entryExist = javaRegistry->RegistryEntryExistsL( aUid );
-	CleanupStack::PopAndDestroy( javaRegistry ); 
-	
-    if( entryExist )
-        {
-        if( aMode == ESilentInstall )
-            {
-            LOGGER_WRITE( "CSConAppInstaller::UninstallJavaL : silent midlet-uninstall" )
-            SwiUI::TUninstallOptionsPckg options;
-            iInstallerState = ESilentUninstalling;
-            iSWInst.SilentUninstall( iStatus, aUid, options, KMidletMIMEType );
-            }
-        else
-            {
-            LOGGER_WRITE( "CSConAppInstaller::UninstallJavaL : unsilent midlet-uninstall" )
-            iInstallerState = EUninstalling;
-            iSWInst.Uninstall( iStatus, aUid, KMidletMIMEType );
-            }
-        }
-    else
-        {
-        LOGGER_WRITE( "CSConAppInstaller::UninstallJavaL java entry does not exist -> Leave" )
-        User::Leave( KErrNotFound );
-        }
+    SetActive();
     TRACE_FUNC_EXIT;
-	}
-
-// -----------------------------------------------------------------------------
-// CSConAppInstaller::UninstallWidget( const TUid& aUid, const TSConInstallMode aMode )
-// Uninstall widget
-// -----------------------------------------------------------------------------
-//
-void CSConAppInstaller::UninstallWidget( const TUid& aUid, const TSConInstallMode aMode )
-	{
-	TRACE_FUNC_ENTRY;
-	if( aMode == ESilentInstall )
-        {
-        LOGGER_WRITE( "CSConAppInstaller::UninstallWidget : silent uninstall" )
-        SwiUI::TUninstallOptionsPckg options;
-        iInstallerState = ESilentUninstalling;
-        iSWInst.SilentUninstall( iStatus, aUid, options, KWidgetMimeType );
-        }
-    else
-        {
-        LOGGER_WRITE( "CSConAppInstaller::UninstallWidget : unsilent uninstall" )
-        iInstallerState = EUninstalling;
-        iSWInst.Uninstall( iStatus, aUid, KWidgetMimeType );
-        }
-	TRACE_FUNC_EXIT;
-	}
-
+    }
     
 //--------------------------------------------------------------------------------
 //void CSConAppInstaller::ProcessListInstalledAppsL()

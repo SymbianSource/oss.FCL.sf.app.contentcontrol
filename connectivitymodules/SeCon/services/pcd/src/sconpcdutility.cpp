@@ -214,7 +214,6 @@ void SConPcdUtility::AppendInstalledSisL( CSConListInstApps& aListInstApps )
 void SConPcdUtility::AppendInstalledJavaL( CSConListInstApps& aListInstApps )
     {
     TRACE_FUNC_ENTRY;
-    // Java related functionality was removed as it was on APP layer.
     CJavaRegistry* javaRegistry = CJavaRegistry::NewLC( );
     RArray<TUid> packageUids;
     CleanupClosePushL( packageUids );

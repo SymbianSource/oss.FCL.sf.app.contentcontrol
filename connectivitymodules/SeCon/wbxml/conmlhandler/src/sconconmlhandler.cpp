@@ -169,8 +169,6 @@ TInt CSConConMLHandler::GenerateDocument( ConML_ConMLPtr_t aContent )
 //  
 TPtrC8 CSConConMLHandler::WBXMLDocument()
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::WBXMLDocument()" );
-    LOGGER_LEAVEFN( "CSConConMLHandler::WBXMLDocument()" );
     return iGenerator->WBXMLDocument();
     }
     
@@ -181,8 +179,6 @@ TPtrC8 CSConConMLHandler::WBXMLDocument()
 //  
 TPtrC8 CSConConMLHandler::XMLDocument()
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::XMLDocument()" );
-    LOGGER_LEAVEFN( "CSConConMLHandler::XMLDocument()" );
     return iGenerator->XMLDocument();
     }
 
@@ -318,7 +314,6 @@ TConMLParserError CSConConMLHandler::DoParseDocumentBodyL()
 //  
 TUint8 CSConConMLHandler::ReadUint8L()
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::ReadUint8L()" );
     if ( iPos == iParseBuffer->Size()) 
         {
         User::Leave ( KErrEof );
@@ -330,8 +325,6 @@ TUint8 CSConConMLHandler::ReadUint8L()
     iPos+= sizeof(TUint8);
     value = ptr[0];
     CleanupStack::PopAndDestroy(1); //data 
-    LOGGER_WRITE_1( "CSConConMLHandler::ReadUint8L()\
-     : returned %d ", value );
     return value;
     }
     
@@ -342,7 +335,6 @@ TUint8 CSConConMLHandler::ReadUint8L()
 //  
 TUint32 CSConConMLHandler::ReadMUint32L()
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::ReadMUint32L()" );
     TUint32 result = 0;
     TUint8 c;
     
@@ -351,8 +343,6 @@ TUint32 CSConConMLHandler::ReadMUint32L()
         result = (result << 7) | (c & 0x7f);
         } while ( c & 0x80 );
     
-    LOGGER_WRITE_1( "CSConConMLHandler::ReadMUint32L()\
-     : returned %d ", result );
     return result;
     }
 
@@ -363,7 +353,6 @@ TUint32 CSConConMLHandler::ReadMUint32L()
 //  
 TPtrC8 CSConConMLHandler::ReadStrIL()
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::ReadStrIL()" );
     iBuffer->Reset();
     RBufWriteStream bws(*iBuffer);
     TUint8 c;
@@ -372,7 +361,6 @@ TPtrC8 CSConConMLHandler::ReadStrIL()
         bws.WriteUint8L(c);
         }
     bws.CommitL();
-    LOGGER_LEAVEFN( "CSConConMLParser::ReadStrIL()" );
     return iBuffer->Ptr(0);
     }
     
@@ -383,7 +371,6 @@ TPtrC8 CSConConMLHandler::ReadStrIL()
 //  
 void CSConConMLHandler::ReadStringTableL()
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::ReadStringTableL()" );
     delete iStringTable;
     iStringTable = NULL;
     TUint32 strTblLen = ReadMUint32L();
@@ -400,7 +387,6 @@ void CSConConMLHandler::ReadStringTableL()
         iParseBuffer->Read(iPos, ptr, strTblLen);
         iPos+=strTblLen;
         }
-    LOGGER_LEAVEFN( "CSConConMLHandler::ReadStringTableL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -410,14 +396,12 @@ void CSConConMLHandler::ReadStringTableL()
 //  
 TPtrC8 CSConConMLHandler::StringTableString( TUint32 aIndex )
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::StringTableString()" );
     TPtrC8 temp(iStringTable->Mid(aIndex));
     TInt pos = temp.Find(KWBXMLNull());
     if( pos != KErrNotFound )
         {
         temp.Set(temp.Left(pos));
         }
-    LOGGER_LEAVEFN( "CSConConMLHandler::StringTableString()" );
     return temp;
     }
 
@@ -428,7 +412,6 @@ TPtrC8 CSConConMLHandler::StringTableString( TUint32 aIndex )
 //  
 void CSConConMLHandler::HandleElementL( TUint8 aId )
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::HandleElementL()" );
     TUint8 tag(TUint8(aId & 0x3f));
         
     iGenerator->StartElementL( tag );
@@ -441,7 +424,6 @@ void CSConConMLHandler::HandleElementL( TUint8 aId )
         {
         iGenerator->EndElementL(tag);
         }
-    LOGGER_LEAVEFN( "CSConConMLHandler::HandleElementL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -451,7 +433,6 @@ void CSConConMLHandler::HandleElementL( TUint8 aId )
 //  
 TPtrC8 CSConConMLHandler::ReadOpaqueL()
     {
-    LOGGER_ENTERFN( "CSConConMLHandler::ReadOpaqueL()" );
     iBuffer->Reset();
     RBufWriteStream bws(*iBuffer);
     TUint32 length = ReadMUint32L();
@@ -468,7 +449,6 @@ TPtrC8 CSConConMLHandler::ReadOpaqueL()
     bws.CommitL();
     CleanupStack::PopAndDestroy(1); // data
     
-    LOGGER_LEAVEFN( "CSConConMLHandler::ReadOpaqueL()" );
     return iBuffer->Ptr(0);
     }
 

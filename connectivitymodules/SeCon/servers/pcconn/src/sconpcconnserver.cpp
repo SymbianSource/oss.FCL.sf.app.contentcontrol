@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2009 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -18,12 +18,18 @@
 
 #include <s32mem.h> // For RMemReadStream
 #include <utf.h>
+#include <Etel3rdParty.h>
+#include <f32file.h>
 
 #include "sconpcconnclientserver.h"
 #include "sconpcconnserver.h"
 #include "sconpcd.h"
 #include "sconcsc.h"
 #include "sconconmlhandler.h"
+#include "sconimsireader.h"
+#include "sconoviaccounthandler.h"
+#include "sconfolderlister.h"
+#include "sconbtengine.h"
 #include "debug.h"
 
 #ifdef DEBUG_XML
@@ -33,6 +39,15 @@ _LIT8( KXmlBegin, "\nXML:\n" );
 #endif
 
 _LIT( KSCONGetMetadataRequest, "METADATA:" );
+_LIT8( KSCONSyncRequest, "SYNC:" );
+_LIT( KSCONReadImsi, "READIMSI");
+_LIT( KSCONReadNetworkInfo, "READNETWORKINFO");
+_LIT( KSCONReadOviAccount, "READOVIACCOUNT");
+_LIT( KSCONListPath, "LISTP:");
+_LIT( KSCONReadBtInfo, "READBTINFO" );
+_LIT( KSCONSetBtPower, "SETBTPOWER:" );
+_LIT( KSCONSetBtName, "SETBTNAME:" );
+_LIT( KSCONSetBtAuthorized, "SETBTAUTHORIZED:" );
 
 //------------------------------------------------------------
 // Global functions 
@@ -272,7 +287,12 @@ CSConPCConnSession::~CSConPCConnSession()
         }
         
     iChunk.Close();
-        
+    delete iFolderLister;
+    
+    iFs.Close();
+    
+    delete iBtEngine;
+     
     TRACE_FUNC_EXIT;
     }
 
@@ -304,21 +324,18 @@ void CSConPCConnSession::ConstructL()
     TInt ret ( KErrNone );
     iResult = KErrNone;
     
+    User::LeaveIfError( iFs.Connect() );
+    
 #ifdef DEBUG_XML
     // create log file 
-    RFs fs;
-    User::LeaveIfError( fs.Connect () );
-    CleanupClosePushL( fs );
     
     RFile file;
-    TInt err = file.Create ( fs, KSConConMLDebugFile, EFileWrite );
+    TInt err = file.Create ( iFs, KSConConMLDebugFile, EFileWrite );
     if( err == KErrNone )
         {
         // file created, close it
         file.Close();
-        }       
-    
-    CleanupStack::PopAndDestroy( &fs );               
+        }              
 #endif
     
     // initialize buffer
@@ -355,7 +372,9 @@ void CSConPCConnSession::ConstructL()
             User::Leave ( ret );
             }
         }
-
+    
+    iFolderLister = CSconFolderLister::NewL( iFs );
+    
     TRACE_FUNC_EXIT;
     }
 
@@ -457,9 +476,14 @@ TInt CSConPCConnSession::HandlePutMessageL()
     iBuffer->Reset();
 
     length = buf.ReadInt32L();
-    HBufC8* name = HBufC8::NewLC( length );
-    TPtr8 namePtr = name->Des();
-    buf.ReadL( namePtr, length);
+    HBufC8* name8 = HBufC8::NewLC( length );
+    TPtr8 namePtr8 = name8->Des();
+    buf.ReadL( namePtr8, length);
+    
+    const TUint8* ptr8 = namePtr8.Ptr();
+    const TUint16* ptr16 = reinterpret_cast<const TUint16*>( ptr8 );
+    TPtrC namePtr;
+    namePtr.Set( ptr16, length/2 );
         
     length = buf.ReadInt32L();
     HBufC8* type = HBufC8::NewLC( length );
@@ -478,12 +502,9 @@ TInt CSConPCConnSession::HandlePutMessageL()
     buf.Close();
     
 #ifdef DEBUG_XML
-    RFs fs;
-    User::LeaveIfError( fs.Connect() );
-    CleanupClosePushL( fs );
 
     RFile file;
-    if ( file.Open( fs, KSConConMLDebugFile, EFileWrite ) == KErrNone )
+    if ( file.Open( iFs, KSConConMLDebugFile, EFileWrite ) == KErrNone )
         {
         RFileWriteStream fws;
         TInt fileSize;
@@ -507,11 +528,25 @@ TInt CSConPCConnSession::HandlePutMessageL()
  
         CleanupStack::PopAndDestroy( &fws );
         }
-    file.Close();   
-    CleanupStack::PopAndDestroy( &fs );
+    file.Close();
 #endif
-    
-    if ( ( typePtr.Compare( KSConPCDWBXMLObjectType ) == KErrNone) || 
+    if ( ( ( typePtr.CompareC( KSConPCDWBXMLObjectType)== KErrNone ) || 
+                 ( typePtr.CompareC( KSConPCDWBXMLObjectType2 )== KErrNone ) )
+                 && namePtr8.Find(KSCONSyncRequest) == 0 )
+        {
+        LOGGER_WRITE_1("Sync request: %S", &namePtr);
+        RBufReadStream stream( *iBuffer );
+        
+        CleanupClosePushL( stream );
+        TRAP( ret, iPCDHandler->HandlePutSyncRequestL( namePtr8, stream ));
+        if ( ret )
+            {
+            LOGGER_WRITE_1("HandlePutSyncRequestL() Leaved with %d", ret);
+            }
+        
+        CleanupStack::PopAndDestroy( &stream );
+        }
+    else if ( ( typePtr.Compare( KSConPCDWBXMLObjectType ) == KErrNone) || 
          ( typePtr.Compare( KSConPCDWBXMLObjectType2 )== KErrNone) )
         {
         LOGGER_WRITE( "CSConPCConnSession::HandlePutMessageL() : Object type PCD " );
@@ -533,7 +568,7 @@ TInt CSConPCConnSession::HandlePutMessageL()
         }
     CleanupStack::PopAndDestroy( data );
     CleanupStack::PopAndDestroy( type );
-    CleanupStack::PopAndDestroy( name );
+    CleanupStack::PopAndDestroy( name8 );
     LOGGER_WRITE_1( "CSConPCConnSession::HandlePutMessageL() end : Heap count : %d", User::Heap().Count() );
     LOGGER_WRITE_1( "CSConPCConnSession::HandlePutMessageL() : returned %d", ret );    
     return ret;
@@ -587,12 +622,9 @@ TInt CSConPCConnSession::HandleGetMessageL()
         ret = iCSCHandler->CapabilityObject( *iBuffer );
         
 #ifdef DEBUG_XML
-        RFs fs;
-        User::LeaveIfError(fs.Connect());
-        CleanupClosePushL(fs);
-
+        
         RFile file;
-        if ( file.Open(fs, KSConConMLDebugFile, EFileWrite ) == KErrNone )
+        if ( file.Open(iFs, KSConConMLDebugFile, EFileWrite ) == KErrNone )
             {
             RFileWriteStream fws;
             TInt fileSize;
@@ -616,13 +648,218 @@ TInt CSConPCConnSession::HandleGetMessageL()
             CleanupStack::PopAndDestroy( &fws );
             }
         file.Close();
-        CleanupStack::PopAndDestroy( &fs );
 #endif
 
         }
     else if (  typePtr.CompareC( KSConPCDWBXMLObjectType) == KErrNone )
         {
-        ret = HandleWBXMLGetRequestL( namePtr );
+        if ( namePtr8.Find(KSCONSyncRequest) == 0 ) // 8-bit search
+            {
+            LOGGER_WRITE("Sync request");
+            
+            RBufWriteStream stream( *iBuffer );
+                
+            CleanupClosePushL( stream );
+            
+            TRAP( ret, iPCDHandler->HandleGetSyncRequestL( namePtr8, stream, iChunk.MaxSize() - sizeof(TInt32) ));
+            if ( ret )
+                {
+                LOGGER_WRITE_1("HandleGetSyncRequestL() Leaved with %d", ret);
+                }
+            stream.CommitL();
+            CleanupStack::PopAndDestroy( &stream );
+            
+            LOGGER_WRITE_1("iBuffer size: %d", iBuffer->Size());
+            
+            }
+        else if ( namePtr.Find(KSCONReadImsi) == 0 ) // 16-bit search
+            {
+            LOGGER_WRITE("Read IMSI");
+            TBuf<CTelephony::KIMSISize> imsi;
+            ret = CSconImsiReader::GetImsiL( imsi );
+            
+            if ( ret == KErrNone )
+                {
+                TBuf8<CTelephony::KIMSISize> imsi8;
+                User::LeaveIfError( CnvUtfConverter::ConvertFromUnicodeToUtf8(imsi8,imsi) );
+                
+                iBuffer->ResizeL( imsi8.Length() );
+                iBuffer->Write( 0, imsi8 );
+                }
+            else
+                {
+                // Change error code more generic
+                ret = KErrNotFound;
+                }
+            }
+        else if ( namePtr.Find(KSCONReadNetworkInfo) == 0 ) // 16-bit search
+            {
+            LOGGER_WRITE("Read NetworkInfo");
+            CTelephony::TRegistrationStatus regStatus;
+            ret = CSconImsiReader::GetNetworkStatusL( regStatus );
+            
+            if ( ret == KErrNone )
+                {
+                RBufWriteStream stream( *iBuffer );
+                CleanupClosePushL( stream );
+                stream.WriteInt8L( regStatus );
+                stream.CommitL();
+                CleanupStack::PopAndDestroy( &stream );
+                }
+            else
+                {
+                // Change error code more generic
+                ret = KErrNotFound;
+                }
+            }
+        else if ( namePtr.Find(KSCONReadOviAccount) == 0 )
+            {
+            LOGGER_WRITE("Read Ovi account");
+            RBufWriteStream stream( *iBuffer );
+            CleanupClosePushL( stream );
+            
+            ret = ReadOviAccountInfoL( stream );
+            stream.CommitL();
+            CleanupStack::PopAndDestroy( &stream );
+            
+            }
+        else if ( namePtr.Find(KSCONListPath) == 0 )
+            {
+            LOGGER_WRITE("List path");
+            // LISTP:0:pathname
+            if ( namePtr.Length() > KSCONListPath().Length()+2)
+                {
+                TPtrC pathname = namePtr.Mid( KSCONListPath().Length()+2 );
+            
+                const TUint16 levelsChar = namePtr[ KSCONListPath().Length() ];
+                TInt level(KErrNotFound);
+                if ( levelsChar >= TChar('0') )
+                    {
+                    level = levelsChar - TChar('0');
+                    }
+                
+                RBufWriteStream stream( *iBuffer );
+                CleanupClosePushL( stream );
+                TRAP( ret, iFolderLister->GenerateFolderListL( stream, pathname, level ));
+                LOGGER_WRITE_1("GenerateFolderListL leaved with err: %d", ret);
+                stream.CommitL();
+                CleanupStack::PopAndDestroy( &stream );
+                }
+            else
+                {
+                ret = KErrArgument;
+                }
+            
+            }
+        else if ( namePtr.Find(KSCONReadBtInfo) == 0 )
+            {
+            LOGGER_WRITE( "Read BT info");
+            if ( !iBtEngine )
+                {
+                iBtEngine = CSconBtEngine::NewL();
+                }
+            RBufWriteStream stream( *iBuffer );
+            CleanupClosePushL( stream );
+            TRAP( ret, iBtEngine->ReadBTInfoL( stream ) );
+            LOGGER_WRITE_1("ReadBTInfoL leaved with err: %d", ret);
+            stream.CommitL();
+            CleanupStack::PopAndDestroy( &stream );
+            }
+        else if ( namePtr.Find(KSCONSetBtPower) == 0 )
+            {
+            LOGGER_WRITE( "Change BT Power state");
+            if ( namePtr.Length() == KSCONSetBtPower().Length()+1 )
+                {
+                const TUint16 lastChar = namePtr[ KSCONSetBtPower().Length() ];
+                TBool changeBtOn;
+                if ( lastChar == TChar('0') )
+                    {
+                    changeBtOn = EFalse;
+                    }
+                else if ( lastChar == TChar('1') )
+                    {
+                    changeBtOn = ETrue;
+                    }
+                else
+                    {
+                    ret = KErrArgument;
+                    }
+                
+                if ( !ret )
+                    {
+                    if ( !iBtEngine )
+                       {
+                       iBtEngine = CSconBtEngine::NewL();
+                       }
+                    TInt err = iBtEngine->SetBtPowerState( changeBtOn );
+                    
+                    RBufWriteStream stream( *iBuffer );
+                    CleanupClosePushL( stream );
+                    stream.WriteInt32L( err );
+                    stream.CommitL();
+                    CleanupStack::PopAndDestroy( &stream );
+                    }
+                }
+            else
+                {
+                ret = KErrArgument;
+                }
+            }
+        else if ( namePtr.Find(KSCONSetBtName) == 0 )
+            {
+            LOGGER_WRITE( "Set BT Name");
+            TPtrC btName = namePtr.Mid( KSCONSetBtName().Length() );
+            TInt err = iBtEngine->SetBtName( btName  );
+            
+            RBufWriteStream stream( *iBuffer );
+            CleanupClosePushL( stream );
+            stream.WriteInt32L( err );
+            stream.CommitL();
+            CleanupStack::PopAndDestroy( &stream );
+            }
+        else if ( namePtr.Find(KSCONSetBtAuthorized) == 0 )
+            {
+            LOGGER_WRITE( "Set BT Authorized");
+            ret = KErrArgument;
+            // SETBTAUTHORIZED:0:00245f8d6a26
+            // 1. param = auth. state ("0"=off, "1"=true)
+            // 2. param = bt address (hex string)
+            
+            if ( namePtr.Length() > KSCONSetBtAuthorized().Length()+2)
+                {
+                TPtrC btAddr = namePtr.Mid( KSCONSetBtAuthorized().Length()+2 );
+                
+                const TUint16 authStateChar = namePtr[ KSCONSetBtAuthorized().Length() ];
+                TBool authorize(EFalse);
+                if ( authStateChar == TChar('0') )
+                    {
+                    authorize = EFalse;
+                    ret = KErrNone;
+                    }
+                else if ( authStateChar == TChar('1') )
+                    {
+                    authorize = ETrue;
+                    ret = KErrNone;
+                    }
+                
+                if ( !iBtEngine )
+                   {
+                   iBtEngine = CSconBtEngine::NewL();
+                   }
+                TRAPD(err, iBtEngine->SetBtAuthorizedL( btAddr, authorize ) );
+                
+                RBufWriteStream stream( *iBuffer );
+                CleanupClosePushL( stream );
+                stream.WriteInt32L( err );
+                stream.CommitL();
+                CleanupStack::PopAndDestroy( &stream );
+                }
+            
+            }
+        else 
+            {
+            ret = HandleWBXMLGetRequestL( namePtr );
+            }
         }
     else
         {
@@ -760,6 +997,59 @@ TInt CSConPCConnSession::HandleWBXMLGetRequestL( const TDesC& aFileName )
     return ret;
     }
 
+
+// -----------------------------------------------------------------------------
+// CSConPCConnSession::ReadOviAccountInfoL()
+// Reads ovi account information to stream
+// -----------------------------------------------------------------------------
+//
+TInt CSConPCConnSession::ReadOviAccountInfoL( RWriteStream& aAccountInfoStream )
+    {
+	TRACE_FUNC_ENTRY;
+    RLibrary oviaccounthandlerLib;
+    CleanupClosePushL( oviaccounthandlerLib );
+    // Dynamically load DLL
+    TInt err = oviaccounthandlerLib.Load( KSconOviAccountHandlerDllName );
+    if ( err )
+        {
+        LOGGER_WRITE_1("oviaccounthandlerLib.Load err: %d", err);
+        err = KErrNotSupported;
+        }
+    else if( oviaccounthandlerLib.Type()[1] != KSconOviAccountHandlerDllUid )
+        {
+        LOGGER_WRITE_1( "KSconOviAccountHandlerDllUid incorrect... (0x%08X)",oviaccounthandlerLib.Type()[1].iUid  );
+        err = KErrNotSupported;
+        }
+    
+    if ( err == KErrNone )
+        {
+        TSConCreateCSconOviAccountHandlerFunc CreateCSconOviAccountHandlerL =
+        (TSConCreateCSconOviAccountHandlerFunc)oviaccounthandlerLib.Lookup(1);
+        
+        CSconOviAccountHandler* oviAccountHandler = (CSconOviAccountHandler*)CreateCSconOviAccountHandlerL();
+        
+        TRAP(err, oviAccountHandler->GetOviAccountDetailsL( aAccountInfoStream ) );
+        LOGGER_WRITE_1("GetOviAccountDetailsL err: %d", err);
+        
+        delete oviAccountHandler;
+        oviAccountHandler = NULL;
+        
+        if ( err )
+            {
+            // change error code
+            err = KErrNotFound;
+            }
+        }
+    else
+        {
+        err = KErrNotSupported;
+        }
+	
+    CleanupStack::PopAndDestroy( &oviaccounthandlerLib );
+	TRACE_FUNC_EXIT;
+    return err;
+    }
+
 // -----------------------------------------------------------------------------
 // CSConPCConnSession::HandleResetMessage()
 // Resets the PCCS service
@@ -878,12 +1168,8 @@ void CSConPCConnSession::ConMLL( ConML_ConMLPtr_t aContent )
     
 #ifdef DEBUG_XML
     iConMLHandler->GenerateDocument( aContent );
-    RFs fs;
-    User::LeaveIfError(fs.Connect());
-    CleanupClosePushL(fs);
     RFile file;
-    
-    if ( file.Open(fs, KSConConMLDebugFile, EFileWrite) == KErrNone )
+    if ( file.Open(iFs, KSConConMLDebugFile, EFileWrite) == KErrNone )
         {
         RFileWriteStream fws;
         TInt fileSize;
@@ -910,7 +1196,6 @@ void CSConPCConnSession::ConMLL( ConML_ConMLPtr_t aContent )
         CleanupStack::PopAndDestroy( &fws );
         }
     file.Close();
-    CleanupStack::PopAndDestroy( &fs );
     
 #endif
 
@@ -2216,6 +2501,12 @@ void CSConPCConnSession::AppendInstallResultsL(
             aContent->complete = new ( ELeave ) pcdata_t();
             }
         AppendProgressL( aContent, aResult->iProgress );
+        
+        if ( aResult->iData && aResult->iData->Length() > 0 )
+            {
+            aContent->data = new ( ELeave ) pcdata_t();
+            aContent->data->SetDataL( aResult->iData->Des() );
+            }
         }
     TRACE_FUNC_EXIT;
     }
@@ -2238,6 +2529,12 @@ void CSConPCConnSession::AppendUninstallResultsL(
             }
         LOGGER_WRITE_1( "CSConPCConnSession::AppendUninstallResultsL() iProgress: %d", aResult->iProgress );
         AppendProgressL( aContent, aResult->iProgress );
+        
+        if ( aResult->iData && aResult->iData->Length() > 0 )
+            {
+            aContent->data = new ( ELeave ) pcdata_t();
+            aContent->data->SetDataL( aResult->iData->Des() );
+            }
         }
     TRACE_FUNC_EXIT;
     }

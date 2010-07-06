@@ -27,7 +27,7 @@ CAPABILITY      CAP_SERVER TrustedUI
 TARGET          sconpcconnserver.exe
 TARGETTYPE      exe
 
-EPOCSTACKSIZE   49152
+EPOCSTACKSIZE   0x10000
 EPOCHEAPSIZE    0x10000 0x800000
 
 UID             0 0x101F99F6
@@ -35,6 +35,9 @@ UID             0 0x101F99F6
 // Server
 SOURCEPATH      ../src
 SOURCE          sconpcconnserver.cpp
+SOURCE          sconimsireader.cpp
+SOURCE          sconfolderlister.cpp
+SOURCE          sconbtengine.cpp
 
 // ConML
 SOURCEPATH      ../../../wbxml/conmlhandler/src
@@ -49,6 +52,7 @@ USERINCLUDE     ../../../inc
 USERINCLUDE     ../../../common/conmltask/inc
 USERINCLUDE     ../../../services/pcd/inc 
 USERINCLUDE     ../../../services/csc/inc
+USERINCLUDE     ../../../services/oviaccounthandler/inc
 USERINCLUDE     ../../../wbxml/conmlhandler/inc
 
 // Default system include paths.
@@ -58,4 +62,17 @@ LIBRARY         euser.lib
 LIBRARY         estor.lib       // RMemWriteStream, RMemReadStream
 LIBRARY         efsrv.lib       // Rfs, RFile
 LIBRARY         charconv.lib    // For Unicode conversion
+
+LIBRARY         etel3rdparty.lib
+LIBRARY         platformenv.lib         // For pathinfo
+LIBRARY         directorylocalizer.lib  // For localizing directories
+LIBRARY	        centralrepository.lib
+LIBRARY         commonengine.lib        // For resource reader
+LIBRARY         bafl.lib                // Basic Application Framework Library
+LIBRARY         btengdevman.lib
+LIBRARY         btmanclient.lib
+LIBRARY         btdevice.lib
+LIBRARY         bluetooth.lib
+LIBRARY         btengsettings.lib
 DEBUGLIBRARY    flogger.lib
+

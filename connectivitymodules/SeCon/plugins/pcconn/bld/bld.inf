@@ -15,6 +15,8 @@
 *
 */
 
+PRJ_EXPORTS
+../rom/sconpcconnplugin.iby         CORE_APP_LAYER_IBY_EXPORT_PATH(sconpcconnplugin.iby)
 
 PRJ_PLATFORMS  
 DEFAULT

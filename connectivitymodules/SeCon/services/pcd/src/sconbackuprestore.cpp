@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2008 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -36,14 +36,12 @@
 // -----------------------------------------------------------------------------
 //
 CSConBackupRestore* CSConBackupRestore::NewL( CSConBackupRestoreQueue* aQueue,
-                                            const TInt aMaxObjectSize, RFs& aFs )
+                                              RFs& aFs )
     {
-    TRACE_FUNC_ENTRY;
     CSConBackupRestore* self = new (ELeave) CSConBackupRestore( aQueue, aFs );
     CleanupStack::PushL( self );
-    self->ConstructL( aMaxObjectSize );
+    self->ConstructL();
     CleanupStack::Pop( self );
-    TRACE_FUNC_EXIT;
     return self;
     }
 
@@ -55,6 +53,7 @@ CSConBackupRestore* CSConBackupRestore::NewL( CSConBackupRestoreQueue* aQueue,
 CSConBackupRestore::CSConBackupRestore( CSConBackupRestoreQueue* aQueue, RFs& aFs ) : 
             CActive( EPriorityStandard ), iQueue( aQueue ), iFs( aFs )
     {
+    CActiveScheduler::Add( this );
     }
     
 // -----------------------------------------------------------------------------
@@ -62,11 +61,9 @@ CSConBackupRestore::CSConBackupRestore( CSConBackupRestoreQueue* aQueue, RFs& aF
 // Initializes member data
 // -----------------------------------------------------------------------------
 //
-void CSConBackupRestore::ConstructL( const TInt aMaxObjectSize )
+void CSConBackupRestore::ConstructL()
     {
-    iMaxObjectSize = aMaxObjectSize;
-    iSBEClient = CSConSBEClient::NewL( aMaxObjectSize, iFs );
-    CActiveScheduler::Add( iSBEClient );
+    iSBEClient = CSConSBEClient::NewL( iFs );
     }   
     
 // -----------------------------------------------------------------------------
@@ -76,18 +73,12 @@ void CSConBackupRestore::ConstructL( const TInt aMaxObjectSize )
 //
 CSConBackupRestore::~CSConBackupRestore()
     {
-    TRACE_FUNC_ENTRY;
     if( iSBEClient )
         {
-        if( iSBEClient->IsActive() )
-            {
-            iSBEClient->Cancel();
-            }
-        
+        iSBEClient->Cancel();
         delete iSBEClient;
         iSBEClient = NULL;
         }
-    TRACE_FUNC_EXIT;
     }
     
 // -----------------------------------------------------------------------------
@@ -166,21 +157,12 @@ void CSConBackupRestore::Reset()
     TRACE_FUNC_ENTRY;
     if( iSBEClient )
         {
-        if( iSBEClient->IsActive() )
-            {
-            iSBEClient->Cancel();
-            }
-        
+        iSBEClient->Cancel();
         delete iSBEClient;
         iSBEClient = NULL;
         }
         
-    TRAPD( err, iSBEClient = CSConSBEClient::NewL( iMaxObjectSize, iFs ) );
-    
-    if( err == KErrNone )
-        {
-        CActiveScheduler::Add( iSBEClient );
-        }
+    TRAP_IGNORE( iSBEClient = CSConSBEClient::NewL( iFs ) );
     
     iBackupRestoreActive = EFalse;
     TRACE_FUNC_EXIT;
@@ -212,11 +194,9 @@ void CSConBackupRestore::DoCancel()
 //          
 void CSConBackupRestore::RunL()
     {
-    TRACE_FUNC_ENTRY;
-    
+    TRACE_FUNC;
     iQueue->CompleteTask( iCurrentTask, iStatus.Int() );
     iBackupRestoreActive = EFalse;
-    TRACE_FUNC_EXIT;
     }
     
 // End of file

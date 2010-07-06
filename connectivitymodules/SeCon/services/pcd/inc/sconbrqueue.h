@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2008 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2009 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -31,11 +31,10 @@ NONSHARABLE_CLASS ( CSConBackupRestoreQueue ) : public CActive, public CSConTask
 	public:
 		/**
 		 * Two-phase constructor
-		 * @param aMaxObjectSize Max object size
 		 * @param aFs aReference to RFs connection.
 		 * @return CSConBackupRestoreQueue instance
 		 */
-		static CSConBackupRestoreQueue* NewL( const TInt aMaxObjectSize, RFs& aFs );
+		static CSConBackupRestoreQueue* NewL( RFs& aFs );
 		/**
 		 * Destructor
 		 * @return CSConBackupRestoreQueue instance
@@ -82,11 +81,10 @@ NONSHARABLE_CLASS ( CSConBackupRestoreQueue ) : public CActive, public CSConTask
 		CSConBackupRestoreQueue();
 		/**
 		 * Initializes member data
-		 * @param aMaxObjectSize Max object size
 		 * @param aFs aReference to RFs connection.
 		 * @return none
 		 */
-		void ConstructL( const TInt aMaxObjectSize, RFs& aFs );
+		void ConstructL( RFs& aFs );
 		/**
 		 * Polls queue
 		 * @return none

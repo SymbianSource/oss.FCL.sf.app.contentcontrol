@@ -106,6 +106,7 @@ void CSConVideoParser::ConstructL()
     User::LeaveIfError( iWindow->Construct(iRootWindow, reinterpret_cast<TUint32>(&iRootWindow) + 1) );
     
     TRect temp(0,0,320,240); // dummy parameter
+    
     iVideoUtil = CVideoPlayerUtility::NewL(*this, EMdaPriorityNormal, EMdaPriorityPreferenceNone, iWsSession, *iScreen, *iWindow, temp, temp);
     
     iTimeOut = CSconTimeOut::NewL( *this );
