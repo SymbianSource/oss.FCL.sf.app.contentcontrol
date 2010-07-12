@@ -43,14 +43,14 @@ LIBS += -lestor.dll \
 		-lnsmldebug.dll \
 		
 		
-IfdefBlock = \
+defBlock = \
  "$${LITERAL_HASH}if defined(ARMCC)" \
  "DEFFILE ./def/eabicontactsdatastoreextension" \
  "$${LITERAL_HASH}elif defined(WINSCW)" \
  "DEFFILE ./def/bwinscwcontactsdatastoreextension" \
  "$${LITERAL_HASH}endif"
  
-MMP_RULES += IfdefBlock
+MMP_RULES += defBlock
 
 symbian { 
 	TARGET.UID3 = 0x2002DC83
