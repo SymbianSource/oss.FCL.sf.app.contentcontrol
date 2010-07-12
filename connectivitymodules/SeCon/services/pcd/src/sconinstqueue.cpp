@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2008 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2009 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -48,6 +48,7 @@ CSConInstallerQueue* CSConInstallerQueue::NewL( RFs& aFs )
 //
 CSConInstallerQueue::CSConInstallerQueue( RFs& aFs ) : CActive( EPriorityStandard ), iFs( aFs )
 	{
+    CActiveScheduler::Add( this );
 	}
 	
 // -----------------------------------------------------------------------------
@@ -58,8 +59,7 @@ CSConInstallerQueue::CSConInstallerQueue( RFs& aFs ) : CActive( EPriorityStandar
 void CSConInstallerQueue::ConstructL()
 	{
 	TRACE_FUNC_ENTRY;
-	iInstaller = new (ELeave) CSConAppInstaller( this, iFs );
-	CActiveScheduler::Add( iInstaller );
+	iInstaller = CSConAppInstaller::NewL( this, iFs );
 	User::LeaveIfError( iTimer.CreateLocal() );
 	TRACE_FUNC_EXIT;
 	}
@@ -151,7 +151,7 @@ void CSConInstallerQueue::QueueAddress( CSConBackupRestoreQueue*& aTaskQueue )
 //
 void CSConInstallerQueue::PollQueue()
 	{
-	TRACE_FUNC_ENTRY;
+	TRACE_FUNC;
 	// find and start next task if installer and BR is inactive
 	if( !iInstaller->InstallerActive()
 		&& !iBRQueueAddress->QueueProcessActive() )
@@ -168,7 +168,6 @@ void CSConInstallerQueue::PollQueue()
 				}
 			}
 		}
-	TRACE_FUNC_EXIT;
 	}
 
 // -----------------------------------------------------------------------------

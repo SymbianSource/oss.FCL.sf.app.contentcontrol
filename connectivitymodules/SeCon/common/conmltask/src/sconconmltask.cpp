@@ -25,7 +25,7 @@
 // 
 // -----------------------------------------------------------------------------
 //
-CSConReboot::CSConReboot() : iComplete( EFalse ), iProgress( 0 )
+CSConReboot::CSConReboot()
     {
     }
         
@@ -117,13 +117,7 @@ CSConDataOwner* CSConDataOwner::CopyL()
 // 
 // -----------------------------------------------------------------------------
 //  
-CSConUpdateDeviceInfo::CSConUpdateDeviceInfo() : 
-            iInstallSupp(EFalse), iUninstallSupp(EFalse), 
-            iInstParamsSupp(EFalse), iInstAppsSupp(EFalse), 
-            iDataOwnersSupp(EFalse), iSetBURModeSupp(EFalse),
-            iGetSizeSupp(EFalse), iReqDataSupp(EFalse), 
-            iSupplyDataSupp(EFalse), iRebootSupp(EFalse),
-            iComplete( EFalse ), iProgress( 0 )
+CSConUpdateDeviceInfo::CSConUpdateDeviceInfo()
     {
     }
     
@@ -187,7 +181,7 @@ CSConInstApp* CSConInstApp::CopyL()
 // 
 // -----------------------------------------------------------------------------
 //      
-CSConListInstApps::CSConListInstApps() : iComplete( EFalse ), iProgress( 0 )
+CSConListInstApps::CSConListInstApps()
     {
     //Initialize iDriveList with zeros
     iDriveList.Fill( '\x0' );
@@ -271,7 +265,7 @@ CSConFile* CSConFile::CopyL()
 // 
 // -----------------------------------------------------------------------------
 //      
-CSConInstall::CSConInstall() : iMode( EUnknown ), iComplete( EFalse ), iProgress( 0 ) 
+CSConInstall::CSConInstall() : iMode( EUnknown ) 
     {
     }
 
@@ -282,6 +276,7 @@ CSConInstall::CSConInstall() : iMode( EUnknown ), iComplete( EFalse ), iProgress
 //              
 CSConInstall::~CSConInstall()
     {
+    delete iData;
     }
 
 // -----------------------------------------------------------------------------
@@ -297,6 +292,11 @@ CSConInstall* CSConInstall::CopyL()
             
     copy->iComplete = iComplete;
     copy->iProgress = iProgress;
+    
+    if ( iData )
+        {
+        copy->iData = iData->Alloc();
+        }
             
     return copy;
     }
@@ -306,7 +306,7 @@ CSConInstall* CSConInstall::CopyL()
 // 
 // -----------------------------------------------------------------------------
 //  
-CSConUninstall::CSConUninstall() : iMode( EUnknown ), iComplete( EFalse ), iProgress( 0 )
+CSConUninstall::CSConUninstall() : iMode( EUnknown )
     {
     }
 
@@ -317,6 +317,7 @@ CSConUninstall::CSConUninstall() : iMode( EUnknown ), iComplete( EFalse ), iProg
 //          
 CSConUninstall::~CSConUninstall()
     {
+    delete iData;
     }
 
 // -----------------------------------------------------------------------------
@@ -334,6 +335,11 @@ CSConUninstall* CSConUninstall::CopyL()
             
     copy->iComplete = iComplete;
     copy->iProgress = iProgress;
+    
+    if ( iData )
+        {
+        copy->iData = iData->Alloc();
+        }
             
     return copy;
     }
@@ -343,7 +349,7 @@ CSConUninstall* CSConUninstall::CopyL()
 // 
 // -----------------------------------------------------------------------------
 //      
-CSConListDataOwners::CSConListDataOwners() : iComplete( EFalse ), iProgress( 0 )
+CSConListDataOwners::CSConListDataOwners()
     {
     }
     
@@ -398,7 +404,7 @@ void CSConListDataOwners::DeleteDataOwners()
 // 
 // -----------------------------------------------------------------------------
 //      
-CSConSetBURMode::CSConSetBURMode() : iComplete( EFalse ), iProgress( 0 )
+CSConSetBURMode::CSConSetBURMode()
     {
     //Initialize iDriveList with zeros
     iDriveList.Fill( '\x0' );
@@ -436,7 +442,7 @@ CSConSetBURMode* CSConSetBURMode::CopyL()
 // 
 // -----------------------------------------------------------------------------
 //          
-CSConGetDataSize::CSConGetDataSize() : iComplete( EFalse ), iProgress( 0 )
+CSConGetDataSize::CSConGetDataSize()
     {
     }
 
@@ -490,7 +496,7 @@ void CSConGetDataSize::DeleteDataOwners()
 // 
 // -----------------------------------------------------------------------------
 //  
-CSConListPublicFiles::CSConListPublicFiles() : iComplete( EFalse ), iProgress( 0 )
+CSConListPublicFiles::CSConListPublicFiles()
     {
     }
     
@@ -545,8 +551,7 @@ CSConListPublicFiles* CSConListPublicFiles::CopyL()
 // 
 // -----------------------------------------------------------------------------
 //
-CSConRequestData::CSConRequestData() : iDataOwner( NULL ), iBackupData( NULL ), 
-    iMoreData( EFalse ), iComplete( EFalse ), iProgress( 0 )
+CSConRequestData::CSConRequestData()
     {
     iDataOwner = new CSConDataOwner();
     }
@@ -633,7 +638,7 @@ void CSConRequestData::DeleteDataAndDataOwner()
 // 
 // -----------------------------------------------------------------------------
 //      
-CSConGetDataOwnerStatus::CSConGetDataOwnerStatus() : iComplete( EFalse ), iProgress( 0 )
+CSConGetDataOwnerStatus::CSConGetDataOwnerStatus()
     {
     }
 
@@ -688,8 +693,7 @@ void CSConGetDataOwnerStatus::DeleteDataOwners()
 // 
 // -----------------------------------------------------------------------------
 //  
-CSConSupplyData::CSConSupplyData() : iDataOwner( NULL ), iRestoreData( NULL ),
-    iComplete( EFalse ), iProgress( 0 )
+CSConSupplyData::CSConSupplyData()
     {
     iDataOwner = new CSConDataOwner();
     }
@@ -760,8 +764,7 @@ CSConSupplyData* CSConSupplyData::CopyL()
 // 
 // -----------------------------------------------------------------------------
 //  
-CSConGetMetadata::CSConGetMetadata() : iData( NULL ),
-    iMoreData( EFalse ), iComplete( EFalse ), iProgress( 0 )
+CSConGetMetadata::CSConGetMetadata()
     {
     }
     
@@ -772,11 +775,7 @@ CSConGetMetadata::CSConGetMetadata() : iData( NULL ),
 //          
 CSConGetMetadata::~CSConGetMetadata()
     {
-    if ( iData )
-        {
-        delete iData;
-        iData = NULL;
-        }
+    delete iData;
     }
     
 // -----------------------------------------------------------------------------
@@ -1687,7 +1686,7 @@ void CSConTaskReply::CleanTaskData()
 // 
 // -----------------------------------------------------------------------------
 // 
-CSConStatusReply::CSConStatusReply() : iNoTasks( EFalse )
+CSConStatusReply::CSConStatusReply()
     {
     }
    

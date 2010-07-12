@@ -287,6 +287,7 @@ NONSHARABLE_CLASS( CSConInstall ) : public CBase
         //used only with reply
         TBool               iComplete;      //task complete
         TInt                iProgress;      //task progress 
+        HBufC8*             iData;
     };  
     
 //============================================================
@@ -309,6 +310,7 @@ NONSHARABLE_CLASS( CSConUninstall ) : public CBase
         //used only with reply
         TBool               iComplete;      //task complete
         TInt                iProgress;      //task progress 
+        HBufC8*             iData;
     };  
     
 //============================================================

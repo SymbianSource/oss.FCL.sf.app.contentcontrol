@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2004-2008 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2004-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -21,7 +21,9 @@ PRJ_PLATFORMS
 DEFAULT
 
 PRJ_EXPORTS
-../loc/sconftp.loc  MW_LAYER_LOC_EXPORT_PATH(sconftp.loc)
+../rom/sconftp.iby              CORE_APP_LAYER_IBY_EXPORT_PATH(sconftp.iby)
+../rom/sconftpresources.iby     LANGUAGE_APP_LAYER_IBY_EXPORT_PATH(sconftpresources.iby)
+../loc/sconftp.loc              APP_LAYER_LOC_EXPORT_PATH(sconftp.loc)
 
 PRJ_MMPFILES
 ../bld/sconftp.mmp
