@@ -94,6 +94,8 @@ EXPORT_C CNSmlContactsDataStore::CNSmlContactsDataStore() : iKey( TKeyArrayFix( 
 	iState = ENSmlClosed;
 	iStoreName = NULL;
 	
+	iDrive = -1;
+	
 	_DBG_FILE("CNSmlContactsDataStore::CNSmlContactsDataStore(): end");
 	}
 	
@@ -229,10 +231,12 @@ EXPORT_C void CNSmlContactsDataStore::DoOpenL( const TDesC& aStoreName,
 		return;	
 		}
 
-	if( RFs::CharToDrive(aStoreName[0], iDrive) != KErrNone )
+	RFs::CharToDrive( KNSmlDriveC()[0], iDrive );
+
+	/*if( RFs::CharToDrive(aStoreName[0], iDrive) != KErrNone )
 		{
 		RFs::CharToDrive( KNSmlDriveC()[0], iDrive );
-		}
+		}*/
 	iOpened = EFalse;
 	
 	if( iStoreName )

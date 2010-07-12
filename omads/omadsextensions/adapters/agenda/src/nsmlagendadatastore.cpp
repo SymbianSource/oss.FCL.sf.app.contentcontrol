@@ -212,14 +212,14 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
     
     // Open database
 	TInt err( KErrNone );	
-	if ( aStoreName == KNSmlAgendaStoreNameForDefaultDB )
-		{
-		TRAP( err, iVCalSession->OpenL( *iDefaultStoreName ) );
-		}
-    else 
-    	{
-    	TRAP( err, iVCalSession->OpenL( aStoreName ) );
-    	}
+	TRAP( err, iVCalSession->OpenL( aStoreName ) );
+	DBG_ARGS(_S("CNSmlAgendaDataStore::DoOpenL: error while opening '%d'"), err );
+	if( err == KErrNotFound )
+        {
+        err = KErrNone;
+        TRAP( err, iVCalSession->CreateCalFileL( aStoreName ));
+        DBG_ARGS(_S("CNSmlAgendaDataStore::DoOpenL: creating the new calfile '%d'"), err );
+        }
 	if ( err )
 	    {
 	    User::RequestComplete( iCallerStatus, err );
