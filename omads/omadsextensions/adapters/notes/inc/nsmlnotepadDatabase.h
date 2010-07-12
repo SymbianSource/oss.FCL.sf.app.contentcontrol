@@ -113,18 +113,7 @@ class CNSmlNotepadDatabase : public CBase
         */
         TBool IsOpen();
         
-        /**
-        * gets teh default database storename of the notepad database
-        * @Param aStoreName holds the default notepad database's file name.
-        */
-        void GetDefaultDatastoreName(TDes& aStoreName);
-        
-        /**
-        * lists the notepad database file names
-        * @returns available notepad database file names.
-        */
-        CDesCArray* ListDatabasesL();
-        
+            
         /**
         * Fetch all the note items if aKey is not present. Else item with the aKey.
         * @returns array of NpdItem.
@@ -140,8 +129,7 @@ class CNSmlNotepadDatabase : public CBase
    private: // Data
         
         // Flag for whether database has been opened
-        TBool iOpened;
-        HBufC* iDataFile;        
+        TBool iOpened;       
         CCalSession*        iSession;
         CCalInstanceView*   iInstanceView;
         CCalEntryView*      iEntryView;

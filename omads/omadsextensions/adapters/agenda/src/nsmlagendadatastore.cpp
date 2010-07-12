@@ -177,7 +177,7 @@ CNSmlAgendaDataStore::~CNSmlAgendaDataStore()
     
 	delete iImporter;
     delete iExporter;
-    
+    delete iInstanceView;
     delete iEntryView;
     delete iVCalSession;
     delete iInterimUtils;
@@ -219,9 +219,14 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
         err = KErrNone;
         TRAP( err, iVCalSession->CreateCalFileL( aStoreName ));
         DBG_ARGS(_S("CNSmlAgendaDataStore::DoOpenL: creating the new calfile '%d'"), err );
+        if( err == KErrNone )
+            {
+            TRAP( err, iVCalSession->OpenL( aStoreName ));
+            }       
         }
 	if ( err )
 	    {
+        DBG_ARGS(_S("CNSmlAgendaDataStore::DoOpenL: end with error '%d'"), err );
 	    User::RequestComplete( iCallerStatus, err );
 	    return;
 	    }
@@ -245,7 +250,12 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
     // Progress view
 	iAgendaProgressview = CNSmlAgendaProgressview::NewL();
 
+	// Entry View
     iEntryView = CCalEntryView::NewL( *iVCalSession, *iAgendaProgressview );
+    
+    // Instance View
+    iInstanceView = CCalInstanceView::NewL(*iVCalSession);
+    
     CActiveScheduler::Start();
     TInt completedStatus = iAgendaProgressview->GetCompletedStatus();
     if ( completedStatus != KErrNone )
@@ -1181,23 +1191,35 @@ void CNSmlAgendaDataStore::RegisterSnapshotL()
 	CleanupStack::PushL( snapshot );
 	
     // First find all entries ...
-	RArray<TCalLocalUid> uidArray;
-	CleanupClosePushL( uidArray );
-	TCalTime zeroTime;
-	zeroTime.SetTimeUtcL( Time::NullTTime() );
-	iEntryView->GetIdsModifiedSinceDateL( zeroTime, uidArray );
-	
-	// ... and then create snapshot items
-	for ( TInt i = 0; i < uidArray.Count(); i++ )
-	    {
-	    TNSmlSnapshotItem newItem = CreateSnapshotItemL( uidArray[i] );
-	    if ( newItem.ItemId() != 0 )
-	        {
-	        snapshot->InsertIsqL( newItem, iKey );
-	        }
-	    }
-	
-	CleanupStack::PopAndDestroy( &uidArray );
+    RPointerArray<CCalInstance> array;
+    CleanupRPtrArrayPushL(array);
+
+    TCalTime startDate;
+    startDate.SetTimeLocalL(TDateTime(1900, EJanuary, 1, 0, 0, 0, 0));
+    TCalTime endDate;
+    endDate.SetTimeLocalL(TDateTime(2100, EJanuary, 30, 0, 0, 0, 0));
+    CalCommon::TCalTimeRange timeRange(startDate, endDate);
+
+    iInstanceView->FindInstanceL(array,
+                                 CalCommon::EIncludeAppts|
+                                 CalCommon::EIncludeReminder|
+                                 CalCommon::EIncludeEvents|
+                                 CalCommon::EIncludeAnnivs|
+                                 CalCommon::EIncludeCompletedTodos|
+                                 CalCommon::EIncludeIncompletedTodos,
+                                 timeRange);
+    TInt i = 0;
+
+    while (i < array.Count())
+        {
+        TNSmlSnapshotItem newItem = CreateSnapshotItemL( array[i]->Entry().LocalUidL() );
+        if ( newItem.ItemId() != 0 )
+            {
+            snapshot->InsertIsqL( newItem, iKey );
+            }
+        i++;
+        }
+    CleanupStack::PopAndDestroy(&array);
 		
 	iChangeFinder->SetNewSnapshot( snapshot );
 	

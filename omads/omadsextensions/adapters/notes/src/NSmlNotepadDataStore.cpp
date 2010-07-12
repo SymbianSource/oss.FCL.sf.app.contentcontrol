@@ -195,9 +195,8 @@ void CNSmlNotepadDataStore::ConstructL()
 		iDefaultStoreName = NULL;
 	    }
 	iDefaultStoreName = HBufC::NewL( KNSmlDefaultStoreNameMaxSize );
-	TInt len = iDefaultStoreName->Length();
-	TPtr obptr = iDefaultStoreName->Des();
-	iNpdDb->GetDefaultDatastoreName(obptr);
+	*iDefaultStoreName = KNSmlNotepadStoreName; 
+	
 	if(iOwnStoreFormat)
 	    {
 		delete iOwnStoreFormat;
@@ -232,9 +231,10 @@ const TDesC& CNSmlNotepadDataStore::DefaultStoreNameL() const
 CDesCArray* CNSmlNotepadDataStore::DoListStoresLC()
 	{
 	_NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::DoListStoresLC(): begin");
-	CDesCArray* npdStores = iNpdDb->ListDatabasesL();
-	CleanupStack::PushL( npdStores );
-	_NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::DoListStoresLC(): end");
+	CDesCArrayFlat *npdStores = new (ELeave)CDesCArrayFlat(1);
+    CleanupStack::PushL(npdStores);
+    npdStores->AppendL(KNSmlNotepadStoreName);
+    _NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::DoListStoresLC(): end");
 	return npdStores;
 	}
 	
@@ -247,10 +247,12 @@ void CNSmlNotepadDataStore::DoOpenL( const TDesC& aStoreName,
 									MSmlSyncRelationship& aContext, 
 									TRequestStatus& aStatus )
     {
-	iCallerStatus = &aStatus;
+    _NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::DoOpenL(): begin");	
+    iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	if( iState != ENSmlClosed || iDataBaseOpened )
 	    {
+        
 		User::RequestComplete( iCallerStatus, KErrInUse );	
 		return;	
 	    }
@@ -264,7 +266,7 @@ void CNSmlNotepadDataStore::DoOpenL( const TDesC& aStoreName,
 		
 	// Open the Database
 	TInt err( KErrNone );
-	TRAP(err,iNpdDb->OpenL( aStoreName ));
+	TRAP(err,iNpdDb->OpenL( KNSmlNotepadDefaultStoreName ));
 	if ( err )
         {
         User::RequestComplete( iCallerStatus, err );
@@ -276,7 +278,8 @@ void CNSmlNotepadDataStore::DoOpenL( const TDesC& aStoreName,
         delete iOpenedStoreName;
         iOpenedStoreName = NULL;
         }
-    iOpenedStoreName = aStoreName.Alloc();
+    iOpenedStoreName = HBufC::NewL( KNSmlDefaultStoreNameMaxSize );
+    *iOpenedStoreName = KNSmlNotepadStoreName;
     
     iDataBaseOpened = ETrue;
 		
@@ -289,6 +292,7 @@ void CNSmlNotepadDataStore::DoOpenL( const TDesC& aStoreName,
 	iChangeFinder = CNSmlChangeFinder::NewL( aContext, iKey, iSyncHistory, KNSmlNotepadAdapterImplUid );
 	
 	err = FetchModificationsL();
+	
 	
 	iState = ENSmlOpenAndWaiting;	
 	User::RequestComplete( iCallerStatus, err );
