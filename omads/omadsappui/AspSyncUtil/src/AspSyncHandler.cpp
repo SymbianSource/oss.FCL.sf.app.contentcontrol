@@ -623,7 +623,7 @@ void CAspSyncHandler::OnSyncMLSyncError(TErrorLevel aErrorLevel, TInt aError, TI
 	FLOG( _L("CAspSyncHandler::OnSyncMLSyncError START") );
 	
 	// just store error code - sync is terminated only in function OnSyncMLSessionEvent
-	if (aErrorLevel == ESmlFatalError)
+	if (aErrorLevel == ESmlFatalError || aErrorLevel == ESmlWarning)
 		{
 		iSyncError = aError;
 		}

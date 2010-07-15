@@ -620,6 +620,7 @@ void CNSmlAgendaDataStore::DoOpenItemL( TSmlDbItemUid aUid,
                 if ( err )
                     {
                     FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL:Parent Id is not Valid one"));
+                    CleanupStack::PopAndDestroy( ); // writeStream
                     User::RequestComplete( iCallerStatus, KErrNotFound );
                     return;
                     }
@@ -635,6 +636,7 @@ void CNSmlAgendaDataStore::DoOpenItemL( TSmlDbItemUid aUid,
             if( err != KErrNone || NULL == calfilename )
                 {
                 FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL:Invalid CalendarInfo"));
+                CleanupStack::PopAndDestroy( ); // writeStream
                 User::RequestComplete( iCallerStatus, KErrNotFound );
                 return;
                 }     
@@ -652,6 +654,7 @@ void CNSmlAgendaDataStore::DoOpenItemL( TSmlDbItemUid aUid,
                 FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: entry is not valid"));
                 delete agendautil; 
                 delete calfilename;
+                CleanupStack::PopAndDestroy( ); // writeStream
                 User::RequestComplete( iCallerStatus, KErrNotFound );
                 return;
                 }    
