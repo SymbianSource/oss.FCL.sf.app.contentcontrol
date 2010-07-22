@@ -22,6 +22,7 @@
 #include "sconpcdconsts.h"
 #include "debug.h"
 #include <SWInstDefs.h> // installer errors
+#include <usif/usiferror.h>
 
 // ============================= MEMBER FUNCTIONS ===============================
 
@@ -165,12 +166,16 @@ TInt CSConTaskQueue::AddNewTask( CSConTask*& aNewTask, TInt aTaskId )
 // Set the task to completed -mode
 // -----------------------------------------------------------------------------
 //
-void CSConTaskQueue::CompleteTask( TInt aTask, TInt aError )
+TInt CSConTaskQueue::CompleteTask( TInt aTask, TInt aError )
     {
     LOGGER_WRITE_1( "CSConTaskQueue::CompleteTask aError: %d", aError );
+    TInt ret(KErrNone);
     TInt index( KErrNotFound );
     
     CSConTask* temp = new CSConTask();
+    if (!temp)
+        return KErrNoMemory;
+    
     temp->iTaskId = aTask;
     index = iQueue.Find( temp, CSConTaskQueue::Match );
     delete temp;
@@ -203,16 +208,19 @@ void CSConTaskQueue::CompleteTask( TInt aTask, TInt aError )
             	progress = KSConCodeInstErrUserCancel;
             	break;
             case SwiUI::KSWInstErrFileCorrupted:
+            case KErrSifCorruptedPackage:
             	LOGGER_WRITE("File is corrupted");
             	iQueue[index]->SetCompleteValue( complete );
             	progress = KSConCodeInstErrFileCorrupted;
             	break;
             case SwiUI::KSWInstErrInsufficientMemory:
+            case KErrSifNotEnoughSpace:
             	LOGGER_WRITE("Insufficient free memory in the drive to perform the operation");
 	            iQueue[index]->SetCompleteValue( complete );
 	            progress = KSConCodeInstErrInsufficientMemory;	
 	            break;
             case SwiUI::KSWInstErrPackageNotSupported:
+            case KErrSifUnsupportedSoftwareType:
             	LOGGER_WRITE("Installation of the package is not supported");
             	iQueue[index]->SetCompleteValue( complete );
             	progress = KSConCodeInstErrPackageNotSupported;
@@ -223,6 +231,7 @@ void CSConTaskQueue::CompleteTask( TInt aTask, TInt aError )
             	progress = KSConCodeInstErrSecurityFailure;
             	break;
             case SwiUI::KSWInstErrMissingDependency:
+            case KErrSifMissingDependencies:
             	LOGGER_WRITE("Package cannot be installed due to missing dependency");
             	iQueue[index]->SetCompleteValue( complete );
             	progress = KSConCodeInstErrMissingDependency;
@@ -233,6 +242,7 @@ void CSConTaskQueue::CompleteTask( TInt aTask, TInt aError )
             	progress = KSConCodeInstErrFileInUse;
             	break;
             case SwiUI::KSWInstErrGeneralError:
+            case KErrSifUnknown:
             	LOGGER_WRITE("Unknown error");
             	iQueue[index]->SetCompleteValue( complete );
             	progress = KSConCodeInstErrGeneralError;
@@ -262,16 +272,102 @@ void CSConTaskQueue::CompleteTask( TInt aTask, TInt aError )
             	iQueue[index]->SetCompleteValue( complete );
             	progress = KSConCodeInstUpgradeError;
             	break;
+            	
+            case KErrSifMissingBasePackage:
+                LOGGER_WRITE("KErrSifMissingBasePackage");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifMissingBasePackage;
+                break;
+            case KErrSifOverflow:
+                LOGGER_WRITE("KErrSifOverflow");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifOverflow;
+                break;
+            case KErrSifSameVersionAlreadyInstalled:
+                LOGGER_WRITE("KErrSifSameVersionAlreadyInstalled");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifSameVersionAlreadyInstalled;
+                break;
+            case KErrSifNewerVersionAlreadyInstalled:
+                LOGGER_WRITE("KErrSifNewerVersionAlreadyInstalled");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifNewerVersionAlreadyInstalled;
+                break;
+            case KErrSifAlreadyActivated:
+                LOGGER_WRITE("KErrSifAlreadyActivated");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifAlreadyActivated;
+                break;
+            case KErrSifAlreadyDeactivated:
+                LOGGER_WRITE("KErrSifAlreadyDeactivated");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifAlreadyDeactivated;
+                break;
+            case KErrSifBadComponentId:
+                LOGGER_WRITE("KErrSifBadComponentId");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifBadComponentId;
+                break;
+            case KErrSifBadInstallerConfiguration:
+                LOGGER_WRITE("KErrSifBadInstallerConfiguration");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifBadInstallerConfiguration;
+                break;
+            case KErrSifPackageCannotBeInstalledOnThisDevice:
+                LOGGER_WRITE("KErrSifPackageCannotBeInstalledOnThisDevice");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifPackageCannotBeInstalledOnThisDevice;
+                break;
+            case KErrSifUnsupportedLanguage:
+                LOGGER_WRITE("KErrSifUnsupportedLanguage");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrSifUnsupportedLanguage;
+                break;
+            case KErrScrWriteOperationInProgress:
+                LOGGER_WRITE("KErrScrWriteOperationInProgress");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrScrWriteOperationInProgress;
+                break;
+            case KErrScrReadOperationInProgress:
+                LOGGER_WRITE("KErrScrReadOperationInProgress");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrScrReadOperationInProgress;
+                break;
+            case KErrScrNoActiveTransaction:
+                LOGGER_WRITE("KErrScrNoActiveTransaction");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrScrNoActiveTransaction;
+                break;
+            case KErrScrUnsupportedLocale:
+                LOGGER_WRITE("KErrScrUnsupportedLocale");
+                iQueue[index]->SetCompleteValue( complete );
+                progress = KSConCodeInstErrScrUnsupportedLocale;
+                break;
             
             default :
                 iQueue[index]->SetCompleteValue( complete );
-                progress = KSConCodeConflict;
+                if ( aError < KErrNone && aError >= KErrCorruptSurrogateFound )
+                    {
+                    // aError is always negative
+                    //  -> returned errorcode is from KSConCodeFirstSymbianErr...n
+                    progress = KSConCodeFirstSymbianErr - aError;
+                    }
+                else
+                    {
+                    progress = KSConCodeConflict;
+                    }
+                
                 break;
             }
             
         iQueue[index]->SetProgressValue( progress );
         }
+    else
+        {
+        ret = KErrNotFound;
+        }
     StartQueue();
+    return ret;
     }
     
 // -----------------------------------------------------------------------------
@@ -279,19 +375,32 @@ void CSConTaskQueue::CompleteTask( TInt aTask, TInt aError )
 // Set the task progress value
 // -----------------------------------------------------------------------------
 //
-void CSConTaskQueue::SetTaskProgress( TInt aTask, TInt aProgressValue )
+TInt CSConTaskQueue::SetTaskProgress( TInt aTask, TInt aProgressValue )
     {
+    TInt ret( KErrNone );
     TInt index( KErrNotFound );
 
     CSConTask* temp = new CSConTask();
-    temp->iTaskId = aTask;
-    index = iQueue.Find( temp, CSConTaskQueue::Match );
-    delete temp;
-    
-    if ( index != KErrNotFound )
+    if (temp)
         {
-        iQueue[index]->SetProgressValue( aProgressValue );
+        temp->iTaskId = aTask;
+        index = iQueue.Find( temp, CSConTaskQueue::Match );
+        delete temp;
+        
+        if ( index != KErrNotFound )
+            {
+            iQueue[index]->SetProgressValue( aProgressValue );
+            }
+        else
+            {
+            ret = KErrNotFound;
+            }
         }
+    else
+        {
+        ret = KErrNoMemory;
+        }
+    return ret;
     }
     
 // -----------------------------------------------------------------------------
@@ -305,17 +414,24 @@ TInt CSConTaskQueue::GetTask( TInt aTaskId, CSConTask*& aTask )
     TInt index;
     
     CSConTask* temp = new CSConTask();
-    temp->iTaskId = aTaskId;
-    index = iQueue.Find( temp, CSConTaskQueue::Match );
-    delete temp;
-
-    if ( index != KErrNotFound )
+    if (temp)
         {
-        aTask = iQueue[index];
+        temp->iTaskId = aTaskId;
+        index = iQueue.Find( temp, CSConTaskQueue::Match );
+        delete temp;
+    
+        if ( index != KErrNotFound )
+            {
+            aTask = iQueue[index];
+            }
+        else
+            {
+            ret = KErrNotFound;
+            }
         }
     else
         {
-        ret = KErrNotFound;
+        ret = KErrNoMemory;
         }
     return ret;
     }
@@ -325,27 +441,40 @@ TInt CSConTaskQueue::GetTask( TInt aTaskId, CSConTask*& aTask )
 // Removes a task from the queue
 // -----------------------------------------------------------------------------
 //
-void CSConTaskQueue::RemoveTask( TInt aTask )
+TInt CSConTaskQueue::RemoveTask( TInt aTask )
     {
+    TInt ret(KErrNone);
     TInt index( KErrNotFound );
     
     CSConTask* temp = new CSConTask();
-    temp->iTaskId = aTask;
-    index = iQueue.Find( temp, CSConTaskQueue::Match );
-    delete temp;
-    
-    if ( index != KErrNotFound ) 
+    if (temp)
         {
-        delete iQueue[index];
-        iQueue.Remove( index );
-        iQueue.Compress();
+        temp->iTaskId = aTask;
+        index = iQueue.Find( temp, CSConTaskQueue::Match );
+        delete temp;
+        
+        if ( index != KErrNotFound ) 
+            {
+            delete iQueue[index];
+            iQueue.Remove( index );
+            iQueue.Compress();
+            }
+        else
+            {
+            ret = KErrNotFound;
+            }
+        
+        if ( iQueue.Count() == 0 )
+            {
+            StopQueue();
+            iQueue.Reset();
+            }
         }
-    
-    if ( iQueue.Count() == 0 )
+    else
         {
-        StopQueue();
-        iQueue.Reset();
+        ret = KErrNoMemory;
         }
+    return ret;
     }
     
 // -----------------------------------------------------------------------------

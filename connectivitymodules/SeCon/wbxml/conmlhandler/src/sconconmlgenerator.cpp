@@ -97,9 +97,7 @@ void CSConConMLGenerator::ConstructL()
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::SetCallback ( MWBXMLConMLCallback* aCallback )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::SetCallbacks()" );
     iCallback = aCallback;
-    LOGGER_LEAVEFN( "CSConConMLGenerator::SetCallbacks()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -129,7 +127,6 @@ void CSConConMLGenerator::StartDocument(
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::StartElementL( TWBXMLTag aTag )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::StartElementL()" );
     if( iCmdStack->Top() != 0 )
         {
         AddElementL(iCmdStack->Top()->BeginElementL( 
@@ -150,7 +147,6 @@ void CSConConMLGenerator::StartElementL( TWBXMLTag aTag )
             User::Leave(KWBXMLParserErrorInvalidTag);
             }
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::StartElementL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -158,7 +154,6 @@ void CSConConMLGenerator::StartElementL( TWBXMLTag aTag )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AddElementL( CXMLElement* aElement )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AddElement()" );
     if( aElement )
         {
         iCmdStack->PushL(aElement);
@@ -167,7 +162,6 @@ void CSConConMLGenerator::AddElementL( CXMLElement* aElement )
             iCleanupStack->PushL(aElement);
             }
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AddElement()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -175,7 +169,6 @@ void CSConConMLGenerator::AddElementL( CXMLElement* aElement )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::CharactersL( const TDesC8& aBuffer )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::CharactersL()" );
     if( iCmdStack->Top() != 0 )
         {
         iCmdStack->Top()->SetDataL(aBuffer);
@@ -185,7 +178,6 @@ void CSConConMLGenerator::CharactersL( const TDesC8& aBuffer )
         LOGGER_WRITE( "CSConConMLGenerator::CharactersL() : Leave KWBXMLParserErrorInvalidTag" );
         User::Leave(KWBXMLParserErrorInvalidTag);
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::CharactersL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -193,7 +185,6 @@ void CSConConMLGenerator::CharactersL( const TDesC8& aBuffer )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::EndElementL( TWBXMLTag aTag )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::EndElementL()" );
     if( iCmdStack->Top() != 0 )
         {
         CXMLElement::TAction action = iCmdStack->Top()->EndElementL( 
@@ -211,7 +202,6 @@ void CSConConMLGenerator::EndElementL( TWBXMLTag aTag )
                 }
             }
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::EndElementL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -219,7 +209,6 @@ void CSConConMLGenerator::EndElementL( TWBXMLTag aTag )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::WriteMUint32L( TUint32 aValue )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::WriteMUint32L()" );
     TUint8 temp[5];
     TInt i(4);
     
@@ -235,7 +224,6 @@ void CSConConMLGenerator::WriteMUint32L( TUint32 aValue )
         {
         iWBXMLWorkspace->WriteL(temp[++i]);
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::WriteMUint32L()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -243,12 +231,10 @@ void CSConConMLGenerator::WriteMUint32L( TUint32 aValue )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::WriteOpaqueDataL( const TDesC8& aData )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::WriteOpaqueDataL()" );
     iWBXMLWorkspace->WriteL( OPAQUE );
     WriteMUint32L( aData.Size() );
     iWBXMLWorkspace->WriteL( aData );
     iXMLWorkspace->WriteL( aData );
-    LOGGER_LEAVEFN( "CSConConMLGenerator::WriteOpaqueDataL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -256,12 +242,10 @@ void CSConConMLGenerator::WriteOpaqueDataL( const TDesC8& aData )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::WriteInlineStringL( const TDesC8& aData )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::WriteInlineStringL()" );
     iWBXMLWorkspace->WriteL( STR_I );
     iWBXMLWorkspace->WriteL( aData );
     iWBXMLWorkspace->WriteL( 0 );
     iXMLWorkspace->WriteL( aData );
-    LOGGER_LEAVEFN( "CSConConMLGenerator::WriteInlineStringL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -269,12 +253,10 @@ void CSConConMLGenerator::WriteInlineStringL( const TDesC8& aData )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::IndentL()
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::IndentL()" );
     for( TInt i = 0; i < iElemStack.Count() + iInitialIndentLevel; i++ )
         {
         iXMLWorkspace->WriteL(KXMLIndent());
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::IndentL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -282,7 +264,6 @@ void CSConConMLGenerator::IndentL()
 // -----------------------------------------------------------------------------    
 TPtrC8 CSConConMLGenerator::TranslateElement( TUint8 aElement )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::TranslateElement()" );
     TPtrC8 buf( KConMLElements );
     while( aElement-- )
         {
@@ -300,7 +281,6 @@ TPtrC8 CSConConMLGenerator::TranslateElement( TUint8 aElement )
         {
         buf.Set(buf.Left(pos));
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::TranslateElement()" );
     return buf;
     }
     
@@ -335,7 +315,6 @@ TInt CSConConMLGenerator::GenerateConMLDocument ( ConML_ConMLPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendConMLL( ConML_ConMLPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendConMLL()" );
     BeginDocumentL(KSConConMLVersion, KSConConMLPublicId, KSConConMLUTF8);
     BeginElementL(EConML, ETrue);
     AppendExecuteL( aContent->execute );
@@ -343,7 +322,6 @@ void CSConConMLGenerator::AppendConMLL( ConML_ConMLPtr_t aContent )
     AppendCancelL( aContent->cancel );
     AppendStatusL( aContent->status );
     EndElementL(); // EConML
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendConMLL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -351,7 +329,6 @@ void CSConConMLGenerator::AppendConMLL( ConML_ConMLPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendExecuteL( ConML_ExecutePtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendExecuteL()" );
     if ( aContent )
         {
         BeginElementL( EConMLExecute, ETrue );
@@ -375,7 +352,6 @@ void CSConConMLGenerator::AppendExecuteL( ConML_ExecutePtr_t aContent )
             }
         EndElementL(); // EConMLExecute
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendExecuteL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -383,7 +359,6 @@ void CSConConMLGenerator::AppendExecuteL( ConML_ExecutePtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendSupplyDataL( ConML_SupplyDataPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendSupplyDataL()" );
     if ( aContent )
         {
         BeginElementL( EConMLSupplyData, ETrue );
@@ -391,14 +366,12 @@ void CSConConMLGenerator::AppendSupplyDataL( ConML_SupplyDataPtr_t aContent )
         AppendResultsL( aContent->results );
         EndElementL(); // EConMLSupplyData
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendSupplyDataL()" );
     }
 // -----------------------------------------------------------------------------
 // AppendInstallL
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendInstallL( ConML_InstallPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendInstallL()" );
     if ( aContent)
         {
         BeginElementL( EConMLInstall, ETrue );
@@ -417,7 +390,6 @@ void CSConConMLGenerator::AppendInstallL( ConML_InstallPtr_t aContent )
         AppendResultsL( aContent->results );
         EndElementL(); // EConMLInstall
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendInstallL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -425,7 +397,6 @@ void CSConConMLGenerator::AppendInstallL( ConML_InstallPtr_t aContent )
 // -----------------------------------------------------------------------------    
 void CSConConMLGenerator::AppendCancelL ( ConML_CancelPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendCancelL()" );
     if ( aContent )
         {
         BeginElementL( EConMLCancel, ETrue );
@@ -433,7 +404,6 @@ void CSConConMLGenerator::AppendCancelL ( ConML_CancelPtr_t aContent )
         AppendPCDataL( EConMLAll, aContent->all);
         EndElementL(); // EConMLCancel
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendCancelL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -441,7 +411,6 @@ void CSConConMLGenerator::AppendCancelL ( ConML_CancelPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendStatusL ( ConML_StatusPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendStatusL()" );
     if ( aContent )
         {
         if ( aContent->task )
@@ -455,7 +424,6 @@ void CSConConMLGenerator::AppendStatusL ( ConML_StatusPtr_t aContent )
             BeginElementL( EConMLStatus );  
             }
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendStatusL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -463,7 +431,6 @@ void CSConConMLGenerator::AppendStatusL ( ConML_StatusPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendGetStatusL( ConML_GetStatusPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendGetStatusL()" );
     if ( aContent )
         {
         BeginElementL( EConMLGetStatus, ETrue );
@@ -474,7 +441,6 @@ void CSConConMLGenerator::AppendGetStatusL( ConML_GetStatusPtr_t aContent )
             }
         EndElementL(); // EConMLGetStatus
         }
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendGetStatusL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -495,7 +461,6 @@ void CSConConMLGenerator::AppendRebootL( ConML_RebootPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendTaskL( ConML_TaskPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendTaskL()" );
     if ( aContent )
         {
         BeginElementL( EConMLTask, ETrue );
@@ -515,7 +480,6 @@ void CSConConMLGenerator::AppendTaskL( ConML_TaskPtr_t aContent )
         AppendGetMetadataL( aContent->getMetadata );
         EndElementL();
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendTaskL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -523,12 +487,10 @@ void CSConConMLGenerator::AppendTaskL( ConML_TaskPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendTaskListL( ConML_TaskListPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendTaskListL()" );
     for ( ConML_TaskListPtr_t p = aContent; p && p->data; p=p->next )
         {
         AppendTaskL( p->data );
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendTaskListL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -537,7 +499,6 @@ void CSConConMLGenerator::AppendTaskListL( ConML_TaskListPtr_t aContent )
 void CSConConMLGenerator::AppendListInstalledAppsL ( 
     ConML_ListInstalledAppsPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendListInstalledAppsL()" );
     if ( aContent )
         {
         BeginElementL( EConMLListInstalledApps, ETrue );
@@ -549,7 +510,6 @@ void CSConConMLGenerator::AppendListInstalledAppsL (
         AppendResultsL( aContent->results );
         EndElementL(); // EConMLListInstalledApps
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendListInstalledAppsL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -558,7 +518,6 @@ void CSConConMLGenerator::AppendListInstalledAppsL (
 void CSConConMLGenerator::AppendListDataOwnersL ( 
     ConML_ListDataOwnersPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendListDataOwnersL()" );
     if ( aContent )
         {
         if ( aContent->results )
@@ -572,7 +531,6 @@ void CSConConMLGenerator::AppendListDataOwnersL (
             BeginElementL( EConMLListDataOwners );          
             }
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendListDataOwnersL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -580,7 +538,6 @@ void CSConConMLGenerator::AppendListDataOwnersL (
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendBUROptionsL( ConML_BUROptionsPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendBUROptionsL()" );
     if ( aContent )
         {
         BeginElementL( EConMLBUROptions, ETrue );
@@ -602,7 +559,6 @@ void CSConConMLGenerator::AppendBUROptionsL( ConML_BUROptionsPtr_t aContent )
             }
         EndElementL(); // EConMLBUROptions
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendBUROptionsL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -610,7 +566,6 @@ void CSConConMLGenerator::AppendBUROptionsL( ConML_BUROptionsPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendSetBURModeL( ConML_SetBURModePtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendSetBURModeL()" );
     if ( aContent )
         {
         BeginElementL( EConMLSetBURMode, ETrue );
@@ -620,7 +575,6 @@ void CSConConMLGenerator::AppendSetBURModeL( ConML_SetBURModePtr_t aContent )
         AppendResultsL( aContent->results );
         EndElementL(); //EConMLSetBURMode
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendSetBURModeL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -628,7 +582,6 @@ void CSConConMLGenerator::AppendSetBURModeL( ConML_SetBURModePtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendUnInstallL( ConML_UnInstallPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendUnInstallL()" );
     if ( aContent )
         {
         BeginElementL( EConMLUnInstall, ETrue );
@@ -637,7 +590,6 @@ void CSConConMLGenerator::AppendUnInstallL( ConML_UnInstallPtr_t aContent )
         AppendResultsL( aContent->results );
         EndElementL(); // EConMLUnInstall
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendUnInstallL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -645,7 +597,6 @@ void CSConConMLGenerator::AppendUnInstallL( ConML_UnInstallPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendGetDataSizeL( ConML_GetDataSizePtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendGetDataSizeL()" );
     if ( aContent )
         {
         BeginElementL( EConMLGetDataSize, ETrue );
@@ -653,7 +604,6 @@ void CSConConMLGenerator::AppendGetDataSizeL( ConML_GetDataSizePtr_t aContent )
         AppendResultsL( aContent->results );
         EndElementL(); //EConMLGetDataSize
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendGetDataSizeL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -661,7 +611,6 @@ void CSConConMLGenerator::AppendGetDataSizeL( ConML_GetDataSizePtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendRequestDataL( ConML_RequestDataPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendRequestDataL()" );
     if ( aContent )
         {
         BeginElementL( EConMLRequestData, ETrue );
@@ -669,7 +618,6 @@ void CSConConMLGenerator::AppendRequestDataL( ConML_RequestDataPtr_t aContent )
         AppendResultsL( aContent->results );
         EndElementL();//EConMLRequestData
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendRequestDataL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -678,7 +626,6 @@ void CSConConMLGenerator::AppendRequestDataL( ConML_RequestDataPtr_t aContent )
 void CSConConMLGenerator::AppendUpdateDeviceInfoL( 
     ConML_UpdateDeviceInfoPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendUpdateDeviceInfoL()" );
     if ( aContent )
         {
         BeginElementL(EConMLUpdateDeviceInfo, ETrue);
@@ -686,7 +633,6 @@ void CSConConMLGenerator::AppendUpdateDeviceInfoL(
         AppendResultsL( aContent->results );
         EndElementL();// EConMLUpdateDeviceInfo
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendUpdateDeviceInfoL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -695,7 +641,6 @@ void CSConConMLGenerator::AppendUpdateDeviceInfoL(
 void CSConConMLGenerator::AppendListPublicFilesL( 
     ConML_ListPublicFilesPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendListPublicFilesL()" );
     if ( aContent )
         {
         BeginElementL( EConMLListPublicFiles, ETrue );
@@ -703,7 +648,6 @@ void CSConConMLGenerator::AppendListPublicFilesL(
         AppendResultsL( aContent->results );
         EndElementL(); // EConMLListPublicFiles
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendListPublicFilesL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -711,7 +655,6 @@ void CSConConMLGenerator::AppendListPublicFilesL(
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendApplicationL( ConML_ApplicationPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendApplicationL()" );
     if ( aContent )
         {
         BeginElementL(EConMLApplication, ETrue );
@@ -719,7 +662,6 @@ void CSConConMLGenerator::AppendApplicationL( ConML_ApplicationPtr_t aContent )
         AppendPCDataL( EConMLUID, aContent->uid );
         EndElementL(); //EConMLApplication
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendApplicationL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -728,12 +670,10 @@ void CSConConMLGenerator::AppendApplicationL( ConML_ApplicationPtr_t aContent )
 void CSConConMLGenerator::AppendApplicationListL( 
     ConML_ApplicationListPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendApplicationListL()" );
     for ( ConML_ApplicationListPtr_t p = aContent; p && p->data; p = p->next )
         {
         AppendApplicationL( p->data );
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendApplicationListL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -742,14 +682,12 @@ void CSConConMLGenerator::AppendApplicationListL(
 void CSConConMLGenerator::AppendApplicationsL( 
     ConML_ApplicationsPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendApplicationsL()" );
     if ( aContent )
         {
         BeginElementL( EConMLApplications, ETrue );
         AppendApplicationListL( aContent->application );
         EndElementL(); // EConMLApplications
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendApplicationsL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -757,7 +695,6 @@ void CSConConMLGenerator::AppendApplicationsL(
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendParamL( ConML_ParamPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendParamL()" );
     if ( aContent )
         {
         BeginElementL( EConMLParam, ETrue );
@@ -765,7 +702,6 @@ void CSConConMLGenerator::AppendParamL( ConML_ParamPtr_t aContent )
         AppendPCDataL( EConMLValue, aContent->value );
         EndElementL(); // EConMLParam
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendParamL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -773,12 +709,10 @@ void CSConConMLGenerator::AppendParamL( ConML_ParamPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendParamListL( ConML_ParamListPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendParamListL()" );
     for ( ConML_ParamListPtr_t p = aContent; p && p->data; p = p->next )
         {
         AppendParamL( p-> data );
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendParamListL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -786,14 +720,12 @@ void CSConConMLGenerator::AppendParamListL( ConML_ParamListPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendInstParamsL( ConML_InstParamsPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendInstParamsLionsL()" );
     if ( aContent )
         {
         BeginElementL( EConMLInstParams, ETrue );
         AppendParamListL( aContent->param );
         EndElementL(); //EConMLInstParams
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendInstParamsL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -801,14 +733,12 @@ void CSConConMLGenerator::AppendInstParamsL( ConML_InstParamsPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendProgressL( ConML_ProgressPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendProgressL()" );
     if ( aContent )
         {
         BeginElementL( EConMLProgress, ETrue );
         AppendPCDataL( EConMLValue, aContent->value );
         EndElementL(); // EconMLProgress
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendProgressL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -816,7 +746,6 @@ void CSConConMLGenerator::AppendProgressL( ConML_ProgressPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendResultsL( ConML_ResultsPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendResultsL()" );
     if ( aContent )
         {
         BeginElementL( EConMLResults, ETrue );
@@ -840,7 +769,6 @@ void CSConConMLGenerator::AppendResultsL( ConML_ResultsPtr_t aContent )
         AppendFilesL( aContent->files );
         EndElementL(); //EConMLResults
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendResultsL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -848,14 +776,12 @@ void CSConConMLGenerator::AppendResultsL( ConML_ResultsPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendDriveL( ConML_DrivePtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendDriveL()" );
     if ( aContent )
         {
         BeginElementL( EConMLDrive, ETrue );
         AppendPCDataL( EConMLName, aContent->name );
         EndElementL(); //EConMLDrive
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendDriveL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -863,12 +789,10 @@ void CSConConMLGenerator::AppendDriveL( ConML_DrivePtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendDriveListL( ConML_DriveListPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendDriveListL()" );
     for ( ConML_DriveListPtr_t p =  aContent; p && p->data; p=p->next )
         {
         AppendDriveL( p->data );
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendDriveListL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -876,14 +800,12 @@ void CSConConMLGenerator::AppendDriveListL( ConML_DriveListPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendDrivesL( ConML_DrivesPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendDrivesL()" );
     if ( aContent )
         {
         BeginElementL( EConMLDrives, ETrue );
         AppendDriveListL( aContent->drive );
         EndElementL(); // EConMLDrives
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendDrivesL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -891,14 +813,12 @@ void CSConConMLGenerator::AppendDrivesL( ConML_DrivesPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendDataOwnersL( ConML_DataOwnersPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendDataOwnersL()" );
     if ( aContent )
         {
         BeginElementL( EConMLDataOwners, ETrue );
         AppendSIDListL( aContent->sid );
         EndElementL(); //EConMLDataOwners
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendDataOwnersL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -907,7 +827,6 @@ void CSConConMLGenerator::AppendDataOwnersL( ConML_DataOwnersPtr_t aContent )
 void CSConConMLGenerator::AppendGetDataOwnerStatusL
     ( ConML_GetDataOwnerStatusPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendDataOwnerStatusL()" );
     if ( aContent)
         {
         BeginElementL( EConMLGetDataOwnerStatus, ETrue );
@@ -915,7 +834,6 @@ void CSConConMLGenerator::AppendGetDataOwnerStatusL
         AppendResultsL( aContent->results );
         EndElementL(); // EconMLGetDataOwnerStatus
         }
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendDataOwnerStatusL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -924,7 +842,6 @@ void CSConConMLGenerator::AppendGetDataOwnerStatusL
 void CSConConMLGenerator::AppendGetMetadataL
     ( ConML_GetMetadataPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendGetMetadataL()" );
     if ( aContent)
         {
         BeginElementL( EConMLGetMetadata, ETrue );
@@ -932,7 +849,6 @@ void CSConConMLGenerator::AppendGetMetadataL
         AppendResultsL( aContent->results );
         EndElementL(); // EConMLGetMetadata
         }
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendGetMetadataL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -953,7 +869,6 @@ void CSConConMLGenerator::AppendPackageInfoL ( ConML_PackageInfoPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendSIDL( ConML_SIDPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendSIDL()" );
     if ( aContent )
         {
         BeginElementL( EConMLSID, ETrue );
@@ -975,7 +890,6 @@ void CSConConMLGenerator::AppendSIDL( ConML_SIDPtr_t aContent )
             }
         EndElementL(); // EconMLSID
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendSIDL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -983,12 +897,10 @@ void CSConConMLGenerator::AppendSIDL( ConML_SIDPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendSIDListL( ConML_SIDListPtr_t aContent )
     {
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendSIDListL()" );
     for ( ConML_SIDListPtr_t p = aContent; p && p->data; p=p->next )
         {
         AppendSIDL( p->data );
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendSIDListL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -996,7 +908,6 @@ void CSConConMLGenerator::AppendSIDListL( ConML_SIDListPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendDeviceInfoL( ConML_DeviceInfoPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendDeviceInfoL()" );
     if ( aContent )
         {
         BeginElementL( EConMLDeviceInfo, ETrue );
@@ -1005,7 +916,6 @@ void CSConConMLGenerator::AppendDeviceInfoL( ConML_DeviceInfoPtr_t aContent )
         AppendPCDataL(EConMLMaxObjectSize, aContent->maxObjectSize );
         EndElementL(); // EConMLDeviceInfo
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendDeviceInfoL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -1013,14 +923,12 @@ void CSConConMLGenerator::AppendDeviceInfoL( ConML_DeviceInfoPtr_t aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendFilesL( ConML_FilesPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendFilesL()" );
     if ( aContent )
         {
         BeginElementL( EConMLFiles, ETrue );
         AppendFileListL( aContent->file );
         EndElementL(); // EConMLFiles
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendFilesL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -1029,7 +937,6 @@ void CSConConMLGenerator::AppendFilesL( ConML_FilesPtr_t aContent )
 void CSConConMLGenerator::AppendSupportedMethodsL
     ( ConML_SupportedMethodsPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendSupportedMethodsL()" );
     if ( aContent )
         {
         BeginElementL( EConMLSupportedMethods, ETrue );
@@ -1071,7 +978,6 @@ void CSConConMLGenerator::AppendSupportedMethodsL
             }
         EndElementL(); // EConMLSupportedMethods
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendSupportedMethodsL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -1079,7 +985,6 @@ void CSConConMLGenerator::AppendSupportedMethodsL
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendFileListL( ConML_FileListPtr_t  aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendFileListL()" );
     if ( aContent )
         {
         for ( ConML_FileListPtr_t p = aContent; p && p->data; p = p->next )
@@ -1087,7 +992,6 @@ void CSConConMLGenerator::AppendFileListL( ConML_FileListPtr_t  aContent )
             AppendFileL(p->data );
             }
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendFileListL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -1095,7 +999,6 @@ void CSConConMLGenerator::AppendFileListL( ConML_FileListPtr_t  aContent )
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendFileL( ConML_FilePtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendFileL()" );
     if ( aContent )
         {
         BeginElementL( EConMLFile, ETrue );
@@ -1105,7 +1008,6 @@ void CSConConMLGenerator::AppendFileL( ConML_FilePtr_t aContent )
         AppendPCDataL( EConMLUserPerm, aContent->userPerm );
         EndElementL(); // EConMLFile
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendFileL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -1129,8 +1031,7 @@ TInt CSConConMLGenerator::HandleResult( TInt aResult, TInt aTreshold )
             iWBXMLWorkspace->Rollback();
             return KWBXMLGeneratorBufferFull;
         }
-    LOGGER_WRITE_1( "CSConConMLGenerator::HandleResult()\
-     : returned %d", aResult);
+    LOGGER_WRITE_1( "CSConConMLGenerator::HandleResult() : returned %d", aResult);
     return aResult;
     }
 
@@ -1167,7 +1068,6 @@ void CSConConMLGenerator::BeginDocumentL(
 void CSConConMLGenerator::BeginElementL( 
     TUint8 aElement, TBool aHasContent, TBool aHasAttributes )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::BeginElementL()" );
     IndentL();
     iXMLWorkspace->WriteL(KXMLTagStart());
     iXMLWorkspace->WriteL(TranslateElement(aElement));
@@ -1195,7 +1095,6 @@ void CSConConMLGenerator::BeginElementL(
     iDontNewLine = EFalse;
 
     WriteMUint32L(aElement);
-    LOGGER_LEAVEFN( "CSConConMLGenerator::BeginElementL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -1203,7 +1102,6 @@ void CSConConMLGenerator::BeginElementL(
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::EndElementL()
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::EndElementL()" );
     TUint8 elem = iElemStack[0];
     iElemStack.Remove(0);
     if( !iDontIndent )
@@ -1217,8 +1115,6 @@ void CSConConMLGenerator::EndElementL()
     iXMLWorkspace->WriteL(KXMLNewLine());
     
     iWBXMLWorkspace->WriteL(END);
-    
-    LOGGER_LEAVEFN( "CSConConMLGenerator::EndElementL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -1227,7 +1123,6 @@ void CSConConMLGenerator::EndElementL()
 void CSConConMLGenerator::AddElementL( 
     TUint8 aElement, const TDesC8& aContent, const TWBXMLContentFormat aFormat )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AddElementL()" );
     iDontNewLine = ETrue;
     BeginElementL(aElement, ETrue);
     if( aFormat == EWBXMLContentFormatOpaque )
@@ -1240,7 +1135,6 @@ void CSConConMLGenerator::AddElementL(
         }
     iDontIndent = ETrue;
     EndElementL();
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AddElementL()" );
     }
 
 // -----------------------------------------------------------------------------
@@ -1248,7 +1142,6 @@ void CSConConMLGenerator::AddElementL(
 // -----------------------------------------------------------------------------
 void CSConConMLGenerator::AppendPCDataL( TUint8 aElement, pcdataPtr_t aContent )
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::AppendPCDataL()" );
     if( !aContent )
         {
         return;
@@ -1264,7 +1157,6 @@ void CSConConMLGenerator::AppendPCDataL( TUint8 aElement, pcdataPtr_t aContent )
         {
         LOGGER_WRITE( "CSConConMLGenerator::AppendPCDataL() : Data type not Opaque - ignoring " );
         }
-    LOGGER_LEAVEFN( "CSConConMLGenerator::AppendPCDataL()" );
     }
     
 // -----------------------------------------------------------------------------
@@ -1272,8 +1164,6 @@ void CSConConMLGenerator::AppendPCDataL( TUint8 aElement, pcdataPtr_t aContent )
 // -----------------------------------------------------------------------------
 TPtrC8 CSConConMLGenerator::WBXMLDocument()
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::WBXMLDocument()" );
-    LOGGER_LEAVEFN( "CSConConMLGenerator::WBXMLDocument()" );
     return iWBXMLWorkspace->Buffer();
     }
     
@@ -1282,7 +1172,5 @@ TPtrC8 CSConConMLGenerator::WBXMLDocument()
 // -----------------------------------------------------------------------------
 TPtrC8 CSConConMLGenerator::XMLDocument()
     {
-    LOGGER_ENTERFN( "CSConConMLGenerator::XMLDocument()" );
-    LOGGER_LEAVEFN( "CSConConMLGenerator::XMLDocument()" );
     return iXMLWorkspace->Buffer();
     }

@@ -261,7 +261,7 @@ void CCntParserServer::CompletePhoneBookRequests(TInt aErr)	//Goes through all t
 	{
 	LOGGER_WRITE( "CntParserServer: Complete phonebook request" );
 	iSessionIter.SetToFirst();
-	while( iSessionIter!=NULL )	//Go through all sessions
+	while( iSessionIter )	//Go through all sessions
 		{
 		( (CCntParserServerSession*) (iSessionIter++) )->CompletePhoneBookRequest( aErr );
 		}

@@ -42,6 +42,7 @@ const TInt KSConCodeCancelled( 514 );
 // ConML Status code: No memory
 const TInt KSConCodeNoMemory( 420 );
 
+
 // ConML Status codes in installer errorcases
 const TInt KSConCodeInstErrUserCancel = KSConCodeCancelled; // User cancelled the operation
 const TInt KSConCodeInstErrFileCorrupted = 600; // File is corrupted
@@ -56,6 +57,25 @@ const TInt KSConCodeInstErrNetworkFailure = 606; // Indicates that network failu
 const TInt KSConCodeInstErrBusy = 607; // Installer is busy doing some other operation
 const TInt KSConCodeInstErrAccessDenied = 608;  // Target location of package is not accessible
 const TInt KSConCodeInstUpgradeError = 609;  // The package is an invalid upgrade
+
+const TInt KSConCodeInstErrSifMissingBasePackage = 610;
+const TInt KSConCodeInstErrSifOverflow = 611;
+const TInt KSConCodeInstErrSifSameVersionAlreadyInstalled = 612;
+const TInt KSConCodeInstErrSifNewerVersionAlreadyInstalled = 613;
+const TInt KSConCodeInstErrSifAlreadyActivated = 614;
+const TInt KSConCodeInstErrSifAlreadyDeactivated = 615;
+const TInt KSConCodeInstErrSifBadComponentId = 616;
+const TInt KSConCodeInstErrSifBadInstallerConfiguration = 617;
+const TInt KSConCodeInstErrSifPackageCannotBeInstalledOnThisDevice = 618;
+const TInt KSConCodeInstErrSifUnsupportedLanguage = 619;
+const TInt KSConCodeInstErrScrWriteOperationInProgress = 620;
+const TInt KSConCodeInstErrScrReadOperationInProgress = 621;
+const TInt KSConCodeInstErrScrNoActiveTransaction = 622;
+const TInt KSConCodeInstErrScrUnsupportedLocale = 623;
+
+
+// ConML Status code: 1001...1050 System wide error code
+const TInt KSConCodeFirstSymbianErr( 1000 );
 
 struct SDeviceInfo
 	{
@@ -79,11 +99,11 @@ const SDeviceInfo KSupportedMethods[] =
 	};
 	
 // Supported ConML version
-_LIT8( KCONMLVERSION, "2.0" );
+_LIT8( KConMLVersion, "2.0" );
 // SIS mime type for installer
-_LIT8( KSISMIMEType, "x-epoc/x-sisx-app" );
+_LIT8( KSisMimeType, "x-epoc/x-sisx-app" );
 // Java mime type for installer
-_LIT8( KMidletMIMEType, "application/java-archive" );
+_LIT8( KMidletMimeType, "application/java-archive" );
 
 #endif
 

@@ -23,7 +23,7 @@
 
 #include <e32base.h>
 #include <e32cons.h>
-#include <SWInstApi.h>
+#include <usif/sif/sif.h>
 
 #include "sconinstqueue.h"
 
@@ -35,12 +35,12 @@ class CSConUninstall;
 NONSHARABLE_CLASS ( CSConAppInstaller ): public CActive
 	{
 	public:
-		/**
-		 * Constructor
-		 * @param aQueue The address of CSConInstallerQueu
-    	 * @return none
-		 */
-		CSConAppInstaller( CSConInstallerQueue* aQueue, RFs& aFs );
+        /**
+         * Constructor
+         * @param aQueue The address of CSConInstallerQueu
+         * @return none
+         */
+        static CSConAppInstaller* NewL( CSConInstallerQueue* aQueue, RFs& aFs );
 		
 		/**
 		 * Destructor
@@ -68,6 +68,14 @@ NONSHARABLE_CLASS ( CSConAppInstaller ): public CActive
 		
 	private:
 		/**
+         * Constructor
+         * @param aQueue The address of CSConInstallerQueu
+         * @return none
+         */
+        CSConAppInstaller( CSConInstallerQueue* aQueue, RFs& aFs );
+        
+		void ConstructL();
+		/**
 		 * Implementation of CActive::DoCancel()
 		 * @return none
 		 */
@@ -77,21 +85,33 @@ NONSHARABLE_CLASS ( CSConAppInstaller ): public CActive
 		 * @return none
 		 */
 		void RunL();
+		
+		void WriteTaskDataL( CSConTask& aTask );
+		
+		void ExternalizeResultArrayIntValL( const TDesC& aName, RWriteStream& aStream );
+		void ExternalizeResultIntValL( const TDesC& aName, RWriteStream& aStream );
+		void ExternalizeResultStringValL( const TDesC& aName, RWriteStream& aStream );
 		/**
 		 * Executes ListInstalledApps task
 		 * @return none
 		 */
 		void ProcessListInstalledAppsL();
 		/**
-		 * Execures UnInstall task
+         * Executes Install task
+         * @param CSConInstall install params
+         * @return none
+         */
+        void ProcessInstallL( const CSConInstall& aInstallParams );
+		/**
+		 * Executes UnInstall task
 		 * @param CSConUninstall uninstall params
     	 * @return none
 		 */
 		void ProcessUninstallL( const CSConUninstall& aUninstallParams );
 		
-		void UninstallSisL( const CSConUninstall& aUninstallParams );
-		void UninstallJavaL( const TUid& aUid, const TSConInstallMode aMode );
-		void UninstallWidget( const TUid& aUid, const TSConInstallMode aMode );
+		//void UninstallSisL( const CSConUninstall& aUninstallParams );
+		//void UninstallJavaL( const TUid& aUid, const TSConInstallMode aMode );
+		//void UninstallWidget( const TUid& aUid, const TSConInstallMode aMode );
 		void DeleteFile( const TDesC& aPath );
 		
 	private:
@@ -106,11 +126,14 @@ NONSHARABLE_CLASS ( CSConAppInstaller ): public CActive
 	        ESilentCustomUnistalling,
 	        EListingInstalledApps
 	        };
-	    TInstallerState                 iInstallerState;
+	    //TInstallerState                 iInstallerState;
 		CSConInstallerQueue*			iQueue; // Not owned
-		SwiUI::RSWInstLauncher			iSWInst;
-		SwiUI::TInstallOptions          iOptions;
-        SwiUI::TInstallOptionsPckg      iOptionsPckg;   
+		//SwiUI::RSWInstLauncher			iSWInst;
+		//SwiUI::TInstallOptions          iOptions;
+        //SwiUI::TInstallOptionsPckg      iOptionsPckg;   
+		Usif::RSoftwareInstall          iSwInstaller;
+		Usif::COpaqueNamedParams*       iSifOptions;
+		Usif::COpaqueNamedParams*       iSifResults;
 		TInt							iCurrentTask;
 		RFs&                            iFs;
 	};

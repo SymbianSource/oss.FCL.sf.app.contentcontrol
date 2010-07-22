@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2009 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -23,7 +23,10 @@
 #include "sconinstqueue.h"
 #include "sconbrqueue.h"
 #include "sconmetadata.h"
+#include "sconsynchandler.h"
 #include "debug.h"
+
+const TInt KMaxObjectSize(65536); // informed to PC
 
 // ============================= MEMBER FUNCTIONS ===============================
 
@@ -60,11 +63,8 @@ CSConPCD* CSConPCD::NewL()
 // Constructor
 // -----------------------------------------------------------------------------
 //
-CSConPCD::CSConPCD() : iInstallerQueue( NULL ), iBackupRestoreQueue( NULL ), 
-    iLatestReply(NULL), iTaskNumber( 0 ), iMaxObjectSize( 65536 ), 
-    iLastOperation( ENoTask )
+CSConPCD::CSConPCD()
     {
-    TRACE_FUNC;
     }
     
 // -----------------------------------------------------------------------------
@@ -76,18 +76,18 @@ void CSConPCD::ConstructL()
     {
     TRACE_FUNC_ENTRY;
     User::LeaveIfError( iFs.Connect() );
-    iInstallerQueue = CSConInstallerQueue::NewL( iFs );
-    iBackupRestoreQueue = CSConBackupRestoreQueue::NewL( iMaxObjectSize, iFs );
-    iInstallerQueue->QueueAddress( iBackupRestoreQueue );
-    iBackupRestoreQueue->QueueAddress( iInstallerQueue );
-    
     if ( !CActiveScheduler::Current() )
         {
         CActiveScheduler* scheduler = new (ELeave) CActiveScheduler();
         CActiveScheduler::Install( scheduler );
         }
-    CActiveScheduler::Add( iInstallerQueue );
-    CActiveScheduler::Add( iBackupRestoreQueue );
+    
+    iInstallerQueue = CSConInstallerQueue::NewL( iFs );
+    iBackupRestoreQueue = CSConBackupRestoreQueue::NewL( iFs );
+    iInstallerQueue->QueueAddress( iBackupRestoreQueue );
+    iBackupRestoreQueue->QueueAddress( iInstallerQueue );
+    
+    iSyncHandler = CSconSyncHandler::NewL( iFs );
     TRACE_FUNC_EXIT;
     }
     
@@ -99,26 +99,10 @@ void CSConPCD::ConstructL()
 CSConPCD::~CSConPCD()
     {
     TRACE_FUNC_ENTRY;
-    if ( iInstallerQueue )
-        {
-        iInstallerQueue->Cancel();
-        delete iInstallerQueue;
-        iInstallerQueue = NULL;
-        }
-        
-    if ( iBackupRestoreQueue )
-        {
-        iBackupRestoreQueue->Cancel();
-        delete iBackupRestoreQueue;
-        iBackupRestoreQueue = NULL;
-        }
-    
-    if ( iLatestReply )
-        {
-        delete iLatestReply;
-        iLatestReply = NULL;
-        }
-    
+    delete iInstallerQueue;
+    delete iBackupRestoreQueue;
+    delete iLatestReply;
+    delete iSyncHandler;
     iFs.Close();
     TRACE_FUNC_EXIT;
     }
@@ -255,6 +239,32 @@ void CSConPCD::ResetPCD()
         LOGGER_WRITE( "CSConPCD::ResetPCD() : Reseting backup queue" );
         iBackupRestoreQueue->Reset();
         }
+    
+    TRACE_FUNC_EXIT;
+    }
+
+// -----------------------------------------------------------------------------
+// CSConPCD::HandleGetSyncRequestL()
+// 
+// -----------------------------------------------------------------------------
+//
+void CSConPCD::HandleGetSyncRequestL( const TDesC8& aRequest, RWriteStream& aResult, TInt aMaxObjectSize )
+    {
+    TRACE_FUNC_ENTRY;
+    iSyncHandler->HandleGetSyncRequestL( aRequest, aResult, aMaxObjectSize );
+    
+    TRACE_FUNC_EXIT;
+    }
+
+// -----------------------------------------------------------------------------
+// CSConPCD::HandlePutSyncRequestL()
+// 
+// -----------------------------------------------------------------------------
+//
+void CSConPCD::HandlePutSyncRequestL( const TDesC8& aRequest, RReadStream& aResult )
+    {
+    TRACE_FUNC_ENTRY;
+    iSyncHandler->HandlePutSyncRequestL( aRequest, aResult );
     
     TRACE_FUNC_EXIT;
     }
@@ -563,9 +573,8 @@ TInt CSConPCD::UpdateDeviceInfoL( TInt aMaxObjectSize )
             }
         }
     
-    taskReply->iDevInfoParams->iVersion.Copy( KCONMLVERSION );
-    taskReply->iDevInfoParams->iMaxObjectSize = 
-        GetMaxObjectSize( aMaxObjectSize );
+    taskReply->iDevInfoParams->iVersion.Copy( KConMLVersion );
+    taskReply->iDevInfoParams->iMaxObjectSize = KMaxObjectSize;
     
     reply->iNoTasks = EFalse;
 
@@ -576,17 +585,6 @@ TInt CSConPCD::UpdateDeviceInfoL( TInt aMaxObjectSize )
     CleanupStack::Pop( reply );
     LOGGER_WRITE_1( "CSConPCD::UpdateDeviceInfo() : returned %d", ret );
     return ret;
-    }
-    
-// -----------------------------------------------------------------------------
-// CSConPCD::GetMaxObjectSize( TInt /*aClientObjectSize*/ ) const
-// Gets the current max object size
-// -----------------------------------------------------------------------------
-//
-TInt CSConPCD::GetMaxObjectSize( TInt /*aClientObjectSize*/ ) const
-    {
-    LOGGER_WRITE_1( "CSConPCD::GetMaxObjectSize() : returned %d", iMaxObjectSize );
-    return iMaxObjectSize;
     }
 
 // End of file

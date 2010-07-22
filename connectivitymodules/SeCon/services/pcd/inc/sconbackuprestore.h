@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2008 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -37,13 +37,12 @@ NONSHARABLE_CLASS( CSConBackupRestore ): public CActive
 		/**
 		 * Two-phase constructor
 		 * @param aQueue The address of CSConBackupRestoreQueue
-		 * @param aMaxObjectSize Max object size
 		 * @param aFs aReference to RFs connection.
     	 * @return CSConBackupRestore instance
 		 */
 		static CSConBackupRestore* NewL( 
 			CSConBackupRestoreQueue* aQueue, 
-			const TInt aMaxObjectSize, RFs& aFs );
+			RFs& aFs );
 		/**
 		 * Destructor
 		 * @return none
@@ -84,10 +83,9 @@ NONSHARABLE_CLASS( CSConBackupRestore ): public CActive
 		CSConBackupRestore( CSConBackupRestoreQueue* aQueue, RFs& aFs );
 		/**
 		 * Initializes member data
-		 * @param aMaxObjectSize Max object size
 		 * @return none
 		 */
-		void ConstructL( const TInt aMaxObjectSize );
+		void ConstructL();
 		/**
 		 * Implementation of CActive::DoCancel()
 		 * @return none
@@ -103,7 +101,6 @@ NONSHARABLE_CLASS( CSConBackupRestore ): public CActive
 		CSConBackupRestoreQueue*		iQueue; 
 		CSConSBEClient*					iSBEClient;
 		TInt							iCurrentTask;
-		TInt							iMaxObjectSize;
 		TBool							iBackupRestoreActive;
 		RFs&                            iFs;
 	};

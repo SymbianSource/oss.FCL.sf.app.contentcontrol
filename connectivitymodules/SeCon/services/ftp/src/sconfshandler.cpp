@@ -1454,6 +1454,13 @@ TBool CSConFsHandler::IsExludedPath( const TDesC& aFullPath ) const
             // C:\\Data is visible, not exluded
             exluded = EFalse;
             }
+#ifdef SCON_SHOW_LOGS_FOLDER
+        else if ( aFullPath.FindF( KSConLogsPath ) == KDriveLength )
+            {
+            // C:\\Logs is visible, not exluded
+            exluded = EFalse;
+            }
+#endif
         else {
             // other paths on C-drive are exluded
             LOGGER_WRITE_1("CSConFsHandler::IsExludedPath() Path '%S' is not visible to user", &aFullPath);

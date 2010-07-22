@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2009 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -19,7 +19,11 @@
 #ifndef _SCONCONSTS_H_
 #define _SCONCONSTS_H_
 
+// Define this to show C-drive logs folder to user
+#define SCON_SHOW_LOGS_FOLDER
+
 _LIT( K_C_ROOT, "C:\\" );
+_LIT( KSConLogsPath, "logs\\" );     // logs folder
 
 // Following folders on MMC are exluded from folder listing
 _LIT( KSConResource, "resource\\" ); // resource folder on MMC

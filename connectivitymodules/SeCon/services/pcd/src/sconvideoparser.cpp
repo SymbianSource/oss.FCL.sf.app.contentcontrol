@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2008-2009 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2008-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -27,7 +27,7 @@ _LIT8( KImageEncoderMimeType, "image/jpeg" );
 _LIT( KMimeTypeAudio, "audio/*" );
 _LIT( KMimeTypeVideo, "video/*" );
 
-const TInt KVideoClipTimeout( 10000000 ); // 10 sec.
+const TInt KRequestTimeOut( 20000000 ); // 20 sec.
 
 // -----------------------------------------------------------------------------
 // CSConVideoParser::CSConVideoParser()
@@ -57,6 +57,13 @@ CSConVideoParser::~CSConVideoParser()
         iVideoUtil->Close();
         }
     delete iVideoUtil;
+    
+    if ( iWindow )
+        {
+        iWindow->Close();
+        }
+    delete iWindow;
+    iRootWindow.Close();
     delete iScreen;
     iWsSession.Close();
     
@@ -90,26 +97,17 @@ void CSConVideoParser::ConstructL()
     User::LeaveIfError( iWsSession.Connect() );
     
     iScreen = new(ELeave) CWsScreenDevice( iWsSession );
-    iScreen->Construct();
+    User::LeaveIfError( iScreen->Construct() );
     
-    RWindowGroup wg( iWsSession );
-    User::LeaveIfError( wg.Construct(reinterpret_cast<TUint32>(&wg), EFalse) );
-    CleanupClosePushL( wg );
+    iRootWindow = RWindowGroup(iWsSession);
+    User::LeaveIfError( iRootWindow.Construct(reinterpret_cast<TUint32>(&iWsSession), EFalse) );
     
-    CWindowGc* gc;
-    User::LeaveIfError( iScreen->CreateContext(gc) );
-    CleanupStack::PushL(gc);
-    
-    RWindow window( iWsSession );
-    User::LeaveIfError( window.Construct(wg, reinterpret_cast<TUint32>(&wg) + 1) );
-    CleanupClosePushL( window );
+    iWindow = new(ELeave) RWindow( iWsSession );
+    User::LeaveIfError( iWindow->Construct(iRootWindow, reinterpret_cast<TUint32>(&iRootWindow) + 1) );
     
     TRect temp(0,0,320,240); // dummy parameter
-    iVideoUtil = CVideoPlayerUtility::NewL(*this, EMdaPriorityNormal, EMdaPriorityPreferenceNone, iWsSession, *(iScreen), window, temp, temp);
     
-    CleanupStack::PopAndDestroy( &window );
-    CleanupStack::PopAndDestroy( gc );
-    CleanupStack::PopAndDestroy( &wg );
+    iVideoUtil = CVideoPlayerUtility::NewL(*this, EMdaPriorityNormal, EMdaPriorityPreferenceNone, iWsSession, *iScreen, *iWindow, temp, temp);
     
     iTimeOut = CSconTimeOut::NewL( *this );
     
@@ -153,11 +151,13 @@ void CSConVideoParser::OpenFileL( const RFs& aFs, const TDesC& aFileName )
         {
         User::Leave( KErrNotFound );
         }
-    
+    iAsyncStopCalled = EFalse;
     iVideoClip = CTNEVideoClipInfo::NewL( aFileName, *this );
     
     iVideoUtil->OpenFileL( aFileName );
     
+    LOGGER_WRITE("Start timeout");
+    iTimeOut->Start( KRequestTimeOut );
     
     LOGGER_WRITE("iWait.Start()");
     iWait.Start();
@@ -356,6 +356,12 @@ const TDesC& CSConVideoParser::AudioMimeTypeL()
 void CSConVideoParser::MvpuoOpenComplete( TInt aError )
     {
     TRACE_FUNC_ENTRY;
+    if ( iVideoUtilReady )
+        {
+        // already timeout
+        LOGGER_WRITE("Already timeout");
+        return;
+        }
     LOGGER_WRITE_1( "aError: %d", aError );
     if ( aError == KErrNone )
         {
@@ -367,8 +373,10 @@ void CSConVideoParser::MvpuoOpenComplete( TInt aError )
         iVideoUtilErr = aError;
         }
     
-    if ( iVideoUtilReady && iVideoClipReady )
+    if ( iVideoUtilReady && iVideoClipReady && !iAsyncStopCalled )
         {
+        iAsyncStopCalled = ETrue;
+        iTimeOut->Cancel();
         LOGGER_WRITE("AsyncStop");
         iWait.AsyncStop();
         }
@@ -383,13 +391,21 @@ void CSConVideoParser::MvpuoOpenComplete( TInt aError )
 void CSConVideoParser::MvpuoPrepareComplete( TInt aError )
     {
     TRACE_FUNC_ENTRY;
+    if ( iVideoUtilReady )
+        {
+        // already timeout
+        LOGGER_WRITE("Already timeout");
+        return;
+        }
     LOGGER_WRITE_1( "aError: %d", aError );
     
     iVideoUtilReady = ETrue;
     iVideoUtilErr = aError;
     
-    if ( iVideoUtilReady && iVideoClipReady )
+    if ( iVideoUtilReady && iVideoClipReady && !iAsyncStopCalled )
         {
+        iAsyncStopCalled = ETrue;
+        iTimeOut->Cancel();
         LOGGER_WRITE("AsyncStop");
         iWait.AsyncStop();
         }
@@ -431,6 +447,12 @@ void CSConVideoParser::MvpuoEvent( const TMMFEvent& /*aEvent*/ )
 void CSConVideoParser::NotifyVideoClipInfoReady(CTNEVideoClipInfo& aInfo, TInt aError)
     {
     TRACE_FUNC_ENTRY;
+    if ( iVideoClipReady )
+        {
+        // already timeout
+        LOGGER_WRITE("Already timeout");
+        return;
+        }
     LOGGER_WRITE_1("aError: %d", aError);
     if ( aError == KErrNone )
         {
@@ -443,11 +465,6 @@ void CSConVideoParser::NotifyVideoClipInfoReady(CTNEVideoClipInfo& aInfo, TInt a
             iVideoClipReady = ETrue;
             iVideoClipErr = err;
             }
-        else
-            {
-            LOGGER_WRITE("Start timeout");
-            iTimeOut->Start( KVideoClipTimeout );
-            }
         }
     else
         {
@@ -455,8 +472,10 @@ void CSConVideoParser::NotifyVideoClipInfoReady(CTNEVideoClipInfo& aInfo, TInt a
         iVideoClipErr = aError;
         }
     
-    if ( iVideoUtilReady && iVideoClipReady )
+    if ( iVideoUtilReady && iVideoClipReady && !iAsyncStopCalled )
         {
+        iAsyncStopCalled = ETrue;
+        iTimeOut->Cancel();
         LOGGER_WRITE("AsyncStop");
         iWait.AsyncStop();
         }
@@ -473,8 +492,14 @@ void CSConVideoParser::NotifyVideoClipThumbCompleted(CTNEVideoClipInfo& /*aInfo*
         CFbsBitmap* aThumb)
     {
     TRACE_FUNC_ENTRY;
+    if ( iVideoClipReady )
+        {
+        // already timeout
+        LOGGER_WRITE("Already timeout");
+        delete aThumb;
+        return;
+        }
     LOGGER_WRITE_1("aError: %d", aError);
-    iTimeOut->Cancel();
     if ( aError == KErrNone)
         {
         delete iThumbnail;
@@ -500,8 +525,10 @@ void CSConVideoParser::NotifyVideoClipThumbCompleted(CTNEVideoClipInfo& /*aInfo*
     iVideoClipReady = ETrue;
     iVideoClipErr = aError;
     
-    if ( iVideoUtilReady && iVideoClipReady )
+    if ( iVideoUtilReady && iVideoClipReady && !iAsyncStopCalled )
         {
+        iAsyncStopCalled = ETrue;
+        iTimeOut->Cancel();
         LOGGER_WRITE("AsyncStop");
         iWait.AsyncStop();
         }
@@ -525,9 +552,17 @@ void CSConVideoParser::TimeOut()
         iVideoClipErr = KErrCancel;
         }
     
-    if ( iVideoUtilReady && iVideoClipReady )
+    if ( !iVideoUtilReady )
+        {
+        LOGGER_WRITE("videoUtil cancelled");
+        iVideoUtilReady = ETrue;
+        iVideoUtilErr = KErrCancel;
+        }
+    
+    if ( iVideoUtilReady && iVideoClipReady && !iAsyncStopCalled )
         {
         LOGGER_WRITE("AsyncStop");
+        iAsyncStopCalled = ETrue;
         iWait.AsyncStop();
         }
     TRACE_FUNC_EXIT;

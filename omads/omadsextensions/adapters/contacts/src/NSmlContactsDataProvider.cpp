@@ -38,6 +38,13 @@
 #include "nsmldsimpluids.h"
 #include "nsmlchangefinder.h"
 
+#ifndef __WINS__
+// This lowers the unnecessary compiler warning (armv5) to remark.
+// "Warning:  #174-D: expression has no effect..." is caused by 
+// DBG_ARGS8 macro in no-debug builds.
+#pragma diag_remark 174
+#endif
+
 // ============================ MEMBER FUNCTIONS ===============================
 
 // -----------------------------------------------------------------------------
