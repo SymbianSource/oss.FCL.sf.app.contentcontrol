@@ -17,7 +17,7 @@
 &EN
 
 ; Header
-#{"Service Controllers"},(0x101F99F6),1,72,0, TYPE=SA
+#{"Service Controllers"},(0x101F99F6),1,73,0, TYPE=SA
 
 ; Localised Vendor name
 %{"Nokia"}

@@ -2310,9 +2310,9 @@ void CSConPCConnSession::AppendListInstalledAppsResultsL (
         
         if ( aResult->iApps.Count() > 0 )
             {
-            // 5 * KMaxFileName should be enought
-            // ( 4 items of TFileName and uid + type + size + 6* "#" )
-            HBufC8* buf = HBufC8::NewLC( 5 * KMaxFileName );
+            // 6 * KMaxFileName should be enought
+            // ( 5 items of TFileName and uid + type + size + 7* "#" )
+            HBufC8* buf = HBufC8::NewLC( 6 * KMaxFileName );
             TPtr8 ptrBuf = buf->Des();
             
             aContent->applications = new ( ELeave ) ConML_Applications_t();
@@ -2330,7 +2330,7 @@ void CSConPCConnSession::AppendListInstalledAppsResultsL (
                     aResult->iApps[i]->iName));
                 CleanupStack::PopAndDestroy(); // BufToDesLC
                 
-                // create uid: UID # Type # Size # Version # Vendor # Parent app. name #
+                // create uid: UID # Type # Size # Version # Vendor # Parent app. name # WidgetBundleId #
                 LOGGER_WRITE( "CSConPCConnSession::AppendListInstalledAppsResultsL() : Create Uid" );
                 
                 ptrBuf.Copy( UidToDesLC( aResult->iApps[i]->iUid ) );
@@ -2356,6 +2356,13 @@ void CSConPCConnSession::AppendListInstalledAppsResultsL (
                 ptrBuf.Append( KSConAppInfoSeparator );
                 ptrBuf.Append( BufToDesLC( aResult->iApps[i]->iParentName ) );
                 CleanupStack::PopAndDestroy(); // BufToDesLC
+                
+                ptrBuf.Append( KSConAppInfoSeparator );
+                if (aResult->iApps[i]->iWidgetBundleId)
+                    {
+                    ptrBuf.Append( BufToDesLC( *aResult->iApps[i]->iWidgetBundleId ) );
+                    CleanupStack::PopAndDestroy(); // BufToDesLC
+                    }
                 
                 ptrBuf.Append( KSConAppInfoSeparator );
                 
