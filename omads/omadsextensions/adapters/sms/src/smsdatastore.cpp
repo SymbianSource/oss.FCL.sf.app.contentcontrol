@@ -47,7 +47,7 @@ _LIT8(KFolderMimeVersion, "1.2");
 CSmsDataStore::CSmsDataStore():
     iHasHistory(EFalse),
     iDataBaseOpened(EFalse),
-    iKey(TKeyArrayFix(_FOFF(TSnapshotItem, ItemId()), ECmpTInt))
+    iKey(TKeyArrayFix(_FOFF_DYNAMIC(TSnapshotItem, ItemId()), ECmpTInt))
     { 
     }
   

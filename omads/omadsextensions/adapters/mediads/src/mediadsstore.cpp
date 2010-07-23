@@ -47,7 +47,7 @@ const TInt KAlbumsOffSet = 0x0000f000;
 // C++ default constructor can NOT contain any code, that might leave.
 // -----------------------------------------------------------------------------
 CMediaDsDataStore::CMediaDsDataStore( RFs& aFs):
-    iKey(TKeyArrayFix(_FOFF(TSnapshotItem, ItemId()), ECmpTInt)),
+    iKey(TKeyArrayFix(_FOFF_DYNAMIC(TSnapshotItem, ItemId()), ECmpTInt)),
     iFs( aFs )
     { 
     TRACE_FUNC;

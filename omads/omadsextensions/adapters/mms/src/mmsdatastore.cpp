@@ -48,7 +48,7 @@ const TUint KMMS_Flag_Read = 0x01;
 CMmsDataStore::CMmsDataStore():
     iHasHistory(EFalse),
     iDataBaseOpened(EFalse),
-    iKey(TKeyArrayFix(_FOFF(TSnapshotItem, ItemId()), ECmpTInt))
+    iKey(TKeyArrayFix(_FOFF_DYNAMIC(TSnapshotItem, ItemId()), ECmpTInt))
     { 
     }
   

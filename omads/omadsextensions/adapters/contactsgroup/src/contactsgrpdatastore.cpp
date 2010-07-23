@@ -32,7 +32,7 @@ const TInt KDataBufferNotReady = -1;
 // C++ default constructor can NOT contain any code, that might leave.
 // -----------------------------------------------------------------------------
 CContactsGrpDataStore::CContactsGrpDataStore() :
-    iKey( TKeyArrayFix( _FOFF( TNSmlSnapshotItem, ItemId() ), ECmpTInt ) )
+    iKey( TKeyArrayFix( _FOFF_DYNAMIC( TNSmlSnapshotItem, ItemId() ), ECmpTInt ) )
     {
     TRACE_FUNC;
     }

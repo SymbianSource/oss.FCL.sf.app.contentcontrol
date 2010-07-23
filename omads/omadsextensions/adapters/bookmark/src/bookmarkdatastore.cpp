@@ -48,7 +48,7 @@ const TInt KRssFeedsOffset = 50000;
 // -----------------------------------------------------------------------------
 CBookmarkDataStore::CBookmarkDataStore() :
     iDataBaseOpened( EFalse ), iFeedsServer(*this), iRootFolder(*this),
-    iKey( TKeyArrayFix( _FOFF( TNSmlSnapshotItem, ItemId() ), ECmpTInt ) ),
+    iKey( TKeyArrayFix( _FOFF_DYNAMIC( TNSmlSnapshotItem, ItemId() ), ECmpTInt ) ),
     iHasHistory( EFalse )
     {
     LOGGER_ENTERFN( "CBookmarkDataStore" );
