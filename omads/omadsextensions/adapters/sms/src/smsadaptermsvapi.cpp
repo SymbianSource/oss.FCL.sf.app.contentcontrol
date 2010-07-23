@@ -36,7 +36,9 @@
 
 // CONSTANTS
 
-_LIT16(KSmsNonUnicodeChars, "טישלעÇØרÅוÆז‗É£$¥¡ÄÖÑÜ§¿הצסüא");
+// The following string is "טישלעÇØרÅוÆז‗É£$¥¡ÄÖÑÜ§¿הצסüא", expressed as standard \xNN escape codes
+_LIT16(KSmsNonUnicodeChars, "\xe8\xe9\xf9\xec\xf2\xc7\xd8\xf8\xc5\xe5\xc6\xe6\xdf\xc9\xa3$\xa5\xa1\xc4\xd6\xd1\xdc\xa7\xbf\xe4\xf6\xf1\xfc\xe0");
+
         
 // OTHER DEFINITIONS
 
