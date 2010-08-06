@@ -105,6 +105,13 @@ CNsmlContactsDataStoreExtensionPrivate::~CNsmlContactsDataStoreExtensionPrivate(
 {
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::~CNsmlContactsDataStoreExtensionPrivate: BEGIN");
    
+    
+    if( mContactManager )
+        {
+        delete mContactManager;
+        mContactManager = NULL;
+        }
+    
     if( mWriter )
         {
         delete mWriter;
@@ -155,8 +162,10 @@ TInt CNsmlContactsDataStoreExtensionPrivate::ExportContactsL( const TUid &uid, C
         QList<QVersitDocument> documents = mExporter->documents();        
         mWriter->startWriting( documents );
         bool status = mWriter->waitForFinished();  
-        DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ExportContactsL:status %d"), status);    
-        contactbufbase.InsertL( contactbufbase.Size(), *XQConversions::qStringToS60Desc8( contactsbuf.data() ) );
+        DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::ExportContactsL:status %d"), status);  
+        HBufC8* buf = XQConversions::qStringToS60Desc8( contactsbuf.data() );
+        contactbufbase.InsertL( contactbufbase.Size(), *buf );
+        delete buf;
         }
     else
         {
@@ -341,7 +350,9 @@ void CNsmlContactsDataStoreExtensionPrivate::ListStoresL( CDesCArray *cntstores 
     QStringList availableManagers = QContactManager::availableManagers();    
     foreach (const QString manager, availableManagers)
     {
-        cntstores->AppendL( XQConversions::qStringToS60Desc( manager )->Des() );
+        HBufC* buf = XQConversions::qStringToS60Desc( manager );
+        cntstores->AppendL( buf->Des() );
+        delete buf;
     }
     
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::ListStoresL: END");
@@ -354,12 +365,10 @@ void CNsmlContactsDataStoreExtensionPrivate::ListStoresL( CDesCArray *cntstores 
 TInt64 CNsmlContactsDataStoreExtensionPrivate::MachineIdL()
     {
     _DBG_FILE("CNsmlContactsDataStoreExtensionPrivate::MachineIdL: BEGIN");
-    
-    DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::manageruri: %S"), XQConversions::qStringToS60Desc( 
-                                                                           mContactManager->managerUri() ) );
-    
-    TInt64 machineid = DefaultHash::Des16( XQConversions::qStringToS60Desc( 
-                                                                    mContactManager->managerUri() )->Des() );
+   
+    HBufC* buf = XQConversions::qStringToS60Desc( mContactManager->managerUri() );
+    TInt64 machineid = DefaultHash::Des16( buf->Des() );
+    delete buf;
     
     DBG_ARGS(_S("CNsmlContactsDataStoreExtensionPrivate::MachineIdL: %ld"), machineid );
     

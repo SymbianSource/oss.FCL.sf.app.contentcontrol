@@ -85,6 +85,18 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 				SML_DATA_PROPERTY
 					{
 					version=1;
+					display_name="Uid";
+					name="UID";
+					data_type="";
+					enum_values={};
+					flags=0;
+					max_size=256;
+					max_occur=0;
+					params={};
+					},
+				SML_DATA_PROPERTY
+					{
+					version=1;
 					display_name="Name";
 					name="N";
 					data_type="";
@@ -187,14 +199,6 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 						SML_DATA_PROPERTY_PARAM
 							{
 							version=1;
-							display_name="Default number";
-							name="PREF";
-							data_type="";
-							enum_values={};
-							},	
-						SML_DATA_PROPERTY_PARAM
-							{
-							version=1;
 							display_name="Car telephone";
 							name="CAR";
 							data_type="";
@@ -229,14 +233,6 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 						SML_DATA_PROPERTY_PARAM
 							{
 							version=1;
-							display_name="";
-							name="INTERNET";
-							data_type="";
-							enum_values={};
-							},
-						SML_DATA_PROPERTY_PARAM
-							{
-							version=1;
 							display_name="Home email";
 							name="HOME";
 							data_type="";
@@ -246,6 +242,36 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 							{
 							version=1;
 							display_name="Work email";
+							name="WORK";
+							data_type="";
+							enum_values={};
+							}
+						};
+					},
+				SML_DATA_PROPERTY
+					{
+					version=1;
+					display_name="GEO Address";
+					name="GEO";
+					data_type="";
+					enum_values={};
+					flags= 0;
+					max_size=256;
+					max_occur=0;
+					params=
+						{
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name="Home GEO";
+							name="HOME";
+							data_type="";
+							enum_values={};
+							},
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name="Work GEO";
 							name="WORK";
 							data_type="";
 							enum_values={};
@@ -357,19 +383,6 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 				SML_DATA_PROPERTY
 					{
 					version=1;
-					display_name="Wireless Village Id";
-					name="X-WV-ID";
-					data_type="";
-					enum_values={};
-					flags= 0;
-					max_size=256;
-					max_occur=0;
-					params={};
-					},
-					
-				SML_DATA_PROPERTY
-					{
-					version=1;
 					display_name="Assistant name";
 					name="X-ASSISTANT";
 					data_type="";
@@ -434,21 +447,9 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 					{
 					version=1;
 					display_name="Nickname";
-					name="X-EPOCSECONDNAME";
+					name="X-NICKNAME";
 					data_type="";
 					enum_values={};
-					flags= 0;
-					max_size=256;
-					max_occur=0;
-					params={};
-					},
-				SML_DATA_PROPERTY
-					{
-					version=1;
-					display_name="Class";
-					name="X-CLASS";
-					data_type="";
-					enum_values={"PUBLIC","PRIVATE","CONFIDENTIAL"};
 					flags= 0;
 					max_size=256;
 					max_occur=0;
@@ -466,14 +467,6 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 					max_occur=0;
 					params=
 						{
-						SML_DATA_PROPERTY_PARAM
-							{
-							version=1;
-							display_name="POC";
-							name="POC";
-							data_type="";
-							enum_values={};
-							},
 						SML_DATA_PROPERTY_PARAM
 							{
 							version=1;

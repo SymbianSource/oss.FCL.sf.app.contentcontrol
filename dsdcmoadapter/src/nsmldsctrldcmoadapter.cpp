@@ -17,7 +17,6 @@
 
 //SYSTEM INCLUDES
 #include <centralrepository.h>
-#include <dcmo.rsg>
 #include <e32base.h>
 #include <stringresourcereader.h> 
 #include <f32file.h> 

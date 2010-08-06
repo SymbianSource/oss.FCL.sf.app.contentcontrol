@@ -1206,7 +1206,8 @@ void CNSmlAgendaDataStore::RegisterSnapshotL()
                                  CalCommon::EIncludeEvents|
                                  CalCommon::EIncludeAnnivs|
                                  CalCommon::EIncludeCompletedTodos|
-                                 CalCommon::EIncludeIncompletedTodos,
+                                 CalCommon::EIncludeIncompletedTodos|
+                                 CalCommon::EIncludeRptsNextInstanceOnly,
                                  timeRange);
     TInt i = 0;
 

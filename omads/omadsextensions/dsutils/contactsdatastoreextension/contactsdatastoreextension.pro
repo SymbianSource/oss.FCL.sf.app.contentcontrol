@@ -44,7 +44,7 @@ LIBS += -lestor.dll \
 		
 		
 defBlock = \
- "$${LITERAL_HASH}if defined(ARMCC)" \
+ "$${LITERAL_HASH}if defined(EABI)" \
  "DEFFILE ./def/eabicontactsdatastoreextension" \
  "$${LITERAL_HASH}elif defined(WINSCW)" \
  "DEFFILE ./def/bwinscwcontactsdatastoreextension" \

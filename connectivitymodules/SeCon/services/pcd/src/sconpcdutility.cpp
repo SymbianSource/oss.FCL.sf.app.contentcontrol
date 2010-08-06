@@ -21,7 +21,7 @@
 #include <swi/sisregistrysession.h>
 #include <swi/sisregistrypackage.h>
 #include <stringresourcereader.h>
-#include <WidgetRegistryClient.h>
+// #include <WidgetRegistryClient.h>
 #include <javaregistryincludes.h>
 #include <appversion.h>
 #include <mmf/common/mmfcontrollerpluginresolver.h>
@@ -308,6 +308,9 @@ void SConPcdUtility::AppendInstalledJavaL( CSConListInstApps& aListInstApps )
 //
 void SConPcdUtility::AppendInstalledWidgetsL( CSConListInstApps& aListInstApps )
     {
+    // Commented out as WidgetRegistry will be removed from MCL.
+    // TODO: Check how Widgets should be listed on future.
+    /*
     TRACE_FUNC_ENTRY;
     RWidgetRegistryClientSession widgetSession;
     CleanupClosePushL( widgetSession );
@@ -373,6 +376,7 @@ void SConPcdUtility::AppendInstalledWidgetsL( CSConListInstApps& aListInstApps )
     CleanupStack::PopAndDestroy( &widgetInfoArr );
     CleanupStack::PopAndDestroy( &widgetSession );
     TRACE_FUNC_EXIT;
+    */
     }
 
 // ---------------------------------------------------------
