@@ -40,8 +40,8 @@
 #include <calenmulticalutil.h>
 #include <CalenInterimUtils2.h>
 
-_LIT(KDrive ,"C:");
 _LIT(KCharUnderscore, "_");
+_LIT( KNSmlAgendaFileNameForDefaultDB, "c:calendar" );
 
 /*******************************************************************************
  * class TAspProviderItem
@@ -898,10 +898,9 @@ TInt CAspContentList::CheckMandatoryDataL(TInt& aContentCount)
        	
        	if (task.iDataProviderId == KUidNSmlAdapterCalendar.iUid)
        	    {
-       	    CCalSession* session = CCalSession::NewL();
-       	    CleanupStack::PushL(session);
-       	    TRAPD (err, session->OpenL(task.iClientDataSource));
-       	    if (err == KErrNotFound)
+            TBool status = EFalse;
+            status = IsValidClientDataSourceL( task.iClientDataSource );
+       	    if ( !status )
        	        {
        	        TInt index = FindProviderIndex(task.iDataProviderId);
        	        TAspProviderItem& provider = ProviderItem(index);
@@ -920,7 +919,7 @@ TInt CAspContentList::CheckMandatoryDataL(TInt& aContentCount)
                 InitAllTasksL();
                 InitDataProvidersL();
        	        }
-       	    CleanupStack::PopAndDestroy(session);
+       	    
        	    }
 
 		goodContentCount++;
@@ -1242,7 +1241,7 @@ TInt CAspContentList::CreateTaskL(TAspProviderItem& aDataProvider)
 	if (aDataProvider.iDataProviderId == KUidNSmlAdapterCalendar.iUid )
         {
         TBuf<128> calLocalDb ;
-        CreateCalLocalDatabaseL(calLocalDb);
+        CreateCalLocalDatabaseL(calLocalDb);        
         task.CreateL(iProfile->Profile(), aDataProvider.iDataProviderId, 
                 KNullDesC, calLocalDb);
         }
@@ -1317,8 +1316,7 @@ void CAspContentList::CreateTaskL(TInt aDataProviderId,
 				if (err != KErrNone)
 					{
 					CreateCalLocalDatabaseL(calLocalDb);
-					}				
-                
+					}								
                 task.CreateL(iProfile->Profile(), aDataProviderId, 
                                               aRemoteDatabase, calLocalDb);
                 }
@@ -1338,8 +1336,7 @@ void CAspContentList::CreateTaskL(TInt aDataProviderId,
 		    if (err != KErrNone)
 		        {
 		        CreateCalLocalDatabaseL(calLocalDb);
-		        }
-		    
+		        }		    
 		    task.CreateL(iProfile->Profile(), aDataProviderId, 
 		                                  aRemoteDatabase, calLocalDb);
 		    }
@@ -1390,8 +1387,7 @@ void CAspContentList::CreateTask(TInt aDataProviderId,
 //
 void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
     {
-            
-    aCalName.Copy(KDrive);
+                
     
     TBuf<KBufSize> buffer;
     iProfile->GetName(buffer);
@@ -1510,8 +1506,8 @@ void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
     // Create the CalFile
     HBufC* calfilename = CCalenMultiCalUtil::GetNextAvailableCalFileL();
     calSession->CreateCalFileL( calfilename->Des(), *calinfo );
-	
-	aCalName.Copy( calfilename->Des() );
+		
+    aCalName.Copy(KNSmlAgendaFileNameForDefaultDB);
     
     delete calfilename;
     
@@ -1580,6 +1576,23 @@ void CAspContentList::RetrieveCalLocalDatabaseL(TDes& aCalName)
         
         CCalCalendarInfo* caleninfo = vCalSubSession->CalendarInfoL(); 
         CleanupStack::PushL(caleninfo);
+		
+		//Get MARKASDELETE MetaData property
+		keyBuff.Zero();
+		TBool markAsdelete = EFalse;
+		keyBuff.AppendNum( EMarkAsDelete );
+		TPckgC<TBool> pckMarkAsDelete(markAsdelete);
+		TRAPD(err,pckMarkAsDelete.Set(caleninfo->PropertyValueL(keyBuff)));
+		if ( err == KErrNone )
+			{
+			markAsdelete = pckMarkAsDelete();
+			if( markAsdelete )
+				{
+				CleanupStack::PopAndDestroy(caleninfo);
+				CleanupStack::PopAndDestroy(vCalSubSession);  	  	 
+				continue;
+				}
+			}
         
         TInt profileId;
         keyBuff.Zero();
@@ -1620,6 +1633,49 @@ void CAspContentList::RetrieveCalLocalDatabaseL(TDes& aCalName)
  
     delete calfilearr;     
     CleanupStack::PopAndDestroy(vCalSession);
+    }
+
+// -----------------------------------------------------------------------------
+// CAspContentList::IsValidClientDataSource
+// 
+// -----------------------------------------------------------------------------
+//
+TBool CAspContentList::IsValidClientDataSourceL( TDes& aCalName )
+    {
+    TBool datasourcefound = ETrue;
+    TBuf8<KBufSize> keyBuff;
+    CCalCalendarInfo* caleninfo = NULL;
+    CCalSession* session = CCalSession::NewL();
+    CleanupStack::PushL(session);
+    TRAPD (err, session->OpenL(aCalName));
+    
+    if( err == KErrNotFound )
+        {
+        datasourcefound = EFalse;
+        }
+    else
+        {
+        caleninfo = session->CalendarInfoL(); 
+        CleanupStack::PushL(caleninfo);
+                
+        //Get MARKASDELETE MetaData property
+        keyBuff.Zero();
+        TBool markAsdelete = EFalse;
+        keyBuff.AppendNum( EMarkAsDelete );
+        TPckgC<TBool> pckMarkAsDelete(markAsdelete);
+        TRAP(err,pckMarkAsDelete.Set(caleninfo->PropertyValueL(keyBuff)));
+        if ( err == KErrNone )
+            {
+            markAsdelete = pckMarkAsDelete();
+            if( markAsdelete )
+                {
+                datasourcefound = EFalse;
+                }
+            }
+        CleanupStack::PopAndDestroy(caleninfo);
+        }
+    CleanupStack::PopAndDestroy(session);
+    return datasourcefound;
     }
 
 // -----------------------------------------------------------------------------

@@ -49,6 +49,9 @@ const TInt KNSmlAgendaOwnMaxObjectSize     = 1048576;
 const TInt KNSmlCompactAfterChanges        = 30;
 const TInt KNSmlDefaultStoreNameMaxSize    = 256;
 const TInt KNSmlItemDataExpandSize         = 1024;
+const TInt KDbPersonal                     = 100000;
+const TUid KRepositoryId                   = { 0x2000CF7E };   
+const TInt KNsmlDsOrphanEvent              = 0xB ;
 const TUint KNSmlAgendaAdapterUid    	   = 0x101F6DDD;
 const TUint KNSmlAgendaAdapterStreamUid    = 0x101F6DDD+0x10009d8d;
 _LIT( KNSmlDriveC, "C" );
@@ -678,6 +681,8 @@ class CNSmlAgendaDataStore : public CSmlDataStore
         CNSmlAgendaAdapterHandler* iAgendaAdapterHandler;
         // SyncRelationship instance
         CNSmlAgendaAdapterLog* iAgendaAdapterLog;
+        // Flag indicating a Orphan Event
+        TBool iOrphanEvent;
 	};
 
 // ----------------------------------------------------------------------------

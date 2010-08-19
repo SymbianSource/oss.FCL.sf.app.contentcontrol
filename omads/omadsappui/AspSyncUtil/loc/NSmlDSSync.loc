@@ -1472,12 +1472,52 @@
 //
 #define qtn_sml_sync_sending	"Sending %0U"
 
+/* Implementation of CMCC PIM v3 begins*/
+//d:changing text displayed at synchronising stage
+//d:Image replaced by animation
+//l:popup_note_wait_window
+//r:9.2
+//for TD-SCDMA products only
+//
+#define qtn_sml_sync_sending_xofy_tdscdma   "Sending %0N of %1N %0U"
+/* Implementation of CMCC PIM v3 ends*/ 
+
+/* Implementation of CMCC PIM v3 begins*/
+//d:changing text displayed at synchronising stage
+//d:Image replaced by animation
+//l:popup_note_wait_window
+//r:9.2
+//for TD-SCDMA products only
+//
+#define qtn_sml_sync_sending_xofy_cal_tdscdma   "Sending %0N of %1N of calendar entries"
+/* Implementation of CMCC PIM v3 ends*/ 
+
 //d:changing text displayed at synchronising stage
 //d:Image replaced by animation
 //l:popup_note_wait_window
 //r:3.0
 //
 #define qtn_sml_sync_receiving	"Receiving %0U"
+
+/* Implementation of CMCC PIM v3 begins*/ 
+//d:changing text displayed at synchronising stage
+//d:Image replaced by animation
+//l:popup_note_wait_window
+//r:9.2
+//for TD-SCDMA products only
+//
+#define qtn_sml_sync_receiving_xofy_tdscdma "Receiving %0U:%0N"
+/* Implementation of CMCC PIM v3 ends*/ 
+
+/* Implementation of CMCC PIM v3 begins*/ 
+//d:changing text displayed at synchronising stage
+//d:Image replaced by animation
+//l:popup_note_wait_window
+//r:9.2
+//for TD-SCDMA products only
+//
+#define qtn_sml_sync_receiving_xofy_cal_tdscdma "Receiving calendar entries:%0N"
+/* Implementation of CMCC PIM v3 ends*/ 
 
 //d:changing text displayed at disconnect stage
 //d:Image replaced by animation
@@ -1500,7 +1540,15 @@
 //
 #define qtn_sml_sync_cancel		"Cancelling\n"
 
-
+/* Implementation of CMCC PIM v3 begins*/ 
+//d:changing text displayed at synchronising stage
+//d:Image replaced by animation
+//l:popup_note_window
+//r:9.2
+//for TD-SCDMA products only
+//
+#define qtn_nsml_log_err_serverfull_tdscdma  "Server memory is full"
+/* Implementation of CMCC PIM v3 ends*/ 
 
 
 

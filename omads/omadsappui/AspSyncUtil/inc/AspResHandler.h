@@ -149,15 +149,17 @@ NONSHARABLE_CLASS (CAspResHandler) : public CBase
         */
 		static CDesCArrayFlat* ReadDesArrayStaticLC(TInt aResourceId);
 
+		/* Implementation of CMCC PIM v3 begins*/ 
 	   /**
         * Reads progress dialog progress text from resource file.
 		* @param aContent Content name.
 		* @param aCurrent Currently processed sync item.
     	* @param aFinal Number of sync items.
-		* @param aSend ETrue is sync phase is "sending".
+		* @param aPhase Phase of synchronization.
 		* @return Progress text.
         */
-		//HBufC* ReadProgressTextLC(const TDesC& aContent, TInt aCurrent, TInt aFinal, TInt aPhase);
+		HBufC* ReadProgressTextLC(const TDesC& aContent, TInt aCurrent, TInt aFinal, TInt aPhase);
+		/* Implementation of CMCC PIM v3 ends*/
 		
 	   /**
         * Reads progress dialog progress text from resource file.
@@ -176,6 +178,19 @@ NONSHARABLE_CLASS (CAspResHandler) : public CBase
         */
 		HBufC* ReadProgressTextLC(TInt aResourceId, const TDesC& aContent);
 
+		/* Implementation of CMCC PIM v3 begins*/ 
+	   /**
+	    * Reads progress dialog progress text from resource file.
+	    * Buffers the last aResource to minimize file operations.
+	    * @param aResourceId Resource id.
+	    * @param aCurrent Currently processed sync item.
+        * @param aFinal Number of sync items.
+        * @param aContent Content name.
+	    * @return Progress text.
+	    */
+		HBufC* ReadProgressTextLC(TInt aResourceId, TInt aCurrent, TInt aFinal, const TDesC& aContent);
+		/* Implementation of CMCC PIM v3 ends*/
+		
 	   /**
         * Reads default profile name from resource file.
 		* @param aIndex Number that is added to proile name (eg. "New Profile(1)").

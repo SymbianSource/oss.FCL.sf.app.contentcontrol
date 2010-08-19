@@ -241,6 +241,24 @@ void CNSmlDefaultAgendaHandlerPlugin::SynchronizableCalendarIdsL( CArrayFixFlat<
             CleanupStack::PopAndDestroy(vCalSubSession);  	  	 
             continue;
             }
+			
+		//Get MARKASDELETE MetaData property
+		keyBuff.Zero();
+		TBool markAsdelete = EFalse;
+		keyBuff.AppendNum( EMarkAsDelete );
+		TPckgC<TBool> pckMarkAsDelete(markAsdelete);
+		TRAP(err,pckMarkAsDelete.Set(caleninfo->PropertyValueL(keyBuff)));
+		if ( err == KErrNone )
+			{
+			markAsdelete = pckMarkAsDelete();
+			if( markAsdelete )
+				{
+				FLOG(_L("CNSmlDefaultAgendaHandlerPlugin::SynchronizableCalendarIdsL: Dead Calendar, not including in the snapshot"));
+				CleanupStack::PopAndDestroy(caleninfo);
+				CleanupStack::PopAndDestroy(vCalSubSession);  	  	 
+				continue;
+				}
+			}
         
         //Get OWNER value associated with the CalFile
         keyBuff.Zero();

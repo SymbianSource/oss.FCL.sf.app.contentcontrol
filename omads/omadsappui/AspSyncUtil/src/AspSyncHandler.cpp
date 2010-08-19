@@ -35,7 +35,7 @@
 #include "AspPreSyncPluginInterface.h"
 
 #include <DataSyncInternalPSKeys.h>
-
+#include <featmgr.h>
 
 /******************************************************************************
  * class TAspSyncParam
@@ -890,7 +890,18 @@ void CAspSyncHandler::UpdateDialogL()
 			Dialog()->SetProgress(State()->Progress());
 			}
 			
-		HBufC* hBuf = ResHandlerL()->ReadProgressTextLC(State()->Content(), phase);
+		/* Implementation of CMCC PIM v3 begins*/
+		HBufC* hBuf = NULL;
+		if ( FeatureManager::FeatureSupported(KFeatureIdFfTdCmccpimsynchronizationprogressindicatorui) )
+		    {
+            // CMCC sync progress indicator enabled
+            hBuf = ResHandlerL()->ReadProgressTextLC(State()->Content(), State()->Progress(), State()->TotalProgress(), phase);
+            }
+		else
+		    {
+            hBuf = ResHandlerL()->ReadProgressTextLC(State()->Content(), phase);
+		    }
+		/* Implementation of CMCC PIM v3 ends*/
 		
 
 #ifdef _DEBUG

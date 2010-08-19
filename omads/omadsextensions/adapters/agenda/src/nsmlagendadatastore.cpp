@@ -78,7 +78,8 @@ CNSmlAgendaDataStore::CNSmlAgendaDataStore() :
 	iRXEntryType( ENSmlNotSet ),
 	iTXEntryType( ENSmlNotSet ),
 	iIsHierarchicalSyncSupported( EFalse ),
-	iParentItemId( 0 )
+	iParentItemId( 0 ),
+    iOrphanEvent( EFalse )
 	{
 	FLOG(_L("CNSmlAgendaDataStore::CNSmlAgendaDataStore(): BEGIN"));
 	// RD_MULTICAL
@@ -254,38 +255,7 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
 		{
 		FLOG(_L("CNSmlAgendaDataStore::DoOpenL: Calling the OpenStoreL: '%S'"), &aStoreName);
 		TRAP( err, OpenStoreL() );
-		}
-    else 
-    	{
-    	// Provided profile is created from the DS Application
-    	FLOG(_L("CNSmlAgendaDataStore::DoOpenL: storename: '%S'"), &aStoreName);    	
-    	if ( iOpenedStoreName )
-            {
-            delete iOpenedStoreName;
-            iOpenedStoreName = NULL;
-            }
-        iOpenedStoreName = aStoreName.AllocL();  
-        
-        CCalSession* calsession = CCalSession::NewL();
-        CleanupStack::PushL(calsession);
-        TRAP( err, calsession->OpenL( aStoreName ) );
-        if ( err )
-            {
-            FLOG(_L("CNSmlAgendaDataStore::DoOpenL: Cannot open the session: '%d'"), err); 
-            CleanupStack::PopAndDestroy( calsession ); 
-            User::RequestComplete( iCallerStatus, err );
-            return;
-            }
-            
-        // Disable notifications
-        TRAP_IGNORE( calsession->DisablePubSubNotificationsL() );
-        TRAP_IGNORE( calsession->DisableChangeBroadcast() );    
-        // Get ID of database
-        calsession->FileIdL( iOpenedStoreId );
-        
-        // Close the session
-        CleanupStack::PopAndDestroy( calsession ); 
-    	}
+		}    
 		
 	if ( err )
 	    {
@@ -779,11 +749,39 @@ void CNSmlAgendaDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
         TInt err( KErrNone );
         // Check the Sync Status
         if( iIsHierarchicalSyncSupported )
-            {
-            TBool syncstatus( EFalse );
-            TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( aParent ) );
+            {   
+            FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL Supports Hierarchichal"));
+            // Check that parent exists
+            iParentItemId = aParent;
+            if ( iParentItemId == KDbItemUidRoot 
+                 && iDataMimeType == ENSmlCalendar )
+                {
+                FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: ParentId is NULL"));
+                iParentItemId = NULL;
+                iOrphanEvent = ETrue;
+                iParentItemId = KDbPersonal;
+                }
+          
+            TInt index = KErrNotFound;
+            TInt err = KErrNone;
+            TKeyArrayFix key( 0, ECmpTInt ); // Find key for Ids.
+            
+            err = iCalOffsetArr->Find( iParentItemId, key, index );
+         
+            if( err != KErrNone && iDataMimeType == ENSmlCalendar )
+                {
+                FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: ParentId is NotFound"));
+                iParentItemId = NULL;
+                iOrphanEvent = EFalse;
+                User::RequestComplete( iCallerStatus, KErrNotFound );
+                return;
+                }           
+            // Check the Sync Status    
+			TBool syncstatus( EFalse );   
+            TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( iParentItemId ) );
             if( err || !syncstatus  )
                 {
+                iOrphanEvent = EFalse;
                 User::RequestComplete( iCallerStatus, err );
                 FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL - Sync Disabled: END"));
                 return;
@@ -837,35 +835,7 @@ void CNSmlAgendaDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
         return;
         }
     
-	if( iIsHierarchicalSyncSupported )
-		{	
-	    // Check that parent exists
-	    iParentItemId = aParent;
-	    if ( iParentItemId == KDbItemUidRoot 
-	         && iDataMimeType == ENSmlCalendar )
-	        {
-	        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: ParentId is NULL"));
-	        iParentItemId = NULL;
-	        User::RequestComplete( iCallerStatus, KErrGeneral );
-	        return;
-	        }
-	  
-	    TInt index = KErrNotFound;
-	    TInt err = KErrNone;
-	    TKeyArrayFix key( 0, ECmpTInt ); // Find key for Ids.
-	    
-	    err = iCalOffsetArr->Find( iParentItemId, key, index );
-	 
-	    if( err != KErrNone && iDataMimeType == ENSmlCalendar )
-	        {
-	        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: ParentId is NotFound"));
-	        iParentItemId = NULL;
-	        User::RequestComplete( iCallerStatus, KErrNotFound );
-	        return;
-	        }
-		}
-    
-    // TODO: Any other validation is required ?
+    // TODO: Any other validation is required ?  
     
     // Register snapshots if needed
     if( !iSnapshotRegistered )
@@ -2217,6 +2187,7 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
         {
         FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL:Invalid CalendarInfo"));
         CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
+        iOrphanEvent = EFalse;
         User::Leave( KErrNotFound );
         }
         
@@ -2233,6 +2204,7 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
         FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL:Invalid CalendarInfo"));
         CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
         delete calfilename;
+        iOrphanEvent = EFalse;
         User::Leave( KErrNotFound );
         }
         
@@ -2253,6 +2225,7 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
         delete calfilename; 
         FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
                    KErrNotSupported: END"));
+        iOrphanEvent = EFalse;
         User::Leave( KErrNotSupported );
         }
     
@@ -2265,6 +2238,7 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
         delete calfilename; 
         FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
                    Multiple items are not supported: END"));
+        iOrphanEvent = EFalse;
         User::Leave( KErrNotSupported );
         }           
         
@@ -2279,6 +2253,7 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
         delete calfilename; 
         FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
                    Error at storing item to database: END"));
+        iOrphanEvent = EFalse;
         User::Leave( KErrGeneral );
         }
 
@@ -2322,7 +2297,19 @@ void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
 	CleanupStack::PopAndDestroy( 2 ); //  rdArray, readStream 
     delete agendautil;
 	delete calfilename;     	
-      
+    
+	if( iOrphanEvent )
+	    {
+        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: Exiting with invalidparent"));
+        // Set the Orphan Event ID to the cenrep
+        CRepository* rep = CRepository::NewLC(KRepositoryId);
+        TInt err = rep->Set( KNsmlDsOrphanEvent, *iAddItemId );
+        DBG_ARGS(_S("set the cenrep %d "), err);
+        User::LeaveIfError(err);
+        CleanupStack::PopAndDestroy(rep);
+        iOrphanEvent = EFalse;
+        User::Leave( KErrPathNotFound );        
+	    }	
     FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: END"));
     }
     
@@ -3159,6 +3146,7 @@ TBool CNSmlAgendaDataStore::IsCalFileAvailableL( TInt aProfileId, CDesCArray* aC
     
     for(TInt i = 0; i < calfilearr->Count(); i++)
         {
+		TInt err = KErrNone;
         vCalSubSession = CCalSession::NewL(*vCalSession);
         CleanupStack::PushL(vCalSubSession);
         vCalSubSession->OpenL(calfilearr->MdcaPoint(i));
@@ -3166,11 +3154,30 @@ TBool CNSmlAgendaDataStore::IsCalFileAvailableL( TInt aProfileId, CDesCArray* aC
         CCalCalendarInfo* caleninfo = vCalSubSession->CalendarInfoL();
         CleanupStack::PushL(caleninfo);
         
+		//Get MARKASDELETE MetaData property
+		keyBuff.Zero();
+		TBool markAsdelete = EFalse;
+		keyBuff.AppendNum( EMarkAsDelete );
+		TPckgC<TBool> pckMarkAsDelete(markAsdelete);
+		TRAP(err,pckMarkAsDelete.Set(caleninfo->PropertyValueL(keyBuff)));
+		if ( err == KErrNone )
+			{
+			markAsdelete = pckMarkAsDelete();
+			if( markAsdelete )
+				{
+				FLOG(_L("CNSmlAgendaDataStore::IsCalFileAvailableL: Dead Calendar"));
+				CleanupStack::PopAndDestroy(caleninfo);
+				CleanupStack::PopAndDestroy(vCalSubSession);  	  	 
+				continue;
+				}
+			}
+		
+		//Get the ProfileId MetaData property 
         TInt ProfileId;
         keyBuff.Zero();
         keyBuff.AppendNum( EDeviceSyncProfileID );
         TPckgC<TInt> intBuf(ProfileId);
-        TRAPD(err,intBuf.Set(caleninfo->PropertyValueL(keyBuff)));
+        TRAP(err,intBuf.Set(caleninfo->PropertyValueL(keyBuff)));
                     
         if( err != KErrNone )
             {

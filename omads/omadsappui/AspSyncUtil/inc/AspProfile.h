@@ -484,6 +484,8 @@ NONSHARABLE_CLASS (CAspContentList): public CBase
     	void CreateCalLocalDatabaseL(TDes& aCalName);
     	void RetrieveCalLocalDatabaseL(TDes& aCalName);
     	TBool IsCalNameAvailableL(CCalSession& aSession ,TDes& aCalName);
+    	TBool IsValidClientDataSourceL( TDes& aCalName );
+    	
 		
     private:
     
