@@ -20,8 +20,8 @@
 
 // INCLUDES
 #include <f32file.h>
-#include <SmlDataProvider.h>
-#include "NSmlContactsDataStore.h"
+#include <smldataprovider.h>
+#include <nsmlcontactsdatastore.h>
 
 // CLASS DECLARATION
 

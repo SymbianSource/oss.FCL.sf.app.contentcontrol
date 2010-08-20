@@ -36,7 +36,7 @@
 #include <DataSyncInternalPSKeys.h>
 #include <nsmlcontactsdatastoreextension.h>
 #include <NSmlDataModBase.h>
-#include "NSmlContactsDataStore.h"
+#include <nsmlcontactsdatastore.h>
 #include "nsmldebug.h"
 #include "nsmlconstants.h"
 #include "nsmldsimpluids.h"
@@ -779,7 +779,7 @@ EXPORT_C void CNSmlContactsDataStore::DoReplaceItemL( TSmlDbItemUid aUid,
 	_DBG_FILE("CNSmlContactsDataStore::DoReplaceItemL(): CContactDatabase::ExportSelectedContactsL() begin");
 	
 	TInt ret = KErrNone;
-	TRAP( err, ret = iContactsDataStoreExtension->ExportContactsL( TUid::Uid(aUid), *tempData ) );
+	TRAP( err, ret = ExportContactsL( TUid::Uid(aUid), *tempData ) );
 	
 	_DBG_FILE("CNSmlContactsDataStore::DoReplaceItemL(): CContactDatabase::ExportSelectedContactsL() end");
 	CleanupStack::PopAndDestroy( tempData );
@@ -1346,7 +1346,7 @@ EXPORT_C TInt CNSmlContactsDataStore::LdoFetchItemL( TSmlDbItemUid& aUid, CBufBa
 	TInt err = KErrNone;	
 	TInt ret = KErrNone;
 	
-	TRAP( err, ret = iContactsDataStoreExtension->ExportContactsL( TUid::Uid(aUid), aItem ) );
+	TRAP( err, ret = ExportContactsL( TUid::Uid(aUid), aItem ) );
 	
 	if( ret != KErrNone )
 	    {
@@ -1390,7 +1390,7 @@ EXPORT_C TInt CNSmlContactsDataStore::LdoAddItemL( TSmlDbItemUid& aUid,
 	StripPropertyL( buf, KVersitTokenUID() );
 
 	CArrayFixFlat<TUid>* entryArray = NULL;
-	TRAP( ret, entryArray = iContactsDataStoreExtension->ImportContactsL( *buf ) );
+	TRAP( ret, entryArray = ImportContactsL( *buf ) );
 
     DBG_ARGS(_S("New item to database with return value: '%d'"), ret );
 
@@ -1453,7 +1453,7 @@ EXPORT_C TInt CNSmlContactsDataStore::LdoAddItemsL( RArray<TInt>& aUids,
 		}
 
 	CArrayFixFlat<TUid>* entryArray = NULL;
-    TRAP( ret, entryArray = iContactsDataStoreExtension->ImportContactsL(  aItems->Ptr(0) ) );
+    TRAP( ret, entryArray = ImportContactsL( aItems->Ptr( 0 ) ) );
 	
     DBG_ARGS(_S("New items to database with return value: '%d'"), ret );
 
@@ -1567,7 +1567,7 @@ EXPORT_C TInt CNSmlContactsDataStore::LdoUpdateItemL( TSmlDbItemUid aUid,
 
 	// TODO: Get it reviewed
 	CArrayFixFlat<TUid>* entryArray = NULL;
-    TRAP( ret, entryArray = iContactsDataStoreExtension->ImportContactsL( hItemPtr ) );
+    TRAP( ret, entryArray = ImportContactsL( hItemPtr ) );
 	
     if( ret == KErrNone && entryArray != NULL)
 		{
@@ -2077,25 +2077,6 @@ EXPORT_C TInt CNSmlContactsDataStore::DoExecuteBufferL(RArray<TInt>& aResultArra
     return KErrGeneral; // All commands failed    
     }
 
-
-// ------------------------------------------------------------------------------------------------
-// CNSmlContactsDataStore::MergeL
-// 
-// ------------------------------------------------------------------------------------------------
-EXPORT_C void CNSmlContactsDataStore::MergeL( CBufBase& aNewItem, CBufBase& aOldItem, TBool aFieldLevel )
-    {
-    iDataMod->MergeRxL( aNewItem, aOldItem, aFieldLevel );
-    }
-
-// ----------------------------------------------------------------------------
-// CNSmlContactsDataStore::StripTxL
-//  Strips data that is to be transmitted to the sync partner.
-// ----------------------------------------------------------------------------
-EXPORT_C void CNSmlContactsDataStore::StripTxL( CBufBase& aItem )
-    {
-    iDataMod->StripTxL( aItem );
-    }
-
 // ------------------------------------------------------------------------------------------------
 // CNSmlContactsDataStore::FetchModificationsL
 // ------------------------------------------------------------------------------------------------
@@ -2152,6 +2133,24 @@ TInt CNSmlContactsDataStore::FetchModificationsL()
 EXPORT_C CNSmlDataModBase& CNSmlContactsDataStore::GetDataMod()
     {
     return *iDataMod;
+    }
+
+// ----------------------------------------------------------------------------
+// CNSmlContactsDataStore::ExportContactsL
+// ----------------------------------------------------------------------------
+EXPORT_C TInt CNSmlContactsDataStore::ExportContactsL( 
+    const TUid& aUid, CBufBase& aContactBufBase )
+    {
+    return iContactsDataStoreExtension->ExportContactsL( aUid, aContactBufBase ); 
+    }
+
+// ----------------------------------------------------------------------------
+// CNSmlContactsDataStore::ImportContactsL
+// ----------------------------------------------------------------------------
+EXPORT_C CArrayFixFlat<TUid>* CNSmlContactsDataStore::ImportContactsL( 
+    const TDesC8& aContactBufBase )
+    {
+    return iContactsDataStoreExtension->ImportContactsL( aContactBufBase ); 
     }
 
 // End of File  

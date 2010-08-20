@@ -19,8 +19,8 @@
 #define __NSMLCONTACTSDATASTORE_H__
 
 // INCLUDE FILES
-#include <SmlDataProvider.h>
-#include <SmlDataFormat.h>
+#include <smldataprovider.h>
+#include <smldataformat.h>
 #include <f32file.h>
 
 // MACROS
@@ -453,27 +453,31 @@ class CNSmlContactsDataStore : public CSmlDataStore
          * @return KErrNone if successful.
          */
         IMPORT_C virtual TInt DoExecuteBufferL(RArray<TInt>& aResultArray);
-		    	
-        /**
-        * Merges two vCards
-        * @param aNewItem Received item. On return aNewItem contains merged item.
-        * @param aOldItem Item with which aNewItem is merged.
-        * @param aFieldLevel Merge using field level change 	
-        */
-    	IMPORT_C virtual void MergeL( CBufBase& aNewItem, CBufBase& aOldItem, TBool aFieldLevel = EFalse );
-
-        /**
-         * Strips data that is to be transmitted to the sync partner.
-         * @param aItem Item's data. On returns this data may have changed due 
-         *  to stripping.
-         */
-        IMPORT_C virtual void StripTxL( CBufBase& aItem );
         
         /**
          * Get datamod instance
          * @return reference to datamod instance.
          */
         IMPORT_C virtual CNSmlDataModBase& GetDataMod();
+
+        /**
+         * Exports the contact in the vCard format from contacts database.
+         * @param aUid UID of the contact to be exported
+         * @param aContactBufBase Upon return includes the contents of
+         *  the exported vCard.
+         *  @return Error code.
+         */
+        IMPORT_C virtual TInt ExportContactsL( const TUid& aUid, 
+            CBufBase& aContactBufBase );
+
+        /**
+         * Imports the contact in the vCard to contacts database.
+         * @param aContactBufBase The contents of the vCards to be 
+         *  imported.
+         * @return An UID array of the contacts which were imported.
+         */
+        IMPORT_C virtual CArrayFixFlat<TUid>* ImportContactsL( 
+            const TDesC8& aContactBufBase );
 
     protected: // data
 	
@@ -522,7 +526,7 @@ class CNSmlContactsDataStore : public CSmlDataStore
 			};
 
        
-	protected:
+    protected:
         TRequestStatus* iCallerStatus;
         TBool iBatchMode;
         TNSmlCntCommand iModType;
@@ -546,45 +550,45 @@ class CNSmlContactsDataStore : public CSmlDataStore
         TInt iItemPos;
         TNSmlDataStoreStatus iState;
 
-	private:
-		TBool iTransactionMode;
-		TInt iModificationCount;
 
-		TPtrC8 iMimeTypeItem;
-		TPtrC8 iMimeVersionItem;
-		
-		TPtrC8 iUsedMimeType;
-		TPtrC8 iUsedMimeVersion;
+        TBool iTransactionMode;
+        TInt iModificationCount;
 
-		RStringF iServerMimeType;
-		RStringF iServerMimeVersion;
-		
-		HBufC* iDefaultStoreName;
+        TPtrC8 iMimeTypeItem;
+        TPtrC8 iMimeVersionItem;
 
-		CNSmlDataModBase* iDataMod;
-		
-		RFs iRfs;
-		TInt iDrive;
-		
-		TInt iItemSize;
-		
-		HBufC* iStoreName;
-		
-		RStringPool iStringPool;
-		
-		CNSmlDataItemUidSet* iNewUids;
-		CNSmlDataItemUidSet* iDeletedUids;
-		CNSmlDataItemUidSet* iSoftDeletedUids;
-		CNSmlDataItemUidSet* iReplacedUids;
-		CNSmlDataItemUidSet* iMovedUids;
+        TPtrC8 iUsedMimeType;
+        TPtrC8 iUsedMimeVersion;
 
-		TBool iLastItem;
-		TInt iStateItem; 
+        RStringF iServerMimeType;
+        RStringF iServerMimeVersion;
 		
-		CNsmlContactsDataStoreExtension* iContactsDataStoreExtension;
+        HBufC* iDefaultStoreName;
+
+        CNSmlDataModBase* iDataMod;
 		
-		CArrayFixSeg<TNSmlSnapshotItem>* iSnapshot;
-		CArrayFixFlat<TUid>* iCntUidList;
+        RFs iRfs;
+        TInt iDrive;
+
+        TInt iItemSize;
+
+        HBufC* iStoreName;
+
+        RStringPool iStringPool;
+
+        CNSmlDataItemUidSet* iNewUids;
+        CNSmlDataItemUidSet* iDeletedUids;
+        CNSmlDataItemUidSet* iSoftDeletedUids;
+        CNSmlDataItemUidSet* iReplacedUids;
+        CNSmlDataItemUidSet* iMovedUids;
+
+        TBool iLastItem;
+        TInt iStateItem; 
+
+        CNsmlContactsDataStoreExtension* iContactsDataStoreExtension;
+
+        CArrayFixSeg<TNSmlSnapshotItem>* iSnapshot;
+        CArrayFixFlat<TUid>* iCntUidList;
 
 	};
 

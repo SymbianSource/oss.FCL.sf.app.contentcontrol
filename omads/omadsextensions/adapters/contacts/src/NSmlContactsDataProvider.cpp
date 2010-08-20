@@ -32,7 +32,7 @@
 #include <DataSyncInternalPSKeys.h>
 #include <implementationproxy.h>
 #include <NSmlDataModBase.h>
-#include "NSmlContactsDataProvider.h"
+#include <nsmlcontactsdataprovider.h>
 #include "nsmldebug.h"
 #include "nsmlconstants.h"
 #include "nsmldsimpluids.h"
