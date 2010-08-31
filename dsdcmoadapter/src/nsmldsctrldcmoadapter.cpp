@@ -17,7 +17,6 @@
 
 //SYSTEM INCLUDES
 #include <centralrepository.h>
-#include <dcmo.rsg>
 #include <e32base.h>
 #include <stringresourcereader.h> 
 #include <f32file.h> 
@@ -25,6 +24,7 @@
 
 //USER INCLUDES
 #include "nsmldsctrldcmoadapter.h"
+#include "hbtextresolversymbian.h"
 
 // CONSTANTS
 const TUid KCRUidDSDCMOConfig = { 0x20022FC0 };
@@ -33,9 +33,11 @@ const TInt KNsmlDesktopSync = 0; // 0x0000000 defined in DS cenrep
 // Name of the Plug-in adapter
 _LIT(KNsmlDesktopSyncTitle, "Desktop Sync"); 
 // Description for Desktop Sync adapter
-_LIT(KNsmlDSDCMODescription, "Used to enable/disable the Desktop Sync." ); //use Nsml?????
-// Path used for fetching the string to be displayed
-_LIT( KRuntimeResourceFileName, "z:dcmo.rsc" );
+_LIT(KNsmlDSDCMODescription, "Used to enable/disable the Desktop Sync." );
+// Filename in which title is present
+_LIT( KdcmoResourceFileName, "deviceupdates_" );
+// Path to the translation file
+_LIT( KdcmoResourceFilePath, "z:/resource/qt/translations/" );	
 
 // ============================ MEMBER FUNCTIONS ===============================
 
@@ -215,14 +217,7 @@ TDCMOStatus CNsmlDsCtrlDCMOAdapter::SetDCMOPluginStrAttributeValueL(TDCMONode /*
 //
 void CNsmlDsCtrlDCMOAdapter::GetLocalizedNameL (HBufC*& aLocName)
 {
-	TFileName myFileName;
-	TParse parseObj;
-	parseObj.Set( KRuntimeResourceFileName(), &KDC_RESOURCE_FILES_DIR,NULL );
-	myFileName = parseObj.FullName();
-	CStringResourceReader* readPluginName = CStringResourceReader::NewL( myFileName );
-	CleanupStack::PushL(readPluginName);
-	TPtrC buf;
-	buf.Set(readPluginName->ReadResourceString(R_DM_RUN_TIME_VAR_DESKTOP_SYNC));
-	aLocName = buf.AllocL() ; 
-	CleanupStack::PopAndDestroy(readPluginName);
+	TBool result = HbTextResolverSymbian::Init(KdcmoResourceFileName, KdcmoResourceFilePath );				
+	_LIT(KTextDesktopSync, "txt_device_update_info_desktop_sync");
+	aLocName = HbTextResolverSymbian::LoadL(KTextDesktopSync);
 }

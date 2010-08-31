@@ -17,9 +17,9 @@
 
 
 #include "../dsutils/cgiscriptutils/bld/bld.inf"
-#include "../dsutils/nsmlfolderutils/bld/bld.inf"
-#include "../dsutils/nsmldefaultagendahandler/bld/bld.inf"
+
 #include "../datamod/bld/bld.inf"
+
 #include "../adapters/bld/bld.inf"
 
 

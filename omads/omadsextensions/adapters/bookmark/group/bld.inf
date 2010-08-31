@@ -21,8 +21,7 @@ PRJ_PLATFORMS
 DEFAULT
 
 PRJ_EXPORTS
-./102751BA.XML              /epoc32/data/Z/private/101F99F6/capability/102751BA.XML
-./102751BA.XML              /epoc32/release/winscw/udeb/z/private/101F99F6/capability/102751BA.XML
+./102751ba.xml              Z:/private/101F99F6/capability/102751ba.xml
 ./bookmarkdsa_stub.sis      /epoc32/data/z/system/install/bookmarkdsa_stub.sis
 ../rom/bookmarkdsa.iby      CORE_APP_LAYER_IBY_EXPORT_PATH(bookmarkdsa.iby)
 ../loc/bookmarkdsa.loc      APP_LAYER_LOC_EXPORT_PATH(bookmarkdsa.loc)

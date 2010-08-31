@@ -9,7 +9,7 @@
 * Initial Contributors:
 * Nokia Corporation - initial contribution.
 *
-* Contributors:
+* Contributors:	
 *
 * Description:  mmp file for DS Data Modification
 *
@@ -25,7 +25,7 @@ UID             0x1000008d 0x101F6DE4
 CAPABILITY 		CAP_GENERAL_DLL
 VENDORID		VID_DEFAULT
 
-#if defined(ARMCC)
+#if defined(EABI)
 DEFFILE			./def/eabidatamod
 #elif defined(WINSCW)
 DEFFILE			./def/bwinscwdatamod

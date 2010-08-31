@@ -28,10 +28,10 @@
 #include <cntdb.h>
 #include <cntitem.h>
 #include <cntfldst.h>
-#include "SMSAdapterMsvApi.h"
-#include "Logger.h" 
-#include "VMessageParser.h"
-#include "SmsDataProviderDefs.h"
+#include "smsadaptermsvapi.h"
+#include "logger.h" 
+#include "vmessageparser.h"
+#include "smsdataproviderdefs.h"
 
 
 // CONSTANTS

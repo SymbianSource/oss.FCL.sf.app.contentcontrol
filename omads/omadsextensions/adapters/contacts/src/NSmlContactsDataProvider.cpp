@@ -15,31 +15,35 @@
 *
 */
 
-
 // INCLUDE FILES
 #include <utf.h>
 #include <e32base.h>
 #include <s32strm.h>
-#include <cntdb.h>
 #include <e32cmn.h>
-#include <cntitem.h>
 #include <sysutil.h>
 #include <barsc.h>
 #include <bautils.h>
 #include <SmlDataProvider.h>
-#include <implementationproxy.h>
 #include <NSmlContactsDataStoreFormat_1_1_2.rsg>
 #include <NSmlContactsDataStoreFormat_1_2.rsg>
 #include <data_caging_path_literals.hrh>
 #include <vtoken.h>
 #include <e32property.h>
 #include <DataSyncInternalPSKeys.h>
-#include <NSmlContactsDataProvider.h>
+#include <implementationproxy.h>
+#include <NSmlDataModBase.h>
+#include <nsmlcontactsdataprovider.h>
 #include "nsmldebug.h"
 #include "nsmlconstants.h"
-#include <NSmlDataModBase.h>
 #include "nsmldsimpluids.h"
 #include "nsmlchangefinder.h"
+
+#ifndef __WINS__
+// This lowers the unnecessary compiler warning (armv5) to remark.
+// "Warning:  #174-D: expression has no effect..." is caused by 
+// DBG_ARGS8 macro in no-debug builds.
+#pragma diag_remark 174
+#endif
 
 // ============================ MEMBER FUNCTIONS ===============================
 
@@ -91,9 +95,8 @@ EXPORT_C void CNSmlContactsDataProvider::ConstructL()
 	
 	User::LeaveIfError( iRfs.Connect() );
 
-	iContactsDataStore = CreateDataStoreLC();
+	iContactsDataStore = CreateDataStoreLC(); 
 	CleanupStack::Pop( iContactsDataStore );
-	
 	iStringPool.OpenL();
 	
 	_DBG_FILE("CNSmlContactsDataProvider::ConstructL(): end");
@@ -168,10 +171,14 @@ EXPORT_C const CSmlDataStoreFormat& CNSmlContactsDataProvider::DoStoreFormatL()
     
 	TFileName resourceFileName;
 	resourceFileName.Copy( TParsePtrC( dllFileName ).Drive() );  
+	
+	resourceFileName.Append( GetStoreFormatResourceFileL() );
 
-	parse.Set( GetStoreFormatResourceFileL(), &KDC_RESOURCE_FILES_DIR, NULL );
+	parse.Set( resourceFileName, &KDC_RESOURCE_FILES_DIR, NULL );
 
 	fileName = parse.FullName();
+	
+	DBG_ARGS(_S("CNSmlContactsDataProvider::SetOwnStoreFormatL(): '%S'"), &parse.FullName());
 
 	RResourceFile resourceFile; 
 	BaflUtils::NearestLanguageFile( iRfs, fileName );
@@ -295,24 +302,24 @@ EXPORT_C void CNSmlContactsDataProvider::DoGenerateFieldFilterQueryL( const RPoi
 // 
 // ------------------------------------------------------------------------------------------------
 EXPORT_C const TDesC& CNSmlContactsDataProvider::GetStoreFormatResourceFileL() const
-    {
+	{
     _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL(): BEGIN");
 
-    // Check correct Data Sync protocol
-    TInt value( EDataSyncNotRunning );
-    TInt error = RProperty::Get( KPSUidDataSynchronizationInternalKeys,
-                                 KDataSyncStatus,
-                                 value );
-    if ( error == KErrNone &&
-         value == EDataSyncRunning )
-        {
-        return KNSmlContactsStoreFormatRsc_1_1_2;
-        }
-    else // error or protocol version 1.2 
-        {
-        return KNSmlContactsStoreFormatRsc_1_2;
-        }
-    _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL(): END");
+	// Check correct Data Sync protocol
+	TInt value( EDataSyncNotRunning );
+	TInt error = RProperty::Get( KPSUidDataSynchronizationInternalKeys,
+	                                 KDataSyncStatus,
+	                                 value );
+	if ( error == KErrNone && value == EDataSyncRunning )
+	    {
+        _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL() 1.1.2 : END");
+	    return KNSmlContactsStoreFormatRsc_1_1_2;
+	    }
+	else // error or protocol version 1.2 
+	    {
+        _DBG_FILE("CNSmlContactsDataProvider::GetStoreFormatResourceFileL() 1.2 : END");
+	    return KNSmlContactsStoreFormatRsc_1_2;
+	    }
     }
 
 // ------------------------------------------------------------------------------------------------
@@ -352,5 +359,4 @@ EXPORT_C const TImplementationProxy* ImplementationGroupProxy( TInt& aTableCount
 	_DBG_FILE("ImplementationGroupProxy() for CNSmlContactsDataProvider: end");
     return ImplementationTable;
 	}
-
 // End of File  

@@ -26,10 +26,10 @@
 #include <smsdatastore.rsg>
 #include <SmlDataFormat.h>
 #include <ecom/implementationproxy.h>
-#include "SmsDataProvider.h"
-#include "SmsDataProviderDefs.h"
-#include "Logger.h" 
-#include "SmsDataStore.h"
+#include "smsdataprovider.h"
+#include "smsdataproviderdefs.h"
+#include "logger.h" 
+#include "smsdatastore.h"
 
 // -----------------------------------------------------------------------------
 // CSmsDataProvider::CSmsDataProvider

@@ -22,12 +22,12 @@
 #include <msvids.h>
 #include <mtclreg.h>
 #include <centralrepository.h>
-#include "SmsDataStore.h"
-#include "SmsDataProviderDefs.h"
-#include "Logger.h"
-#include "SMSAdapterMsvApi.h"
-#include "VMessageParser.h"
-#include "OMADSFolderObject.h"
+#include "smsdatastore.h"
+#include "smsdataproviderdefs.h"
+#include "logger.h"
+#include "smsadaptermsvapi.h"
+#include "vmessageparser.h"
+#include "omadsfolderobject.h"
 
 // This is used, when databuffer is not initialized
 const TInt KDataBufferNotReady = -1;

@@ -35,6 +35,8 @@ APP_LAYER_SYSTEMINCLUDE
 
 
 SYSTEMINCLUDE 	/epoc32/include/ecom
+SYSTEMINCLUDE   /epoc32/include/mw/hb/hbwidgets 
+SYSTEMINCLUDE   /epoc32/include/mw/hb/hbcore
 
 SOURCEPATH			../data
 start resource 20022FBC.rss
@@ -46,3 +48,4 @@ end
 LIBRARY 				euser.lib ECom.lib efsrv.lib 
 LIBRARY         centralrepository.lib
 LIBRARY					commonengine.lib  
+LIBRARY       hbcore.lib hbwidgets.lib

@@ -15,7 +15,6 @@
 *
 */
 
-
 #include <platform_paths.hrh>
 PRJ_EXPORTS
 ../loc/101F6DD6.loc		APP_LAYER_LOC_EXPORT_PATH(101F6DD6.loc)

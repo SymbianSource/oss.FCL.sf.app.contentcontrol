@@ -20,8 +20,8 @@
 #define __NSMLAGENDADATAPROVIDER_H__
 
 //  INCLUDES
-#include <SmlDataFormat.h>
 #include "nsmlagendadatastore.h"
+#include <SmlDataFormat.h>
 
 // CONSTANTS
 _LIT( KNSmlDSAgendaDataStoreRsc_1_1_2,"z:NSMLAGENDADATASTORE_1_1_2.RSC" );
@@ -133,12 +133,21 @@ class CNSmlAgendaDataProvider : public CSmlDataProvider
         * By default Symbian 2nd phase constructor is private.
         */
 	    void ConstructL();
+	    
+        /**
+        * Returns data providers own supported features in a store format class.
+        */
+	    CSmlDataStoreFormat* DoOwnStoreFormatL();
 
     private:
         // Agenda data store
 	    CNSmlAgendaDataStore* iAgnDataStore;
+        // String ool
+	    RStringPool iStringPool;
         // Data store format
 	    CSmlDataStoreFormat* iDSFormat;
+        // A handle to a file server session
+	    RFs iSession;
 	    // Filter array
 	    RPointerArray<CSyncMLFilter> iFilterArray;
 	};

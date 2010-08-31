@@ -21,10 +21,8 @@
 
 #ifdef _DEBUG
     
-    #ifdef __WINS__
-        // File logging for WINS
-        #define __FLOGGING__
-    #endif //__WINS__
+    // Define this to enable file logging
+    #define __FLOGGING__
     
     #include <e32svr.h>
     #ifdef __FLOGGING__

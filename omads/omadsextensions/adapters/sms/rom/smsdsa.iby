@@ -21,9 +21,9 @@
 
 #ifdef __SYNCML_DS_SMS
 
-ECOM_PLUGIN(smsdataprovider.dll,smsdataprovider.RSC)
-data=DATAZ_\RESOURCE_FILES_DIR\smsdatastore.RSC         RESOURCE_FILES_DIR\smsdatastore.RSC
-data=DATAZ_\private\101F99F6\capability\10206B5C.XML    private\101F99F6\capability\10206B5C.XML
+ECOM_PLUGIN(smsdataprovider.dll,smsdataprovider.rsc)
+data=DATAZ_\RESOURCE_FILES_DIR\smsdatastore.rsc         RESOURCE_FILES_DIR\smsdatastore.rsc
+data=DATAZ_\private\101F99F6\capability\10206b5c.xml    private\101F99F6\capability\10206b5c.xml
 data=ZSYSTEM\install\smsdsa_stub.sis                    system\install\smsdsa_stub.sis
 
 #endif

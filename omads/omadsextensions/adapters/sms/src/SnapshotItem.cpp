@@ -17,7 +17,7 @@
 
 
 #include <msvuids.h>
-#include "SnapshotItem.h"
+#include "snapshotitem.h"
 
 
 // -----------------------------------------------------------------------------

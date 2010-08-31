@@ -21,8 +21,8 @@
 
 // INCLUDES
 #include <SmlDataProvider.h>
-#include "SnapshotItem.h"
-#include "ChangeFinder.h"
+#include "snapshotitem.h"
+#include "changefinder.h"
 
 // FORWARD DECLARATIONS
 class CSmsAdapterMsvApi; 

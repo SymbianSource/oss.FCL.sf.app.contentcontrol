@@ -17,9 +17,9 @@
 
 
 #include <SenXmlUtils.h>
-#include "OMADSFolderObject.h"
+#include "omadsfolderobject.h"
 #include "utf.h"
-#include "Logger.h"
+#include "logger.h"
 
 _LIT8(KOMADSFolderElement, "Folder");
 _LIT8(KOMADSNameElement, "name");

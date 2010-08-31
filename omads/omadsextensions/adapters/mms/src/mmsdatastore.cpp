@@ -16,9 +16,9 @@
 */
 
 
-#include <e32base.h>      
-#include <msvstd.h>       
-#include <msvapi.h>       
+#include <e32base.h>
+#include <msvstd.h>
+#include <msvapi.h>
 #include <msvids.h>
 #include <mtclreg.h> 
 #include <mmsconst.h>
@@ -182,7 +182,7 @@ const TDesC& CMmsDataStore::DoStoreName() const
     if ( iDataBaseOpened )
         {
         LOGGER_LEAVEFN( "CMmsDataStore::DoStoreName" );
-        LOGGER_MSG_EC( "Database name: %S", &KNSmlDefaultLocalDbName );
+        LOGGER_WRITE_1( "Database name: %S", &KNSmlDefaultLocalDbName );
         return KNSmlDefaultLocalDbName;
         }
 
@@ -309,7 +309,7 @@ TInt CMmsDataStore::DoMaxObjectSize() const
         }
     else
         {
-        LOGGER_MSG_EC( "CRepository::NewL leaved with %d", error );
+        LOGGER_WRITE_1( "CRepository::NewL leaved with %d", error );
         }       
         
     LOGGER_LEAVEFN( "CMmsDataStore::DoMaxObjectSize" );
@@ -327,7 +327,7 @@ void CMmsDataStore::DoOpenItemL( TSmlDbItemUid aUid, TBool& aFieldChange,
     {
     LOGGER_ENTERFN( "CMmsDataStore::DoOpenItemL" );
 
-    LOGGER_MSG_EC( "Opening item %d.", aUid );
+    LOGGER_WRITE_1( "Opening item %d.", aUid );
     
     // Store these for later use
     iCallerStatus = &aStatus;
@@ -336,7 +336,7 @@ void CMmsDataStore::DoOpenItemL( TSmlDbItemUid aUid, TBool& aFieldChange,
     // Check that we're in a proper state
     if ( iCurrentState != EMmsOpenAndWaiting )
         {
-        LOGGER_MSG_EC( "CMmsDataStore::DoOpenItemL, invalid state %d.", iCurrentState );
+        LOGGER_WRITE_1( "CMmsDataStore::DoOpenItemL, invalid state %d.", iCurrentState );
         User::RequestComplete( iCallerStatus, KErrNotReady );
         return;
         }
@@ -373,7 +373,7 @@ void CMmsDataStore::DoOpenItemL( TSmlDbItemUid aUid, TBool& aFieldChange,
         if ( error != KErrNone )
             {
             User::RequestComplete( iCallerStatus, KErrNotFound ); 
-            LOGGER_MSG_EC("iMsvSession->GetEntryL failed with %d.", error);
+            LOGGER_WRITE_1("iMsvSession->GetEntryL failed with %d.", error);
             return;
             }
         
@@ -406,7 +406,7 @@ void CMmsDataStore::DoOpenItemL( TSmlDbItemUid aUid, TBool& aFieldChange,
             if ( error != KErrNone ) 
                 {
                 User::RequestComplete( iCallerStatus, error );
-                LOGGER_MSG_EC("iCodecClient->InitializeChunkedRetrievingL failed with %d.", error); 
+                LOGGER_WRITE_1("iCodecClient->InitializeChunkedRetrievingL failed with %d.", error); 
                 return;         
                 }
             
@@ -416,10 +416,11 @@ void CMmsDataStore::DoOpenItemL( TSmlDbItemUid aUid, TBool& aFieldChange,
             if ( iMsvWait->iStatus != KErrNone )
                 {
                 User::RequestComplete( iCallerStatus, iMsvWait->iStatus.Int() );
-                LOGGER_MSG_EC( "iCodecClient->InitializeChunkedRetrievingL failed with %d",
+                LOGGER_WRITE_1( "iCodecClient->InitializeChunkedRetrievingL failed with %d",
                     iMsvWait->iStatus.Int() ); 
                 return;
-                }   
+                }
+            LOGGER_WRITE_1("iUnread: %d", (TInt)iUnread);
             aSize++; // Status byte will be added also, reserve one additional byte for that.
             iCurrentState = EMmsItemOpen;
             }
@@ -481,7 +482,7 @@ void CMmsDataStore::DoCreateItemL( TSmlDbItemUid& aUid, TInt aSize, TSmlDbItemUi
     const TDesC8& aMimeType, const TDesC8& /*aMimeVer*/, TRequestStatus& aStatus )
     {
     LOGGER_ENTERFN( "CMmsDataStore::DoCreateItemL" );
-    LOGGER_MSG_EC( "Parent folder: %d.", aParent );
+    LOGGER_WRITE_1( "Parent folder: %d.", aParent );
     
     // Store some variables for further use
     iCallerStatus = &aStatus;
@@ -490,7 +491,7 @@ void CMmsDataStore::DoCreateItemL( TSmlDbItemUid& aUid, TInt aSize, TSmlDbItemUi
     // Ensure that we're in proper state
     if ( iCurrentState != EMmsOpenAndWaiting )
         {
-        LOGGER_MSG_EC( "Invalid state %d.", iCurrentState );
+        LOGGER_WRITE_1( "Invalid state %d.", iCurrentState );
         }
         
     TBool createFolder( EFalse );
@@ -562,8 +563,8 @@ void CMmsDataStore::DoReplaceItemL( TSmlDbItemUid aUid, TInt aSize, TSmlDbItemUi
     TBool /*aFieldChange*/, TRequestStatus& aStatus )
     {
     LOGGER_ENTERFN("CMmsDataStore::DoReplaceItemL");
-    LOGGER_MSG_EC("Replacing item %d.", aUid);
-    LOGGER_MSG_EC("Parent folder: %d.", aParent);
+    LOGGER_WRITE_1("Replacing item %d.", aUid);
+    LOGGER_WRITE_1("Parent folder: %d.", aParent);
     
     // Store some variables for further use
     iCallerStatus = &aStatus;
@@ -572,7 +573,7 @@ void CMmsDataStore::DoReplaceItemL( TSmlDbItemUid aUid, TInt aSize, TSmlDbItemUi
     // Ensure proper state
     if ( iCurrentState != EMmsOpenAndWaiting )
         {
-        LOGGER_MSG_EC("Invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("Invalid state %d.", iCurrentState);
         }
 
     // Ensure that we've got enough disk space for the item
@@ -589,7 +590,7 @@ void CMmsDataStore::DoReplaceItemL( TSmlDbItemUid aUid, TInt aSize, TSmlDbItemUi
     if ( err != KErrNone )
         {
         User::RequestComplete( iCallerStatus, KErrNotFound );
-        LOGGER_MSG_EC("CMsvSession::GetEntryL failed with %d.", err)
+        LOGGER_WRITE_1("CMsvSession::GetEntryL failed with %d.", err)
         return;
         }
 
@@ -609,7 +610,7 @@ void CMmsDataStore::DoReplaceItemL( TSmlDbItemUid aUid, TInt aSize, TSmlDbItemUi
         || ( aParent != tEntry.Parent() ) ) )
         {
         User::RequestComplete( iCallerStatus, KErrNotSupported );
-        LOGGER_MSG_EC("Bad parent folder, message entry parent is %d", tEntry.Parent());
+        LOGGER_WRITE_1("Bad parent folder, message entry parent is %d", tEntry.Parent());
         return;    
         }           
     
@@ -684,6 +685,7 @@ void CMmsDataStore::DoReadItemL( TDes8& aBuffer )
         if ( iReadCounter++ == 0 )
             {
             TUint8 status = ResolveStatusBits( iUnread );
+            LOGGER_WRITE_1("WriteStatusBits: %d", status);
             aBuffer.Append( &status, 1 );
             }
         else
@@ -698,6 +700,7 @@ void CMmsDataStore::DoReadItemL( TDes8& aBuffer )
         if ( iReadCounter++ == 0 )
             {
             TUint8 status = ResolveStatusBits( iUnread );
+            LOGGER_WRITE_1("WriteStatusBits: %d", status);
             aBuffer.Append( &status, 1 );
             iReadPosition = 0;
             iLastDataChunk = EFalse;
@@ -717,7 +720,7 @@ void CMmsDataStore::DoReadItemL( TDes8& aBuffer )
     
     else
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoReadItemL: bad state %d", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoReadItemL: bad state %d", iCurrentState);
         User::Leave( KErrNotReady );
         }   
 
@@ -731,10 +734,10 @@ void CMmsDataStore::DoReadItemL( TDes8& aBuffer )
 void CMmsDataStore::DoWriteItemL( const TDesC8& aData )
     {
     LOGGER_ENTERFN("CMmsDataStore::DoWriteItemL");
-    LOGGER_MSG_EC("%d",iWriteCounter);
+    LOGGER_WRITE_1("%d",iWriteCounter);
     
     TInt dataLength = aData.Length();
-    LOGGER_MSG_EC("Data length: %d", dataLength);
+    LOGGER_WRITE_1("Data length: %d", dataLength);
     
     if ( !( dataLength > 0 ) ) // Should never happen...
         {
@@ -791,7 +794,7 @@ void CMmsDataStore::DoWriteItemL( const TDesC8& aData )
             else // just status update
                 {
                 UpdateMmsStatusL( iCurrentId, iUnread );
-                LOGGER_MSG_EC("Message status updated: %d", iUnread);
+                LOGGER_WRITE_1("Message status updated, iUnread: %d", iUnread);
                 }    
             }
         else
@@ -804,13 +807,13 @@ void CMmsDataStore::DoWriteItemL( const TDesC8& aData )
         
     else
         {
-        LOGGER_MSG_EC("Wrong state %d", iCurrentState);
+        LOGGER_WRITE_1("Wrong state %d", iCurrentState);
         User::Leave( KErrNotReady );
         }
         
     if ( error != KErrNone )
         {
-        LOGGER_MSG_EC("iCodecClient->NextDataPart() failed with %d", error);
+        LOGGER_WRITE_1("iCodecClient->NextDataPart() failed with %d", error);
         User::Leave( error );
         }  
 
@@ -837,7 +840,7 @@ void CMmsDataStore::DoCommitItemL( TRequestStatus& aStatus )
         if ( error != KErrNone )
             {
             User::RequestComplete( iCallerStatus, error );
-            LOGGER_MSG_EC("ImportFolderXml failed with %d", error);
+            LOGGER_WRITE_1("ImportFolderXml failed with %d", error);
             return;
             }
          
@@ -860,7 +863,7 @@ void CMmsDataStore::DoCommitItemL( TRequestStatus& aStatus )
                 }
             else
                 {
-                LOGGER_MSG_EC("iMsvApi->AddFolderL failed with %d", error);
+                LOGGER_WRITE_1("iMsvApi->AddFolderL failed with %d", error);
                 }    
             }
          else
@@ -868,7 +871,7 @@ void CMmsDataStore::DoCommitItemL( TRequestStatus& aStatus )
             error = iMsvApi->UpdateUserFolderL( iCurrentId, name );
             if ( error != KErrNone )
                 {
-                LOGGER_MSG_EC("iMsvApi->UpdateFolderL failed with %d", error);
+                LOGGER_WRITE_1("iMsvApi->UpdateFolderL failed with %d", error);
                 }
             }
         }
@@ -908,7 +911,7 @@ void CMmsDataStore::DoCommitItemL( TRequestStatus& aStatus )
     else
         {
         User::RequestComplete( iCallerStatus, KErrNotSupported );
-        LOGGER_MSG_EC("Bad state: %d", iCurrentState);
+        LOGGER_WRITE_1("Bad state: %d", iCurrentState);
         return;
         }
     
@@ -943,7 +946,7 @@ void CMmsDataStore::DoCommitItemL( TRequestStatus& aStatus )
             }
         else
             {
-            LOGGER_MSG_EC( "CMsvSession::GetEntry failed with %d", error );
+            LOGGER_WRITE_1( "CMsvSession::GetEntry failed with %d", error );
             }
         }
     
@@ -989,7 +992,7 @@ void CMmsDataStore::DoCloseItem()
         }
     else 
         {
-        LOGGER_MSG_EC("Invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("Invalid state %d.", iCurrentState);
         }
     
     LOGGER_LEAVEFN("CMmsDataStore::DoCloseItem");
@@ -1004,7 +1007,7 @@ void CMmsDataStore::DoMoveItemL( TSmlDbItemUid aUid,
     {
     LOGGER_ENTERFN("CMmsDataStore::DoMoveItemL");
     
-    LOGGER_MSG_EC("Moving item %d.", aUid);
+    LOGGER_WRITE_1("Moving item %d.", aUid);
     
     // Store some variables for further use
     iCallerStatus = &aStatus;
@@ -1013,7 +1016,7 @@ void CMmsDataStore::DoMoveItemL( TSmlDbItemUid aUid,
     // Check that we're in proper state
     if ( iCurrentState != EMmsOpenAndWaiting ) 
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoMoveItemL, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoMoveItemL, invalid state %d.", iCurrentState);
         }
 
     // Ensure that we have this item in the message store   
@@ -1048,7 +1051,7 @@ void CMmsDataStore::DoMoveItemL( TSmlDbItemUid aUid,
 void CMmsDataStore::DoDeleteItemL( TSmlDbItemUid aUid, TRequestStatus& aStatus  )
     {
     LOGGER_ENTERFN("CMmsDataStore::DoDeleteItemL");
-    LOGGER_MSG_EC("Deleting item %d.", aUid);
+    LOGGER_WRITE_1("Deleting item %d.", aUid);
     
     // Store some variables for further use
     iCallerStatus = &aStatus;
@@ -1059,7 +1062,7 @@ void CMmsDataStore::DoDeleteItemL( TSmlDbItemUid aUid, TRequestStatus& aStatus  
     // Check that we're in proper state
     if ( iCurrentState != EMmsOpenAndWaiting ) 
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoDeleteItemL, invalid state %d.", iCurrentState);        
+        LOGGER_WRITE_1("CMmsDataStore::DoDeleteItemL, invalid state %d.", iCurrentState);        
         }
         
     // Check if this is a user folder
@@ -1070,7 +1073,7 @@ void CMmsDataStore::DoDeleteItemL( TSmlDbItemUid aUid, TRequestStatus& aStatus  
         if ( error != KErrNone )
             {
             User::RequestComplete( iCallerStatus, error );    
-            LOGGER_MSG_EC("Deleting MMS messages in folder failed with %d", error); 
+            LOGGER_WRITE_1("Deleting MMS messages in folder failed with %d", error); 
             return;
             }
         error = iMsvApi->DeleteUserFolderL(aUid);  
@@ -1078,7 +1081,7 @@ void CMmsDataStore::DoDeleteItemL( TSmlDbItemUid aUid, TRequestStatus& aStatus  
             {
             // Note: folder is not deleted if contains other message items (like MMS)
             // In this case DeleteUserFolderL returns KErrInUse.    
-            LOGGER_MSG_EC("Deleting folder failed with %d", error); 
+            LOGGER_WRITE_1("Deleting folder failed with %d", error); 
             }       
         }
     else if ( MmsItemExists( aUid ) )
@@ -1088,7 +1091,7 @@ void CMmsDataStore::DoDeleteItemL( TSmlDbItemUid aUid, TRequestStatus& aStatus  
         if ( error != KErrNone )
             {
             User::RequestComplete( iCallerStatus, error );    
-            LOGGER_MSG_EC("CMmsCodecClient::DeleteMM failed with %d", error);   
+            LOGGER_WRITE_1("CMmsCodecClient::DeleteMM failed with %d", error);   
             return;
             }
         // Inform ChangeFinder of the removed item
@@ -1097,7 +1100,7 @@ void CMmsDataStore::DoDeleteItemL( TSmlDbItemUid aUid, TRequestStatus& aStatus  
     else
         {
         User::RequestComplete( iCallerStatus, KErrNotFound ); 
-        LOGGER_MSG_EC("Item %d is not folder or MMS message", aUid);
+        LOGGER_WRITE_1("Item %d is not folder or MMS message", aUid);
         return;
         }
     
@@ -1140,7 +1143,7 @@ void CMmsDataStore::DoDeleteAllItemsL( TRequestStatus& aStatus )
    // Check that we're in proper state
     if ( iCurrentState != EMmsOpenAndWaiting ) 
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoDeleteAllItemsL, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoDeleteAllItemsL, invalid state %d.", iCurrentState);
         }
         
     TInt error(KErrNone);
@@ -1185,7 +1188,7 @@ void CMmsDataStore::DoDeleteAllItemsL( TRequestStatus& aStatus )
 TInt CMmsDataStore::DeleteAllMessagesInFolderL( TMsvId aId )
     {
     LOGGER_ENTERFN("CMmsDataStore::DeleteAllMessagesInFolderL");
-    LOGGER_MSG_EC("Folder: %d", aId);
+    LOGGER_WRITE_1("Folder: %d", aId);
     
     TInt error(KErrNone);
     
@@ -1206,12 +1209,12 @@ TInt CMmsDataStore::DeleteAllMessagesInFolderL( TMsvId aId )
     for ( TInt index=0; index < messages->Count(); index++ )
         {
         id = messages->At( index );
-        LOGGER_MSG_EC("Message item %d:", id);
+        LOGGER_WRITE_1("Message item %d:", id);
         
         error = iMsvSession->GetEntry( id, service, msg );
         if ( error != KErrNone )
             {
-            LOGGER_MSG_EC("GetEntry failed with %d", error);
+            LOGGER_WRITE_1("GetEntry failed with %d", error);
             break;
             }
         
@@ -1220,7 +1223,7 @@ TInt CMmsDataStore::DeleteAllMessagesInFolderL( TMsvId aId )
             error = iCodecClient->DeleteMM( id );
             if ( error != KErrNone )
                 {
-                LOGGER_MSG_EC("DeleteMM failed with %d", error);
+                LOGGER_WRITE_1("DeleteMM failed with %d", error);
                 break;
                 }
             // Update Change Finder
@@ -1262,22 +1265,23 @@ const MSmlDataItemUidSet& CMmsDataStore::DoAddedItems() const
     // Ensure that we're in a proper state
     if ( iCurrentState != EMmsOpenAndWaiting )
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoAddedItems, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoAddedItems, invalid state %d.", iCurrentState);
         }
     
     TInt error(KErrNone);
 
     // Clear new-items array
     iNewItems->Reset();
-  
+
+    // Set current snapshot, this will be compared against the old one      
     // Search for new items
     TRAP( error, iChangeFinder->FindNewItemsL(*iNewItems) )
     if ( error != KErrNone )
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoAddedItems, iChangeFinder->FindNewItemsL leaved with %d.", error);
+        LOGGER_WRITE_1("CMmsDataStore::DoAddedItems, iChangeFinder->FindNewItemsL leaved with %d.", error);
         }
     
-    LOGGER_MSG_EC("New item count: %d.", iNewItems->ItemCount());
+    LOGGER_WRITE_1("New item count: %d.", iNewItems->ItemCount());
     LOGGER_LEAVEFN("CMmsDataStore::DoAddedItems");      
     
     return *iNewItems;
@@ -1294,7 +1298,7 @@ const MSmlDataItemUidSet& CMmsDataStore::DoDeletedItems() const
     // Ensure that we're in a proper state
     if ( iCurrentState != EMmsOpenAndWaiting )
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoDeletedItems, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoDeletedItems, invalid state %d.", iCurrentState);
         }
     
     TInt error(KErrNone);
@@ -1306,10 +1310,10 @@ const MSmlDataItemUidSet& CMmsDataStore::DoDeletedItems() const
     TRAP( error, iChangeFinder->FindDeletedItemsL( *iDeletedItems ) );
     if ( error != KErrNone )
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoDeletedItems, iChangeFinder->FindDeletedItemsL leaved with %d.", error);
+        LOGGER_WRITE_1("CMmsDataStore::DoDeletedItems, iChangeFinder->FindDeletedItemsL leaved with %d.", error);
         }           
     
-    LOGGER_MSG_EC("Deleted item count: %d.", iDeletedItems->ItemCount());
+    LOGGER_WRITE_1("Deleted item count: %d.", iDeletedItems->ItemCount());
     LOGGER_LEAVEFN("CMmsDataStore::DoDeletedItemsL");
     return *iDeletedItems;
     }
@@ -1338,7 +1342,7 @@ const MSmlDataItemUidSet& CMmsDataStore::DoModifiedItems() const
     // Ensure that we're in a proper state
     if ( iCurrentState != EMmsOpenAndWaiting )
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoModifiedItems, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoModifiedItems, invalid state %d.", iCurrentState);
         }
     
     TInt error(KErrNone);
@@ -1350,10 +1354,10 @@ const MSmlDataItemUidSet& CMmsDataStore::DoModifiedItems() const
     TRAP( error, iChangeFinder->FindChangedItemsL( *iUpdatedItems ) )
     if ( error != KErrNone )
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoModifiedItems, iChangeFinder->FindChangedItemsL leaved with %d.", error);
+        LOGGER_WRITE_1("CMmsDataStore::DoModifiedItems, iChangeFinder->FindChangedItemsL leaved with %d.", error);
         }
     
-    LOGGER_MSG_EC("Modified item count: %d.", iUpdatedItems->ItemCount());
+    LOGGER_WRITE_1("Modified item count: %d.", iUpdatedItems->ItemCount());
     LOGGER_LEAVEFN("CMmsDataStore::DoModifiedItems");       
     return *iUpdatedItems;
     }
@@ -1369,7 +1373,7 @@ const MSmlDataItemUidSet& CMmsDataStore::DoMovedItems() const
     // Ensure that we're in a proper state
     if ( iCurrentState != EMmsOpenAndWaiting )
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoMovedItems, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoMovedItems, invalid state %d.", iCurrentState);
         }
     
     TInt error(KErrNone);
@@ -1381,10 +1385,10 @@ const MSmlDataItemUidSet& CMmsDataStore::DoMovedItems() const
     TRAP( error, iChangeFinder->FindMovedItemsL( *iMovedItems ) );
     if ( error != KErrNone )
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoMovedItems, iChangeFinder->FindMovedItemsL leaved with %d.", error);
+        LOGGER_WRITE_1("CMmsDataStore::DoMovedItems, iChangeFinder->FindMovedItemsL leaved with %d.", error);
         }
     
-    LOGGER_MSG_EC("Moved item count: %d.", iMovedItems->ItemCount());
+    LOGGER_WRITE_1("Moved item count: %d.", iMovedItems->ItemCount());
     LOGGER_LEAVEFN("CMmsDataStore::DoMovedItems");
     return *iMovedItems;    
     }
@@ -1404,7 +1408,7 @@ void CMmsDataStore::DoResetChangeInfoL( TRequestStatus& aStatus )
     // Check that we're in proper state
     if ( iCurrentState != EMmsOpenAndWaiting ) 
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoResetChangeInfoL, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoResetChangeInfoL, invalid state %d.", iCurrentState);
         }   
             
     // Reset change info in ChangeFinder
@@ -1432,7 +1436,7 @@ void CMmsDataStore::DoCommitChangeInfoL( TRequestStatus& aStatus, const MSmlData
     // Ensure that we're in a proper state
     if ( iCurrentState != EMmsOpenAndWaiting ) 
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoCommitChangeInfoL, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoCommitChangeInfoL, invalid state %d.", iCurrentState);
         }
 
     // Notify ChangeFinder
@@ -1461,7 +1465,7 @@ void CMmsDataStore::DoCommitChangeInfoL(TRequestStatus& aStatus)
     // Ensure that we're in a proper state
     if ( iCurrentState != EMmsOpenAndWaiting ) 
         {
-        LOGGER_MSG_EC("CMmsDataStore::DoCommitChangeInfoL, invalid state %d.", iCurrentState);
+        LOGGER_WRITE_1("CMmsDataStore::DoCommitChangeInfoL, invalid state %d.", iCurrentState);
         }
     
     // Notify ChangeFinder
@@ -1625,12 +1629,12 @@ TInt CMmsDataStore::ReadDataRecursively( TDes8& aBuffer )
             error = iCodecClient->GetNextDataPart( iReadDataChunk, iLastDataChunk );
             if ( error != KErrNone )
                 {
-                LOGGER_MSG_EC("iCodecClient->GetNextDataPart failed with %d", error);
+                LOGGER_WRITE_1("iCodecClient->GetNextDataPart failed with %d", error);
                 return error;
                 }
             else
                 {
-                LOGGER_MSG_EC("iCodecClient->GetNextDataPart succeeded, length %d", iReadDataChunk.Length());
+                LOGGER_WRITE_1("iCodecClient->GetNextDataPart succeeded, length %d", iReadDataChunk.Length());
                 }   
             }   
         }
@@ -1757,7 +1761,7 @@ TInt CMmsDataStore::CleanUserFoldersL()
             error = DeleteAllMessagesInFolderL(folderId);
             if ( error != KErrNone )
                 {
-                LOGGER_MSG_EC("Deleting messages in folder failed with %d", error); 
+                LOGGER_WRITE_1("Deleting messages in folder failed with %d", error); 
                 result = error;
                 }
             error = iMsvApi->DeleteUserFolderL( folderId );
@@ -1765,7 +1769,7 @@ TInt CMmsDataStore::CleanUserFoldersL()
                 {
                 // Note: folder is not deleted if contains other message items (like MMS)
                 // In this case DeleteUserFolderL returns KErrInUse.
-                LOGGER_MSG_EC("iMsvApi->DeleteUserFolderL failed with %d", error);
+                LOGGER_WRITE_1("iMsvApi->DeleteUserFolderL failed with %d", error);
                 result = error;
                 }
             }

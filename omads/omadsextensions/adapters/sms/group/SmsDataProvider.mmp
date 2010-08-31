@@ -27,13 +27,13 @@ UID             0x10009d8d 0x10206B5C
 VENDORID        VID_DEFAULT
 
 SOURCEPATH      ../src
-SOURCE          SmsDataProvider.cpp
-SOURCE          SmsDataStore.cpp
-SOURCE          SMSAdapterMsvApi.cpp
-SOURCE          VMessageParser.cpp
-SOURCE          ChangeFinder.cpp
-SOURCE          SnapshotItem.cpp
-SOURCE          OMADSFolderObject.cpp
+SOURCE          smsdataprovider.cpp
+SOURCE          smsdatastore.cpp
+SOURCE          smsadaptermsvapi.cpp
+SOURCE          vmessageparser.cpp
+SOURCE          changefinder.cpp
+SOURCE          snapshotitem.cpp
+SOURCE          omadsfolderobject.cpp
 
 USERINCLUDE     ../inc
 
@@ -41,13 +41,13 @@ APP_LAYER_SYSTEMINCLUDE
 
 
 SOURCEPATH      ../src
-START RESOURCE  SmsDataProvider.rss
+START RESOURCE  smsdataprovider.rss
 HEADER
 TARGET          smsdataprovider.rsc
 TARGETPATH      ECOM_RESOURCE_DIR
 END
 
-START RESOURCE  SmsDataStore.rss
+START RESOURCE  smsdatastore.rss
 HEADER
 TARGET          smsdatastore.rsc  
 TARGETPATH      RESOURCE_FILES_DIR

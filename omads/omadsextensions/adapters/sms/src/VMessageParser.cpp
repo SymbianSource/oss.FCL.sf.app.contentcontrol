@@ -20,8 +20,8 @@
 #include <e32std.h>
 #include <msvids.h>
 #include <txtrich.h>
-#include "VMessageParser.h"
-#include "Logger.h"
+#include "vmessageparser.h"
+#include "logger.h"
 
 
 const TInt KVersionMaxLength = 4;

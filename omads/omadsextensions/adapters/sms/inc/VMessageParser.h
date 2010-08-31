@@ -19,7 +19,7 @@
 #ifndef VMESSAGEPARSER_H
 #define VMESSAGEPARSER_H
 
-#include "OMADSFolderObject.h"
+#include "omadsfolderobject.h"
 
 
 // CONSTANTS

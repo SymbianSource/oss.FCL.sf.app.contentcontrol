@@ -21,7 +21,7 @@
 
 #include <SenXmlReader.h>
 #include <MSenContentHandlerClient.h>
-#include "SmsDataProviderDefs.h"
+#include "smsdataproviderdefs.h"
 
 const TInt KMaxElementLength = 255;
 const TInt KMaxXmlLineLength = 1024;

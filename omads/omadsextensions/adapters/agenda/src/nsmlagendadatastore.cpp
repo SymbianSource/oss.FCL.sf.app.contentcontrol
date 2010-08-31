@@ -18,6 +18,12 @@
 
 
 // INCLUDES
+#include "nsmldebug.h"
+#include "nsmlagendadatastore.h"
+#include "nsmlagendadataprovider.h"
+#include "nsmlchangefinder.h"
+#include "NSmlDataModBase.h"
+#include "nsmlagendadefines.hrh"
 #include <ecom.h>
 #include <barsc.h>
 #include <bautils.h>
@@ -35,23 +41,11 @@
 #include <SmlDataSyncDefs.h>
 #include <data_caging_path_literals.hrh>
 #include <NSmlAgendaDataStore_1_1_2.rsg>
+#include <NSmlAgendaDataStore_1_2.rsg>
 #include <e32property.h>
 #include <DataSyncInternalPSKeys.h>
 #include <CalenImporter.h>
 #include <CalenInterimUtils2.h>
-#include <utf.h>
-#include <nsmldebug.h>
-#include <nsmlagendaadapterhandler.h>
-#include <calenmulticaluids.hrh>
-#include <calenmulticalutil.h>
-#include <nsmlconstants.h>
-#include <centralrepository.h> 
-#include "nsmlagendadebug.h"
-#include "nsmlagendadatastore.h"
-#include "nsmlagendadataprovider.h"
-#include "nsmlchangefinder.h"
-#include "NSmlDataModBase.h"
-#include "nsmlagendadefines.hrh"
 
 #ifndef __WINS__
 // This lowers the unnecessary compiler warning (armv5) to remark.
@@ -76,17 +70,10 @@ CNSmlAgendaDataStore::CNSmlAgendaDataStore() :
 	iDrive( -1 ),
 	iReplaceItemId( -1 ),
 	iRXEntryType( ENSmlNotSet ),
-	iTXEntryType( ENSmlNotSet ),
-	iIsHierarchicalSyncSupported( EFalse ),
-	iParentItemId( 0 ),
-    iOrphanEvent( EFalse )
+	iTXEntryType( ENSmlNotSet )
 	{
-	FLOG(_L("CNSmlAgendaDataStore::CNSmlAgendaDataStore(): BEGIN"));
-	// RD_MULTICAL
-	iDataMimeType = ENSmlNone;
-	iAgendaAdapterHandler = NULL;
-	// RD_MULTICAL
-	FLOG(_L("CNSmlAgendaDataStore::CNSmlAgendaDataStore(): END"));
+	_DBG_FILE("CNSmlAgendaDataStore::CNSmlAgendaDataStore(): BEGIN");
+	_DBG_FILE("CNSmlAgendaDataStore::CNSmlAgendaDataStore(): END");
 	}
 
 // -----------------------------------------------------------------------------
@@ -96,7 +83,7 @@ CNSmlAgendaDataStore::CNSmlAgendaDataStore() :
 //
 void CNSmlAgendaDataStore::ConstructL()
 	{
-	FLOG(_L("CNSmlAgendaDataStore::ConstructL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::ConstructL: BEGIN");
 
 	iStringPool.OpenL();
 	User::LeaveIfError( iRfs.Connect() );
@@ -109,32 +96,21 @@ void CNSmlAgendaDataStore::ConstructL()
 	iMovedUids = new ( ELeave ) CNSmlDataItemUidSet();
 	iReplacedUids = new ( ELeave ) CNSmlDataItemUidSet();
 	
-	iDefaultStoreFileName = HBufC::NewL( KNSmlDefaultStoreNameMaxSize );
-	*iDefaultStoreFileName = KNSmlAgendaFileNameForDefaultDB; 
+	iDefaultStoreName = HBufC::NewL( KNSmlDefaultStoreNameMaxSize );
 	
+	iVersitTlsData = &CVersitTlsData::VersitTlsDataL();
+	// Create CalSession and CalEntryView instances
+	iVCalSession = CCalSession::NewL();
 	
-	// RD_MULTICAL
-	iAgendaAdapterLog = NULL;
-	iCalOffsetArr = new (ELeave) CArrayFixFlat<TUint>( KArrayGranularity );
-	iCommittedUidArr = new ( ELeave ) CNSmlDataItemUidSet();
-	//iCalOffsetVal = CCalenMultiCalUtil::GetOffsetL();
-	// TODO: Tweak code: BEGIN
-	iCalOffsetVal = 100000;	
-	ListAllAgendaPluginAdaptersL();
-	// END  
-		
+	TPtr obptr = iDefaultStoreName->Des();
+	obptr = iVCalSession->DefaultFileNameL(); 
+
 	iOwnFormat = DoOwnStoreFormatL();
-	// RD_MULTICAL
-	iDataMod->SetOwnStoreFormat( *iOwnFormat );	
+	iDataMod->SetOwnStoreFormat( *iOwnFormat );
+	
     iInterimUtils = CCalenInterimUtils2::NewL();
-    
-    // Initialize the FieldId to a default value [UID3 of the application]
-    // This value will be rewritten once the exact single CalendarDB is determined
-    // In case of HF synchronization involving multiple CalendarDB's the below value 
-    // will be retained.
-    iOpenedStoreId = KNSmlAgendaAdapterUid;
-    
-	FLOG(_L("CNSmlAgendaDataStore::ConstructL: END"));
+	
+	_DBG_FILE("CNSmlAgendaDataStore::ConstructL: END");
 	}
 
 // -----------------------------------------------------------------------------
@@ -144,7 +120,7 @@ void CNSmlAgendaDataStore::ConstructL()
 //
 CNSmlAgendaDataStore* CNSmlAgendaDataStore::NewL()
 	{
-	FLOG(_L("CNSmlAgendaDataStore::NewL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::NewL: BEGIN");
 	
 	CNSmlAgendaDataStore* self = new ( ELeave ) CNSmlAgendaDataStore();
 	CleanupStack::PushL( self );
@@ -152,7 +128,7 @@ CNSmlAgendaDataStore* CNSmlAgendaDataStore::NewL()
 	self->ConstructL();
 	CleanupStack::Pop(); // self
 	
-	FLOG(_L("CNSmlAgendaDataStore::NewL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::NewL: END");
 	return self;
 	}
 
@@ -163,61 +139,53 @@ CNSmlAgendaDataStore* CNSmlAgendaDataStore::NewL()
 //
 CNSmlAgendaDataStore::~CNSmlAgendaDataStore()
 	{
-	FLOG(_L("CNSmlAgendaDataStore::~CNSmlAgendaDataStore(): BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::~CNSmlAgendaDataStore(): BEGIN");
 
     // Enable notifications
     TInt error( KErrNone );
-   
-    // TODO:
-    /*if ( iVCalSession )
+    if ( iVCalSession )
         {
         TRAP_IGNORE( iVCalSession->EnablePubSubNotificationsL() );
         TRAP_IGNORE( iVCalSession->EnableChangeBroadcast() );
-        }*/  
+        }
+
+	delete iOwnFormat;
+	iRfs.Close();
+	iStringPool.Close();
 	
     if ( iChangeFinder )
 		{
 		TRAP( error, iChangeFinder->CloseL() );
 		}
-
-    delete iChangeFinder;
+	if (iVersitTlsData)
+			{
+			iVersitTlsData->VersitTlsDataClose();
+			}
+	delete iChangeFinder;
 	delete iNewUids;
 	delete iDeletedUids;
 	delete iSoftDeletedUids;
 	delete iMovedUids;
 	delete iReplacedUids;
 
-    delete iDefaultStoreFileName;
+    delete iDefaultStoreName;
     delete iOpenedStoreName;
-    delete iReceivedStoreName;
 	delete iDataMod;
 	delete iItemData;
-	
+
+    delete iAgendaProgressview;
+    
+	delete iImporter;
+    delete iExporter;
+    delete iInstanceView;
+    delete iEntryView;
+    delete iVCalSession;
     delete iInterimUtils;
     
-    iAgendaPluginAdapters.ResetAndDestroy();    
     
-    if( iOwnFormat )
-       {
-       delete iOwnFormat;
-       iOwnFormat = NULL;
-       }
-   
-    iRfs.Close();
-    iStringPool.Close();
-    
-    if ( iCalOffsetArr )
-       {
-       iCalOffsetArr->Reset();
-       delete iCalOffsetArr;
-       }
-    
-    if ( iCommittedUidArr )
-       {
-       iCommittedUidArr->Reset();
-       delete iCommittedUidArr;
-       }
-	FLOG(_L("CNSmlAgendaDataStore::~CNSmlAgendaDataStore(): END"));
+    // REComSession::FinalClose();
+	
+	_DBG_FILE("CNSmlAgendaDataStore::~CNSmlAgendaDataStore(): END");
 	}
 
 // -----------------------------------------------------------------------------
@@ -228,8 +196,7 @@ CNSmlAgendaDataStore::~CNSmlAgendaDataStore()
 void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
                 MSmlSyncRelationship& aContext, TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoOpenL: BEGIN"));
-	
+	_DBG_FILE("CNSmlAgendaDataStore::DoOpenL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	if ( iState != ENSmlClosed )
@@ -242,41 +209,82 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
 		{
 		RFs::CharToDrive( KNSmlDriveC()[0], iDrive );
 		}
-	
-	if ( iReceivedStoreName )
-        {
-        delete iReceivedStoreName;
-        iReceivedStoreName = NULL;
-        } 
-	iReceivedStoreName = aStoreName.AllocL();
+    
     // Open database
 	TInt err( KErrNone );	
-	if ( aStoreName == KNSmlAgendaFileNameForDefaultDB )
-		{
-		FLOG(_L("CNSmlAgendaDataStore::DoOpenL: Calling the OpenStoreL: '%S'"), &aStoreName);
-		TRAP( err, OpenStoreL() );
-		}    
-		
+	TRAP( err, iVCalSession->OpenL( aStoreName ) );
+	DBG_ARGS(_S("CNSmlAgendaDataStore::DoOpenL: error while opening '%d'"), err );
+	if( err == KErrNotFound )
+        {
+        err = KErrNone;
+        TRAP( err, iVCalSession->CreateCalFileL( aStoreName ));
+        DBG_ARGS(_S("CNSmlAgendaDataStore::DoOpenL: creating the new calfile '%d'"), err );
+        if( err == KErrNone )
+            {
+            TRAP( err, iVCalSession->OpenL( aStoreName ));
+            }       
+        }
 	if ( err )
 	    {
+        DBG_ARGS(_S("CNSmlAgendaDataStore::DoOpenL: end with error '%d'"), err );
 	    User::RequestComplete( iCallerStatus, err );
 	    return;
 	    }
 	
+	// Disable notifications
+	TRAP_IGNORE( iVCalSession->DisablePubSubNotificationsL() );
+	TRAP_IGNORE( iVCalSession->DisableChangeBroadcast() );
+	    
+	if ( iOpenedStoreName )
+		{
+		delete iOpenedStoreName;
+		iOpenedStoreName = NULL;
+		}
+	iOpenedStoreName = aStoreName.AllocL();
+	
+	// Initialize some member variables
+	// Create importer and exporter
+    iImporter = CCalenImporter::NewL( *iVCalSession );
+	iExporter = CCalenExporter::NewL( *iVCalSession );
+
+    // Progress view
+	iAgendaProgressview = CNSmlAgendaProgressview::NewL();
+
+	// Entry View
+    iEntryView = CCalEntryView::NewL( *iVCalSession, *iAgendaProgressview );
+    
+    // Instance View
+    iInstanceView = CCalInstanceView::NewL(*iVCalSession);
+    
+    CActiveScheduler::Start();
+    TInt completedStatus = iAgendaProgressview->GetCompletedStatus();
+    if ( completedStatus != KErrNone )
+        {
+        User::RequestComplete( iCallerStatus, completedStatus );
+        return;
+        }
+
 	if ( iChangeFinder )
 		{
 		iChangeFinder->CloseL();
 		delete iChangeFinder;
 		iChangeFinder = NULL;
 		}
-	
 	iChangeFinder = CNSmlChangeFinder::NewL( aContext, iKey, iHasHistory,
 	                                         KNSmlAgendaAdapterImplUid );
-	iAgendaAdapterLog = CNSmlAgendaAdapterLog::NewL( aContext );
+    
+    // Get ID of database
+	iVCalSession->FileIdL( iOpenedStoreId );
+	
+	if( !iSnapshotRegistered )
+		{
+		RegisterSnapshotL();
+		}
+     	
 	iState = ENSmlOpenAndWaiting;
     User::RequestComplete( iCallerStatus, err );
 	    
-	FLOG(_L("CNSmlAgendaDataStore::DoOpenL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoOpenL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -286,7 +294,7 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
 //
 void CNSmlAgendaDataStore::DoCancelRequest()
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoCancelRequest: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCancelRequest: BEGIN");
     if ( iState == ENSmlOpenAndWaiting )
         {
     	iState = ENSmlClosed;
@@ -295,7 +303,7 @@ void CNSmlAgendaDataStore::DoCancelRequest()
         {
 	    iState = ENSmlOpenAndWaiting;
         }
-	FLOG(_L("CNSmlAgendaDataStore::DoCancelRequest: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCancelRequest: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -305,9 +313,9 @@ void CNSmlAgendaDataStore::DoCancelRequest()
 //
 const TDesC& CNSmlAgendaDataStore::DoStoreName() const
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoStoreName: BEGIN"));
-	FLOG(_L("CNSmlAgendaDataStore::DoStoreName: END"));
-	return *iReceivedStoreName;
+	_DBG_FILE("CNSmlAgendaDataStore::DoStoreName: BEGIN");
+	_DBG_FILE("CNSmlAgendaDataStore::DoStoreName: END");
+	return *iOpenedStoreName;
     }
 
 // -----------------------------------------------------------------------------
@@ -317,9 +325,9 @@ const TDesC& CNSmlAgendaDataStore::DoStoreName() const
 //
 void CNSmlAgendaDataStore::DoBeginTransactionL()
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoBeginTransactionL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoBeginTransactionL: BEGIN");
 	User::Leave( KErrNotSupported );
-	FLOG(_L("CNSmlAgendaDataStore::DoBeginTransactionL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoBeginTransactionL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -329,11 +337,11 @@ void CNSmlAgendaDataStore::DoBeginTransactionL()
 //
 void CNSmlAgendaDataStore::DoCommitTransactionL( TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitTransactionL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitTransactionL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	User::RequestComplete( iCallerStatus, KErrNotSupported );
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitTransactionL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitTransactionL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -343,11 +351,11 @@ void CNSmlAgendaDataStore::DoCommitTransactionL( TRequestStatus& aStatus )
 //
 void CNSmlAgendaDataStore::DoRevertTransaction( TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoRevertTransaction: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoRevertTransaction: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	User::RequestComplete( iCallerStatus, KErrNotSupported );
-	FLOG(_L("CNSmlAgendaDataStore::DoRevertTransaction: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoRevertTransaction: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -357,9 +365,9 @@ void CNSmlAgendaDataStore::DoRevertTransaction( TRequestStatus& aStatus )
 //
 void CNSmlAgendaDataStore::DoBeginBatchL()
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoBeginBatchL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoBeginBatchL: BEGIN");
 	User::Leave( KErrNotSupported );
-	FLOG(_L("CNSmlAgendaDataStore::DoBeginBatchL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoBeginBatchL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -370,11 +378,11 @@ void CNSmlAgendaDataStore::DoBeginBatchL()
 void CNSmlAgendaDataStore::DoCommitBatchL( RArray<TInt>& /*aResultArray*/,
                 TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitBatchL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitBatchL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	User::RequestComplete( iCallerStatus, KErrNotSupported );
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitBatchL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitBatchL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -384,9 +392,9 @@ void CNSmlAgendaDataStore::DoCommitBatchL( RArray<TInt>& /*aResultArray*/,
 //
 void CNSmlAgendaDataStore::DoCancelBatch()
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoCancelBatch: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCancelBatch: BEGIN");
 	// Nothing to do
-	FLOG(_L("CNSmlAgendaDataStore::DoCancelBatch: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCancelBatch: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -397,7 +405,7 @@ void CNSmlAgendaDataStore::DoCancelBatch()
 void CNSmlAgendaDataStore::DoSetRemoteStoreFormatL(
                 const CSmlDataStoreFormat& aServerDataStoreFormat )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: BEGIN");
 	
 	if ( iOwnFormat )
 	    {
@@ -406,24 +414,6 @@ void CNSmlAgendaDataStore::DoSetRemoteStoreFormatL(
 	    }
 	
 	iOwnFormat = DoOwnStoreFormatL();
-	// RD_MULTICAL
-	if ( aServerDataStoreFormat.IsSupported( 
-	                                CSmlDataStoreFormat::EOptionHierarchial ) )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Supports HIERARCHIAL"));
-       
-		
-        iIsHierarchicalSyncSupported = ETrue;
-	
-		// Check what properties are supported for folders
-        iAgendaAdapterHandler->CheckServerSupportForFolder( aServerDataStoreFormat );
-        }
-	else
-	    {
-	    FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Do not support HIERARCHIAL"));	           
-	    iIsHierarchicalSyncSupported = EFalse;
-	    }
-	// RD_MULTICAL       
 	iDataMod->SetOwnStoreFormat( *iOwnFormat );
 	
     iDataMod->SetPartnerStoreFormat( ( CSmlDataStoreFormat& )
@@ -436,7 +426,7 @@ void CNSmlAgendaDataStore::DoSetRemoteStoreFormatL(
 
 #ifdef __NSML_USE_ICAL_FEATURE
 
-    FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Support iCal"));
+    _DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Support iCal");
    	returnValue = iDataMod->SetUsedMimeType(
        	    iOwnFormat->MimeFormat( 1 ).MimeType(),
            	iOwnFormat->MimeFormat( 1 ).MimeVersion() );
@@ -445,19 +435,19 @@ void CNSmlAgendaDataStore::DoSetRemoteStoreFormatL(
 
     if ( returnValue == KErrNone )
         {
-        FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Sets iCal"));
+        _DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Sets iCal");
         iRXEntryType = ENSmlICal;
         iTXEntryType = ENSmlICal;
         }
     else
         {
-        FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Support vCal"));
+        _DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Support vCal");
         returnValue = iDataMod->SetUsedMimeType(
             iOwnFormat->MimeFormat( 0 ).MimeType(),
             iOwnFormat->MimeFormat( 0 ).MimeVersion() );
         if ( returnValue == KErrNone )
             {
-            FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Sets vCal"));
+            _DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: Sets vCal");
             iRXEntryType = ENSmlVCal;
             iTXEntryType = ENSmlVCal;
             }
@@ -465,18 +455,11 @@ void CNSmlAgendaDataStore::DoSetRemoteStoreFormatL(
     if ( iRXEntryType == ENSmlNotSet || iTXEntryType == ENSmlNotSet )
         {
         // Leave if server does not support either vCal or iCal
-        FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: MimeType Not supported"));
+        _DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: MimeType Not supported");
         User::Leave( KErrNotFound );        
         }
     
-    // RD_MULTICAL
-    if( !iSnapshotRegistered )
-        {
-        RegisterSnapshotL();
-        }
-    // RD_MULTICAL
-    
-	FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteStoreFormatL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -486,9 +469,9 @@ void CNSmlAgendaDataStore::DoSetRemoteStoreFormatL(
 //
 void CNSmlAgendaDataStore::DoSetRemoteMaxObjectSize( TInt aServerMaxObjectSize )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteMaxObjectSize: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteMaxObjectSize: BEGIN");
 	iServerMaxObjectSize = aServerMaxObjectSize;
-	FLOG(_L("CNSmlAgendaDataStore::DoSetRemoteMaxObjectSize: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoSetRemoteMaxObjectSize: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -498,8 +481,8 @@ void CNSmlAgendaDataStore::DoSetRemoteMaxObjectSize( TInt aServerMaxObjectSize )
 //
 TInt CNSmlAgendaDataStore::DoMaxObjectSize() const
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoMaxObjectSize: BEGIN"));
-	FLOG(_L("CNSmlAgendaDataStore::DoMaxObjectSize - Default: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoMaxObjectSize: BEGIN");
+	_DBG_FILE("CNSmlAgendaDataStore::DoMaxObjectSize - Default: END");
 	return KNSmlAgendaOwnMaxObjectSize;
     }
 
@@ -508,190 +491,104 @@ TInt CNSmlAgendaDataStore::DoMaxObjectSize() const
 // Open calendar item for reading.
 // -----------------------------------------------------------------------------
 //
-void CNSmlAgendaDataStore::DoOpenItemL( TSmlDbItemUid aUid,
-                                        TBool& aFieldChange,
-                                        TInt& aSize,
-                                        TSmlDbItemUid& aParent,
-                                        TDes8& aMimeType,
-                                        TDes8& aMimeVer,
-                                        TRequestStatus& aStatus )
+void CNSmlAgendaDataStore::DoOpenItemL( TSmlDbItemUid aUid, TBool& aFieldChange,
+                TInt& aSize, TSmlDbItemUid& /*aParent*/, TDes8& aMimeType,
+                TDes8& aMimeVer, TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoOpenItemL: BEGIN");
     iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
-	// Leave if Data Store is in wrong state
 	if ( iState != ENSmlOpenAndWaiting )
 		{
-		FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL:Returing due to invalid state"));
 		User::RequestComplete( iCallerStatus, KErrNotReady );
 		return;
 		}
 		
-	// Add field change info
-	aFieldChange = EFalse;
+ 	iReplaceItemId = aUid;
+ 	
+	CCalEntry* entry = NULL;
+	TInt err( KErrNone );
+    TRAP( err, entry = iEntryView->FetchL( aUid ) );
+	CleanupStack::PushL( entry );
 	
-	// Update the SnapShots
+	if ( err || !entry )
+		{
+		CleanupStack::PopAndDestroy( entry ); // entry
+		User::RequestComplete( iCallerStatus, KErrNotFound );
+		return;
+		}
+		
 	if ( !iSnapshotRegistered )
-        {
-        RegisterSnapshotL();
-        }
-        
-	// Initialize the Buffer
-    delete iItemData;
-    iItemData = NULL;
-    iItemData = CBufFlat::NewL( KNSmlItemDataExpandSize );
+		{
+		RegisterSnapshotL();
+		}
+	delete iItemData;
+	iItemData = NULL;
+	iItemData = CBufFlat::NewL( KNSmlItemDataExpandSize );
 
-    RBufWriteStream writeStream( *iItemData );
-    writeStream.PushL();
-
-	// RD_MULTICAL
-  	//Determine the Mime Type
-    DataMimeType( aUid );
-	TInt fetchError( KErrNone );
-	switch( iDataMimeType )
+	RBufWriteStream writeStream( *iItemData );
+	writeStream.PushL();
+	
+	// Export item from database
+	if ( iTXEntryType == ENSmlICal )
 	    {
-	    case ENSmlFolder:
-    	    {
-    	    //Set the Parent UID
-    	    aParent = KDbItemUidRoot; // parent is root
-    	    FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: calling fetch"));
-	        FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL:writestream before size: '%d'"), writeStream.Sink()->SizeL());
-	        TRAP( fetchError, iAgendaAdapterHandler->FetchFolderL( aUid, writeStream ) );
-	        FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL:writestream size: '%d'"), writeStream.Sink()->SizeL());
-    	
-	        if(fetchError != KErrNone)
-    	        {
-    	        FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: fetch error: '%d'"), fetchError);
-    	        CleanupStack::PopAndDestroy( ); // writeStream
-    	        User::RequestComplete( iCallerStatus, fetchError );
-    	        return;
-    	        }
-    	    
-            aMimeType.Append( KNSmlContentTypeFolder );
-            aMimeVer.Append( KNSmlContentTypeFolderVersion );
-            
-            writeStream.CommitL();
-            iItemData->Compress();
-            iPos = 0;
-            }
-    	    break;
-	    case ENSmlCalendar:
-    	    {
-    	    FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: calendar item"));
-            CNSmlAgendaDataStoreUtil* agendautil = NULL;
-            HBufC* calfilename = NULL;
-            TCalLocalUid parentid(NULL);
-            TCalLocalUid entryid(aUid);
-            TInt err( KErrNone );
-            
-            if( iIsHierarchicalSyncSupported )
-                {
-                TRAP( err, GetCalendarEntryIdL( parentid, entryid ));
-                if ( err )
-                    {
-                    FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL:Parent Id is not Valid one"));
-                    CleanupStack::PopAndDestroy( ); // writeStream
-                    User::RequestComplete( iCallerStatus, KErrNotFound );
-                    return;
-                    }
-                aParent = parentid;
-                //Get the Folder Name
-                TRAP(err, calfilename = iAgendaAdapterHandler->FolderNameL( parentid ));  
-                }
-            else
-                {
-                calfilename = iOpenedStoreName->AllocL();
-                }
-            
-            if( err != KErrNone || NULL == calfilename )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL:Invalid CalendarInfo"));
-                CleanupStack::PopAndDestroy( ); // writeStream
-                User::RequestComplete( iCallerStatus, KErrNotFound );
-                return;
-                }     
-            
-            iReplaceItemId = entryid;            
-            agendautil = CNSmlAgendaDataStoreUtil::NewL();
-            if( agendautil )
-                {
-                CleanupStack::PushL(agendautil);
-                TRAP(err, agendautil->InitializeCalAPIsL( calfilename, entryid ));
-                CleanupStack::Pop(agendautil);
-                }
-            if ( err || !agendautil )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: entry is not valid"));
-                delete agendautil; 
-                delete calfilename;
-                CleanupStack::PopAndDestroy( ); // writeStream
-                User::RequestComplete( iCallerStatus, KErrNotFound );
-                return;
-                }    
-            // Export item from database
-            if ( iTXEntryType == ENSmlICal )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: Export - iCal DB"));
-                agendautil->iExporter->ExportICalL( *agendautil->iEntry, writeStream );
-                aMimeType = iOwnFormat->MimeFormat( 1 ).MimeType().DesC();
-                aMimeVer = iOwnFormat->MimeFormat( 1 ).MimeVersion().DesC();
-                }
-            else if ( iTXEntryType == ENSmlVCal )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: Export - vCal DB"));
-                agendautil->iExporter->ExportVCalL( *agendautil->iEntry, writeStream );
-                aMimeType = iOwnFormat->MimeFormat( 0 ).MimeType().DesC();
-                aMimeVer = iOwnFormat->MimeFormat( 0 ).MimeVersion().DesC();
-                }
-            else
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: Export - DB Not Supported"));
-                delete agendautil;
-                delete calfilename;
-                CleanupStack::PopAndDestroy( &writeStream ); 
-                User::RequestComplete( iCallerStatus, KErrNotSupported );
-                return;
-                }
-            writeStream.CommitL();
-            iItemData->Compress();
-            iPos = 0;
-     
-            iDataMod->StripTxL( *iItemData );
-            delete agendautil;
-            delete calfilename;
-            }
-    	    break;
-	    default:
-    	    {
-    	    iDataMimeType = ENSmlNone;
-    	    CleanupStack::PopAndDestroy( ); // writeStream
-    	    User::RequestComplete( iCallerStatus, KErrNotFound );
-    	    return;
-    	    }
+	    _DBG_FILE("CNSmlAgendaDataStore::DoOpenItemL: Export - iCal DB");
+	    iExporter->ExportICalL( *entry, writeStream );
+	    aMimeType = iOwnFormat->MimeFormat( 1 ).MimeType().DesC();
+	    aMimeVer = iOwnFormat->MimeFormat( 1 ).MimeVersion().DesC();
 	    }
-    
-	CleanupStack::PopAndDestroy( ); // writeStream
+    else if ( iTXEntryType == ENSmlVCal )
+	    {
+	    _DBG_FILE("CNSmlAgendaDataStore::DoOpenItemL: Export - vCal DB");
+	    iExporter->ExportVCalL( *entry, writeStream );
+	    aMimeType = iOwnFormat->MimeFormat( 0 ).MimeType().DesC();
+	    aMimeVer = iOwnFormat->MimeFormat( 0 ).MimeVersion().DesC();
+	    }
+	else
+	    {
+	    _DBG_FILE("CNSmlAgendaDataStore::DoOpenItemL: Export - DB Not Supported");
+	    CleanupStack::PopAndDestroy( 2 ); // writeStream, entry
+	    User::RequestComplete( iCallerStatus, KErrNotSupported );
+		return;
+	    }
 	
-	FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: destroying the stream"));
+	writeStream.CommitL();
+	iItemData->Compress();
+	iPos = 0;
 	
-	// Set the Size
+#ifdef __NSML_MORE_DEBUG_FOR_ITEMS__
+
+	DBG_DUMP( ( void* )iItemData->Ptr( 0 ).Ptr(), iItemData->Size(),
+	         _S8( "Item from database:" ) );
+
+#endif // __NSML_MORE_DEBUG_FOR_ITEMS__
+
+	
+	iDataMod->StripTxL( *iItemData );
+	CleanupStack::PopAndDestroy( 2 ); // writeStream, entry
+	
+#ifdef __NSML_MORE_DEBUG_FOR_ITEMS__
+
+	DBG_DUMP( ( void* )iItemData->Ptr( 0 ).Ptr(), iItemData->Size(),
+	         _S8( "Item from database after strip:" ) );
+
+#endif // __NSML_MORE_DEBUG_FOR_ITEMS__
+	
+	aFieldChange = EFalse;
 	aSize = iItemData->Size();
 	
 	iState = ENSmlItemOpen;
 	
-	FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: user complete"));
-	
 	if ( iServerMaxObjectSize == 0 || aSize <= iServerMaxObjectSize )
 		{
-		FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: error none"));
 		User::RequestComplete( iCallerStatus, KErrNone );
 		}
 	else
 		{
-		FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: error too big"));
 		User::RequestComplete( iCallerStatus, KErrTooBig );
 		}
-	FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: END"));
+		
+	_DBG_FILE("CNSmlAgendaDataStore::DoOpenItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -700,159 +597,87 @@ void CNSmlAgendaDataStore::DoOpenItemL( TSmlDbItemUid aUid,
 // buffered.
 // -----------------------------------------------------------------------------
 //
-void CNSmlAgendaDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
-                                          TInt aSize,
-                                          TSmlDbItemUid aParent,
-                                          const TDesC8& aMimeType,
-                                          const TDesC8& /*aMimeVer*/,
-                                          TRequestStatus& aStatus )
+void CNSmlAgendaDataStore::DoCreateItemL( TSmlDbItemUid& aUid, TInt aSize,
+                TSmlDbItemUid /*aParent*/, const TDesC8& aMimeType,
+                const TDesC8& /*aMimeVer*/, TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: BEGIN"));
-	FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: Parent id: '%d'"), aParent);
-	FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: UID: '%d'"), aUid);
+	_DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	iAddItemId = &aUid;
 	
-    //Leave if Data Store is in wrong state
-    if ( iState != ENSmlOpenAndWaiting )
+	if ( iState != ENSmlOpenAndWaiting )
+		{
+		User::RequestComplete( iCallerStatus, KErrNotReady );
+		_DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL - KErrNotReady: END");
+		return;
+		}
+		
+	if ( KNSmlAgendaOwnMaxObjectSize < aSize )
+		{
+		User::RequestComplete( iCallerStatus, KErrTooBig );
+		_DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL - KErrTooBig: END");
+		return;
+		}
+		
+	if( SysUtil::DiskSpaceBelowCriticalLevelL( &iRfs, aSize, iDrive ) )
+		{
+		User::RequestComplete( iCallerStatus, KErrDiskFull );
+		_DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL - KErrDiskFull: END");
+		return;
+		}
+
+    // Check if MIME type of new item is supported
+	TBool mimeFound( EFalse );
+	// vCal
+    if ( iOwnFormat->MimeFormat( 0 ).MimeType().DesC().Compare( aMimeType )
+         == 0 )
+	    {
+	    _DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL: received vCal");
+	    mimeFound = ETrue;
+	    iRXEntryType = ENSmlVCal;
+	    }
+	        
+#ifdef __NSML_USE_ICAL_FEATURE
+
+     // iCal
+    else if ( iOwnFormat->MimeFormat( 1 ).MimeType().DesC().Compare( aMimeType )
+              == 0 ) 
         {
-        User::RequestComplete( iCallerStatus, KErrNotReady );
-        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL - KErrNotReady: END"));
-        return;
+        _DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL: received iCal");
+        mimeFound = ETrue;
+	    iRXEntryType = ENSmlICal;
         }
 
-    // Leave if item is larger than we support
-    if ( KNSmlAgendaOwnMaxObjectSize < aSize )
-        {
-        User::RequestComplete( iCallerStatus, KErrTooBig );
-        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL - KErrTooBig: END"));
-        return;
-        }
-        
-    // Check the drive free space
-    if( SysUtil::DiskSpaceBelowCriticalLevelL( &iRfs, aSize, iDrive ) )
-        {
-        User::RequestComplete( iCallerStatus, KErrDiskFull );
-        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL - KErrDiskFull: END"));
-        return;
-        }
-    
-    // Check the MIME type
-    if ( 0 == iOwnFormat->MimeFormat( 0 ).MimeType().DesC().Compare( aMimeType ) )
-        {
-        // vcal
-        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: received vCal"));
-        iRXEntryType = ENSmlVCal;
-        iDataMimeType = ENSmlCalendar;
-        
-        TInt err( KErrNone );
-        // Check the Sync Status
-        if( iIsHierarchicalSyncSupported )
-            {   
-            FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL Supports Hierarchichal"));
-            // Check that parent exists
-            iParentItemId = aParent;
-            if ( iParentItemId == KDbItemUidRoot 
-                 && iDataMimeType == ENSmlCalendar )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: ParentId is NULL"));
-                iParentItemId = NULL;
-                iOrphanEvent = ETrue;
-                iParentItemId = KDbPersonal;
-                }
-          
-            TInt index = KErrNotFound;
-            TInt err = KErrNone;
-            TKeyArrayFix key( 0, ECmpTInt ); // Find key for Ids.
-            
-            err = iCalOffsetArr->Find( iParentItemId, key, index );
-         
-            if( err != KErrNone && iDataMimeType == ENSmlCalendar )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: ParentId is NotFound"));
-                iParentItemId = NULL;
-                iOrphanEvent = EFalse;
-                User::RequestComplete( iCallerStatus, KErrNotFound );
-                return;
-                }           
-            // Check the Sync Status    
-			TBool syncstatus( EFalse );   
-            TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( iParentItemId ) );
-            if( err || !syncstatus  )
-                {
-                iOrphanEvent = EFalse;
-                User::RequestComplete( iCallerStatus, err );
-                FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL - Sync Disabled: END"));
-                return;
-                }
-            }
-        else
-            {
-            TBool syncstatus( EFalse );
-            HBufC* calfilename = iOpenedStoreName->AllocL();
-            TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( calfilename ) );
-            if( err || !syncstatus )
-                {
-                delete calfilename;
-                User::RequestComplete( iCallerStatus, KErrGeneral );
-                FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL - Sync Disabled: END"));
-                return;
-                }
-            delete calfilename;            
-            }
-        }
-#ifdef __NSML_USE_ICAL_FEATURE     
-    else if ( 0 == iOwnFormat->MimeFormat( 1 ).MimeType().DesC().Compare( aMimeType ) ) 
-        {
-        //ical
-        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: received iCal"));
-        iRXEntryType = ENSmlICal;
-        iDataMimeType = ENSmlCalendar;
-        }
 #endif // __NSML_USE_ICAL_FEATURE
-    // RD_MULTICAL
-    else if( aMimeType == KNSmlContentTypeFolder() && iIsHierarchicalSyncSupported )
-        {
-        // Check the validity 
-        /*if ( aUid <= 0 || aParent <= 0 )
-          {
-          FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: Corrupt ids"));
-          User::RequestComplete( iCallerStatus, KErrCorrupt );
-          return;
-          }*/
-        iDataMimeType = ENSmlFolder;
-        }
-    // RD_MULTICAL
+
+    // Else use original iRXEntryType
     else
         {
-        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: \
-                               mime type not received"));
+        _DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL: \
+                   mime type not received");
         iRXEntryType = iTXEntryType;
-        iDataMimeType = ENSmlNone;
-        User::RequestComplete( iCallerStatus, KErrNotSupported );
-        FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: end with leave"));
-        return;
         }
-    
-    // TODO: Any other validation is required ?  
-    
-    // Register snapshots if needed
-    if( !iSnapshotRegistered )
-        {
-        RegisterSnapshotL();
-        }
-    
-    // Buffer is reinitialized
-    delete iItemData;
-    iItemData = NULL;
-    iItemData = CBufFlat::NewL( KNSmlItemDataExpandSize );
-    iPos = 0;
-    
-    iState = ENSmlItemCreating;
-    User::RequestComplete( iCallerStatus, KErrNone );
 
-	FLOG(_L("CNSmlAgendaDataStore::DoCreateItemL: END"));
+	if ( !mimeFound )
+		{
+		User::RequestComplete( iCallerStatus, KErrNotSupported );
+		_DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL -KErrNotSupported: END");
+		return;
+		}
+
+	if( !iSnapshotRegistered )
+		{
+		RegisterSnapshotL();
+		}
+	delete iItemData;
+	iItemData = NULL;
+	iItemData = CBufFlat::NewL( KNSmlItemDataExpandSize );
+	iPos = 0;
+	
+	iState = ENSmlItemCreating;
+	User::RequestComplete( iCallerStatus, KErrNone );
+	_DBG_FILE("CNSmlAgendaDataStore::DoCreateItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -861,171 +686,80 @@ void CNSmlAgendaDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
 // writes item's data as buffered.
 // -----------------------------------------------------------------------------
 //
-void CNSmlAgendaDataStore::DoReplaceItemL( TSmlDbItemUid aUid,
-                                           TInt aSize,
-                                           TSmlDbItemUid aParent,
-                                           TBool aFieldChange,
-                                           TRequestStatus& aStatus )
+void CNSmlAgendaDataStore::DoReplaceItemL( TSmlDbItemUid aUid, TInt aSize,
+                TSmlDbItemUid /*aParent*/, TBool aFieldChange,
+                TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL: BEGIN"));
-	FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL: Parent id: '%d'"), aParent);
-	FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL: UID: '%d'"), aUid);
-	
+	_DBG_FILE("CNSmlAgendaDataStore::DoReplaceItemL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
-	TInt err( KErrNone );
 	
-    // Leave if Data Store is in wrong state
-    if ( iState != ENSmlOpenAndWaiting )
+	if ( iState != ENSmlOpenAndWaiting )
+		{
+		User::RequestComplete( iCallerStatus, KErrNotReady );
+		_DBG_FILE("CNSmlAgendaDataStore::DoReplaceItemL - KErrNotReady: END");
+		return;
+		}
+
+	if ( KNSmlAgendaOwnMaxObjectSize < aSize )
+		{
+		User::RequestComplete( iCallerStatus, KErrTooBig );
+		_DBG_FILE("CNSmlAgendaDataStore::DoReplaceItemL - KErrTooBig: END");
+		return;
+		}
+
+	if ( aFieldChange )
+		{
+		User::RequestComplete( iCallerStatus, KErrNotSupported );
+		_DBG_FILE("CNSmlAgendaDataStore::DoReplaceItemL \
+		           - KErrNotSupported: END");
+		return;
+		}
+	if ( SysUtil::DiskSpaceBelowCriticalLevelL( &iRfs, aSize, iDrive ) )
+		{
+		User::RequestComplete( iCallerStatus, KErrDiskFull );
+		_DBG_FILE("CNSmlAgendaDataStore::DoReplaceItemL - KErrDiskFull: END");
+		return;
+		}
+	
+ 	iReplaceItemId = aUid;
+
+ 	CCalEntry* entry = NULL;
+ 	TInt err( KErrNone );
+    TRAP( err, entry = iEntryView->FetchL( aUid ) );
+	CleanupStack::PushL( entry );
+ 		
+	if ( !entry || err == KErrNotFound )
+		{
+		CleanupStack::PopAndDestroy( entry ); // entry
+		User::RequestComplete( iCallerStatus, KErrNotFound );
+		_DBG_FILE("CNSmlAgendaDataStore::DoReplaceItemL - KErrNotFound: END");
+		return;
+		}
+    else if ( err )
         {
-        User::RequestComplete( iCallerStatus, KErrNotReady );
-        FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - KErrNotReady: END"));
-        return;
+		CleanupStack::PopAndDestroy( entry ); // entry
+		User::RequestComplete( iCallerStatus, err );
+		_DBG_FILE("CNSmlAgendaDataStore::DoReplaceItemL - Error: END");
+		return;
         }
 
-    // Leave if item is larger than we support
-    if ( KNSmlAgendaOwnMaxObjectSize < aSize )
-        {
-        User::RequestComplete( iCallerStatus, KErrTooBig );
-        FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - KErrTooBig: END"));
-        return;
-        }
-
-    // This adapter does not support Field Level sync
-    if ( aFieldChange )
-        {
-        User::RequestComplete( iCallerStatus, KErrNotSupported );
-        FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL \
-                   - KErrNotSupported: END"));
-        return;
-        }
-    
-    // Check the drive free space
-    if ( SysUtil::DiskSpaceBelowCriticalLevelL( &iRfs, aSize, iDrive ) )
-        {
-        User::RequestComplete( iCallerStatus, KErrDiskFull );
-        FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - KErrDiskFull: END"));
-        return;
-        }
-    
-    // Check the Sync Status
-    if( iIsHierarchicalSyncSupported )
-        {
-        TCalLocalUid parentid( aParent );
-        TCalLocalUid entryid( aUid );
-        
-        TRAP( err, GetCalendarEntryIdL( parentid, entryid ));
-        if ( err )
-            {
-            FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL: Invalid UID"));
-            User::RequestComplete( iCallerStatus, KErrGeneral );
-            FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - Sync Disabled: END"));
-            return;
-            }         
-        TBool syncstatus( EFalse );
-        TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( parentid ) );
-        if( err || !syncstatus  )
-            {
-            User::RequestComplete( iCallerStatus, err );
-            FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - Sync Disabled: END"));
-            return;
-            }
-        }
-    else
-        {
-        TBool syncstatus( EFalse );
-        HBufC* calfilename = iOpenedStoreName->AllocL();
-        TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( calfilename ) );
-        if( err || !syncstatus )
-            {
-            delete calfilename;
-            User::RequestComplete( iCallerStatus, KErrGeneral );
-            FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - Sync Disabled: END"));
-            return;
-            }
-        delete calfilename;            
-        }
-    
-    // Determine the Mime Type
-    DataMimeType( aUid ); 
-    switch( iDataMimeType )
-        {
-        case ENSmlFolder:
-            {
-            iReplaceItemId = aUid;
-            }
-            break;
-        case ENSmlCalendar:
-            {
-            CNSmlAgendaDataStoreUtil* agendautil = NULL;
-            HBufC* calfilename = NULL;
-            iParentItemId = aParent;
-            
-            if( iIsHierarchicalSyncSupported )
-                {
-                iReplaceItemId = aUid - aParent;
-                //Get the Folder Information
-                TRAP(err, calfilename = iAgendaAdapterHandler->FolderNameL( aParent ));
-                }
-            else
-                {
-                iReplaceItemId = aUid;
-                calfilename = iOpenedStoreName->AllocL();
-                }
-                
-            if( err != KErrNone || NULL == calfilename )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL:Invalid CalendarInfo"));
-                User::RequestComplete( iCallerStatus, KErrNotFound );
-                return;
-                }
-            
-            FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL: entry id to be fetched: '%d'"), iReplaceItemId);             
-            agendautil = CNSmlAgendaDataStoreUtil::NewL();
-            if( agendautil )
-                {
-                CleanupStack::PushL(agendautil);
-                TRAP(err, agendautil->InitializeCalAPIsL( calfilename, iReplaceItemId ));
-                CleanupStack::Pop(agendautil);
-                }
-                
-            if ( err || !agendautil )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL: entry is not valid"));  
-                delete agendautil;
-                delete calfilename;             
-                User::RequestComplete( iCallerStatus, KErrNotFound );               
-                return;
-                }
-            delete agendautil;
-            delete calfilename;  
-            }
-            break;
-        default:
-            {
-            iDataMimeType = ENSmlNone;
-            User::RequestComplete( iCallerStatus, KErrNotSupported );
-            FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL \
-                       - KErrNotSupported: END"));
-            return;
-            }
-        }
-    
-    if ( !iSnapshotRegistered )
-        {
-        RegisterSnapshotL();
-        }
-   
-    //Reinitialize the Buffer
-    delete iItemData;
-    iItemData = NULL;
-    iItemData = CBufFlat::NewL( KNSmlItemDataExpandSize );
-    iPos = 0;
-    
-    iState = ENSmlItemUpdating;
-    User::RequestComplete( iCallerStatus, KErrNone );
+	CleanupStack::PopAndDestroy( entry ); // entry
+		
+	if ( !iSnapshotRegistered )
+		{
+		RegisterSnapshotL();
+		}
+		
+	delete iItemData;
+	iItemData = NULL;
+	iItemData = CBufFlat::NewL( KNSmlItemDataExpandSize );
+	iPos = 0;
+	iReplaceItemId = aUid;
 	
-	FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL: END"));
+	iState = ENSmlItemUpdating;
+	User::RequestComplete( iCallerStatus, KErrNone );
+	_DBG_FILE("CNSmlAgendaDataStore::DoReplaceItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1035,7 +769,7 @@ void CNSmlAgendaDataStore::DoReplaceItemL( TSmlDbItemUid aUid,
 //
 void CNSmlAgendaDataStore::DoReadItemL( TDes8& aBuffer )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoReadItemL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoReadItemL: BEGIN");
     if ( iState != ENSmlItemOpen || !iItemData )
         {
         iPos = -1;
@@ -1057,7 +791,7 @@ void CNSmlAgendaDataStore::DoReadItemL( TDes8& aBuffer )
         iItemData->Read( iPos, aBuffer, iItemData->Size() - iPos );
         iPos = -1;
         }
-	FLOG(_L("CNSmlAgendaDataStore::DoReadItemL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoReadItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1067,7 +801,7 @@ void CNSmlAgendaDataStore::DoReadItemL( TDes8& aBuffer )
 //
 void CNSmlAgendaDataStore::DoWriteItemL( const TDesC8& aData )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoWriteItemL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoWriteItemL: BEGIN");
 	if ( iState == ENSmlItemCreating || iState == ENSmlItemUpdating )
 		{
 		if ( iItemData )
@@ -1082,7 +816,7 @@ void CNSmlAgendaDataStore::DoWriteItemL( const TDesC8& aData )
 			}
 		}
 	User::Leave( KErrNotReady );
-	FLOG(_L("CNSmlAgendaDataStore::DoWriteItemL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoWriteItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1092,63 +826,34 @@ void CNSmlAgendaDataStore::DoWriteItemL( const TDesC8& aData )
 //
 void CNSmlAgendaDataStore::DoCommitItemL( TRequestStatus& aStatus )
     {
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitItemL: BEGIN"));
-    iCallerStatus = &aStatus;
-    *iCallerStatus = KRequestPending;
-    
-    // Leave if Data Store is in wrong state
-    if ( iState != ENSmlItemCreating && iState != ENSmlItemUpdating )
-        {
-        User::RequestComplete( iCallerStatus, KErrNotReady );
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitItemL - KErrNotReady: END"));
-        return;
-        }
-    
-    iItemData->Compress();
-    TInt error( KErrNone );
-    
-    // RD_MULTICAL
-    switch(iDataMimeType)
-        {
-        case ENSmlCalendar:
-            {
-            if( iState == ENSmlItemCreating )
-                {
-                TRAP( error, DoCommitCreateCalItemL() );
-                }
-            else
-                {
-                TRAP( error, DoCommitReplaceCalItemL() );
-                }
-            }
-            break;
-        case ENSmlFolder:
-            {
-            if( iState == ENSmlItemCreating )
-                {
-                TRAP( error, DoCommitCreateFolderItemL() );
-                }
-            else
-                {
-                TRAP( error, DoCommitReplaceFolderItemL() );
-                }
-            }
-            break;
-        default:
-            {
-            FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateItemL - \
-                                           KErrNotSupported: END"));
-            User::Leave( KErrNotSupported );
-            }                
-        }
-    // RD_MULTICAL
-    
-    iReplaceItemId = -1;
-    iPos = -1;
-    iState = ENSmlOpenAndWaiting;
-    iRXEntryType = iTXEntryType;
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitItemL: BEGIN");
+	iCallerStatus = &aStatus;
+	*iCallerStatus = KRequestPending;
+	
+	if ( iState != ENSmlItemCreating && iState != ENSmlItemUpdating )
+		{
+		User::RequestComplete( iCallerStatus, KErrNotReady );
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitItemL - KErrNotReady: END");
+		return;
+		}
+	
+	iItemData->Compress();
+	TInt error( KErrNone );
+	
+	if ( iState == ENSmlItemCreating )
+		{
+		TRAP( error, DoCommitCreateItemL() );
+		}
+	else // ENSmlItemUpdating
+		{
+        TRAP( error, DoCommitReplaceItemL() );
+		}
+	iReplaceItemId = -1;
+	iPos = -1;
+	iState = ENSmlOpenAndWaiting;
+	iRXEntryType = iTXEntryType;
     User::RequestComplete( iCallerStatus, error );    
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitItemL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1158,13 +863,13 @@ void CNSmlAgendaDataStore::DoCommitItemL( TRequestStatus& aStatus )
 //
 void CNSmlAgendaDataStore::DoCloseItem()
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoCloseItem: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCloseItem: BEGIN");
 	if ( iState == ENSmlItemOpen )
 		{
 		iPos = -1;
 		iState = ENSmlOpenAndWaiting;
 		}
-	FLOG(_L("CNSmlAgendaDataStore::DoCloseItem: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCloseItem: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1173,16 +878,18 @@ void CNSmlAgendaDataStore::DoCloseItem()
 // -----------------------------------------------------------------------------
 //
 void CNSmlAgendaDataStore::DoMoveItemL( TSmlDbItemUid /*aUid*/,
-                                        TSmlDbItemUid /*aNewParent*/,
-                                        TRequestStatus& aStatus )
+            TSmlDbItemUid /*aNewParent*/, TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoMoveItemL: BEGIN"));
-	
-    iCallerStatus = &aStatus;
-    *iCallerStatus = KRequestPending;
-    User::RequestComplete( iCallerStatus, KErrNotSupported );
-	    
-	FLOG(_L("CNSmlAgendaDataStore::DoMoveItemL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoMoveItemL: BEGIN");
+	iCallerStatus = &aStatus;
+	*iCallerStatus = KRequestPending;
+	if ( iState != ENSmlOpenAndWaiting )
+		{
+		User::RequestComplete( iCallerStatus, KErrNotReady );
+		return;
+		}
+	User::RequestComplete( iCallerStatus, KErrNotSupported );
+	_DBG_FILE("CNSmlAgendaDataStore::DoMoveItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1191,234 +898,46 @@ void CNSmlAgendaDataStore::DoMoveItemL( TSmlDbItemUid /*aUid*/,
 // -----------------------------------------------------------------------------
 //
 void CNSmlAgendaDataStore::DoDeleteItemL( TSmlDbItemUid aUid,
-                                          TRequestStatus& aStatus )
+                TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL: BEGIN"));
-	FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL: aUid: '%d'"), aUid);
-	
-	TInt err(KErrNone);
+	_DBG_FILE("CNSmlAgendaDataStore::DoDeleteItemL: BEGIN");
 	iCallerStatus = &aStatus;
-    *iCallerStatus = KRequestPending;
-    
-    // Leave is Data Store is in wrong state
-    if ( iState != ENSmlOpenAndWaiting )
-        {
-        User::RequestComplete( iCallerStatus, KErrNotReady );
-        return;
-        }
-    
-    //Check validity of UID
-    if ( aUid <= 0 )
-        {
-        User::RequestComplete( iCallerStatus, KErrCorrupt );
-        return;
-        }
+	*iCallerStatus = KRequestPending;
+	if ( iState != ENSmlOpenAndWaiting )
+		{
+		User::RequestComplete( iCallerStatus, KErrNotReady );
+		return;
+		}
 
-    // Check the Sync Status
-    if( iIsHierarchicalSyncSupported )
-        {
-        TCalLocalUid parentid( NULL );
-        TCalLocalUid entryid( aUid );
-       
-        TRAP( err, GetCalendarEntryIdL( parentid, entryid ));
-        if ( err )
-            {
-            FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL: Invalid UID"));
-            User::RequestComplete( iCallerStatus, KErrGeneral );
-            FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL - Sync Disabled: END"));
-            return;
-            }    
-        TBool syncstatus( EFalse );
-        TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( parentid ) );
-        if( err || !syncstatus )
-            {
-            User::RequestComplete( iCallerStatus, err );
-            FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL - Sync Disabled: END"));
-            return;
-            }
-        }
-     else
-        {
-        TBool syncstatus( EFalse );
-        HBufC* calfilename = iOpenedStoreName->AllocL();
-        TRAP( err, syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( calfilename ) );
-        if( err || !syncstatus )
-            {
-            delete calfilename;
-            User::RequestComplete( iCallerStatus, KErrGeneral );
-            FLOG(_L("CNSmlAgendaDataStore::DoReplaceItemL - Sync Disabled: END"));
-            return;
-            }
-        delete calfilename;            
-        }
-     
-    //Determine the Mime Type
-    DataMimeType( aUid );
-    switch( iDataMimeType )
-        {
-        case ENSmlFolder:
-            {        
-            HBufC* calfilename = NULL;
-            //Get the Calendar information
-            TRAP(err, calfilename = iAgendaAdapterHandler->FolderNameL(aUid) );
-            if( err != KErrNone || NULL == calfilename )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL:Invalid CalendarInfo"));
-                User::RequestComplete( iCallerStatus, KErrNotFound );
-                return;
-                }
-            
-            FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL: name exists"));
-            CCalSession* vCalSession = CCalSession::NewL();
-            CleanupStack::PushL(vCalSession);
-            vCalSession->OpenL(calfilename->Des());
-            FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL: before deleting"));
-            TRAP(err, vCalSession->DeleteCalFileL(calfilename->Des()));
-            FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL: after deleting err: '%d'"), err);
-            if( err == KErrInUse )
-                {
-                // Delete all the entries associated with this CalFile
-                CNSmlAgendaDataStoreUtil* agendautil = NULL;
-                TBuf8<KBuffLength> keyBuff;
-                TInt aNumSuccessfulDeleted( 0 );
-                RArray<TCalLocalUid> uidArray;
-                CleanupClosePushL( uidArray );
-                TCalTime zeroTime;
-                zeroTime.SetTimeUtcL( Time::NullTTime() );
-                
-                agendautil = CNSmlAgendaDataStoreUtil::NewL();
-                if( agendautil )
-                    {
-                    CleanupStack::PushL(agendautil);
-                    TRAP(err, agendautil->InitializeCalAPIsL( calfilename ));
-                    CleanupStack::Pop(agendautil);
-                    }                      
-                if ( err || !agendautil )
-                    {
-                    FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL:Invalid CalendarInfo"));
-                    delete calfilename;
-                    User::RequestComplete( iCallerStatus, KErrNotFound );
-                    return;
-                    }            
-                agendautil->iEntryView->GetIdsModifiedSinceDateL( zeroTime, uidArray );
-                // ... and then delete them
-                agendautil->iEntryView->DeleteL( uidArray, aNumSuccessfulDeleted );
-                CleanupStack::PopAndDestroy( &uidArray ); // uidArray
-                delete agendautil;    
-                
-                // Get the CalFile
-                CCalCalendarInfo* caleninfo = vCalSession->CalendarInfoL();
-                CleanupStack::PushL(caleninfo);
-                
-                // Mark the CalFile as Hidden
-                caleninfo->SetEnabled( EFalse );
-                            
-                // Set the SyncStatus to False
-                keyBuff.Zero();
-                keyBuff.AppendNum( ESyncStatus );
-                TBool syncstatus( EFalse );
-                TPckgC<TBool> pckgSyncStatusValue( syncstatus );
-                caleninfo->SetPropertyL( keyBuff, pckgSyncStatusValue );
-                
-                // Mark the meta property as SoftDeleted
-                keyBuff.Zero();
-                keyBuff.AppendNum(EMarkAsDelete);
-                TPckgC<TBool> pkgSoftDelete( ETrue );
-                caleninfo->SetPropertyL(keyBuff, pkgSoftDelete);
-                
-                vCalSession->SetCalendarInfoL( *caleninfo );
-                CleanupStack::PopAndDestroy(caleninfo);            
-                }
-            else if( err != KErrNone )
-                {
-                CleanupStack::PopAndDestroy(vCalSession);
-                delete calfilename;
-                User::RequestComplete( iCallerStatus, KErrGeneral );
-                return;
-                }
-            CleanupStack::PopAndDestroy(vCalSession);            
-            delete calfilename;  
-            
-            //Update the array
-            TInt index = KErrNotFound;
-            TInt err = KErrNone;
-            TKeyArrayFix key( 0, ECmpTInt ); // Find key for Ids.
-       
-            err = iCalOffsetArr->Find( aUid, key, index );
-                  
-            if( err == KErrNone )
-                {
-                iCalOffsetArr->Delete(index);
-                FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL: updated the array"));
-                }
-            }
-            break;
-        case ENSmlCalendar:
-            {
-            CNSmlAgendaDataStoreUtil* agendautil = NULL;
-            HBufC* calfilename = NULL;
-            TCalLocalUid parentid(NULL);
-            TCalLocalUid entryid(aUid);
-            TInt err( KErrNone );
-            
-            if( iIsHierarchicalSyncSupported )
-                {
-                TRAP( err, GetCalendarEntryIdL( parentid, entryid ));
-                if ( err )
-                    {
-                    FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL:Parent Id is not Valid one"));
-                    User::RequestComplete( iCallerStatus, KErrNotFound );
-                    return;
-                    }
-                //Get the Folder Information
-                TRAP(err, calfilename = iAgendaAdapterHandler->FolderNameL(parentid) );
-                }
-            else
-                {
-                calfilename = iOpenedStoreName->AllocL();
-                }
-                
-            if( err != KErrNone || NULL == calfilename )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL:Invalid CalendarInfo"));
-                User::RequestComplete( iCallerStatus, KErrNotFound );
-                return;
-                }
-            
-            agendautil = CNSmlAgendaDataStoreUtil::NewL();
-            if( agendautil )
-                {
-                CleanupStack::PushL(agendautil);
-                TRAP(err, agendautil->InitializeCalAPIsL( calfilename, entryid ));
-                CleanupStack::Pop(agendautil);
-                }                      
-            if ( err || !agendautil )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::DoOpenItemL: entry is not valid"));
-                delete agendautil;
-                delete calfilename;
-                User::RequestComplete( iCallerStatus, KErrNotFound );
-                return;
-                }                
-            agendautil->iEntryView->DeleteL( *agendautil->iEntry );
-            delete agendautil;
-            delete calfilename;
-            }
-            break;
-        default:
-            break;
-        }
-    
-    //Update the Snapshots
-    if ( iChangeFinder )
-        {
-        TNSmlSnapshotItem item( aUid );
-        iChangeFinder->ItemDeleted( item );        
-        }
-        
-    User::RequestComplete( iCallerStatus, KErrNone );
+    CCalEntry* entry = NULL;
+    TInt err( KErrNone );
+    TRAP( err, entry = iEntryView->FetchL( aUid ) );
+    CleanupStack::PushL( entry );	
+
+	if ( !entry || err == KErrNotFound )
+		{
+		CleanupStack::PopAndDestroy( entry ); // entry
+		User::RequestComplete( iCallerStatus, KErrNotFound );
+		return;
+		}
+	else if ( err )
+	    {
+	    CleanupStack::PopAndDestroy( entry ); // entry
+		User::RequestComplete( iCallerStatus, err );
+		return;
+	    }
 	    
-	FLOG(_L("CNSmlAgendaDataStore::DoDeleteItemL: END"));
+    iEntryView->DeleteL( *entry );
+	CleanupStack::PopAndDestroy( entry ); // entry
+	
+	if ( iChangeFinder )
+		{
+		TNSmlSnapshotItem item( aUid );
+		iChangeFinder->ItemDeleted( item );
+		}
+		
+	User::RequestComplete( iCallerStatus, KErrNone );
+	_DBG_FILE("CNSmlAgendaDataStore::DoDeleteItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1427,13 +946,13 @@ void CNSmlAgendaDataStore::DoDeleteItemL( TSmlDbItemUid aUid,
 // -----------------------------------------------------------------------------
 //
 void CNSmlAgendaDataStore::DoSoftDeleteItemL( TSmlDbItemUid /*aUid*/,
-                                              TRequestStatus& aStatus )
+                TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoSoftDeleteItemL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoSoftDeleteItemL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	User::RequestComplete( iCallerStatus, KErrNotSupported );
-	FLOG(_L("CNSmlAgendaDataStore::DoSoftDeleteItemL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoSoftDeleteItemL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1443,62 +962,40 @@ void CNSmlAgendaDataStore::DoSoftDeleteItemL( TSmlDbItemUid /*aUid*/,
 //
 void CNSmlAgendaDataStore::DoDeleteAllItemsL( TRequestStatus& aStatus )
     {
-    FLOG(_L("CNSmlAgendaDataStore::DoDeleteAllItemsL: BEGIN"));
-    iCallerStatus = &aStatus;
-    *iCallerStatus = KRequestPending;
-    if ( iState != ENSmlOpenAndWaiting ) 
-        {
-        User::RequestComplete( iCallerStatus, KErrNotReady );
-        return;
-        }
-    
-    if( iIsHierarchicalSyncSupported )
-        {
-        // TODO: Have to enable once the delete issue is fixed by Organizer
-        FLOG(_L("CNSmlAgendaDataStore::DoDeleteAllItemsL: Temporarily doesnot support"));
-        User::RequestComplete( iCallerStatus, KErrNotSupported );
-        return;
-        }
-    else
-        {
-        CNSmlAgendaDataStoreUtil* agendautil = NULL;
-        HBufC* calfilename = NULL;
-        
-        agendautil = CNSmlAgendaDataStoreUtil::NewL();
-        calfilename = iOpenedStoreName->AllocL();
-        if( agendautil )
-            {
-            CleanupStack::PushL(agendautil);
-            agendautil->InitializeCalAPIsL( calfilename ); 
-            CleanupStack::Pop(agendautil);
-            // Delete all items
-            // First searh every UIDs ...
-            TInt aNumSuccessfulDeleted( 0 );
-            RArray<TCalLocalUid> uidArray;
-            CleanupClosePushL( uidArray );
-            TCalTime zeroTime;
-            zeroTime.SetTimeUtcL( Time::NullTTime() );
-            agendautil->iEntryView->GetIdsModifiedSinceDateL( zeroTime, uidArray );
-            
-            // ... and then delete them
-            agendautil->iEntryView->DeleteL( uidArray, aNumSuccessfulDeleted );
-            CleanupStack::PopAndDestroy( &uidArray ); // uidArray            
-            }
-        delete agendautil;
-        delete calfilename;
-        }
-        
-    iSnapshotRegistered = EFalse;
-    
+	_DBG_FILE("CNSmlAgendaDataStore::DoDeleteAllItemsL: BEGIN");
+	iCallerStatus = &aStatus;
+	*iCallerStatus = KRequestPending;
+	if ( iState != ENSmlOpenAndWaiting ) 
+		{
+		User::RequestComplete( iCallerStatus, KErrNotReady );
+		return;
+		}
+
+	// Delete all items
+	// First searh every UIDs ...
+	TInt aNumSuccessfulDeleted( 0 );
+	RArray<TCalLocalUid> uidArray;
+	CleanupClosePushL( uidArray );
+	TCalTime zeroTime;
+	zeroTime.SetTimeUtcL( Time::NullTTime() );
+	iEntryView->GetIdsModifiedSinceDateL( zeroTime, uidArray );
+	
+	
+	// ... and then delete them
+    iEntryView->DeleteL( uidArray, aNumSuccessfulDeleted );
+	CleanupStack::PopAndDestroy( &uidArray ); // uidArray
+
+	iSnapshotRegistered = EFalse;
     // Update changefinder
-    if ( iChangeFinder )
-        {
-        iChangeFinder->ResetL();
-        RegisterSnapshotL();
-        }
-    User::RequestComplete( iCallerStatus, KErrNone );
-    
-    FLOG(_L("CNSmlAgendaDataStore::DoDeleteAllItemsL: END"));
+	if ( iChangeFinder )
+		{
+		iChangeFinder->ResetL();
+		RegisterSnapshotL();
+		}
+	
+	User::RequestComplete( iCallerStatus, KErrNone );
+	
+	_DBG_FILE("CNSmlAgendaDataStore::DoDeleteAllItemsL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1508,7 +1005,7 @@ void CNSmlAgendaDataStore::DoDeleteAllItemsL( TRequestStatus& aStatus )
 //
 TBool CNSmlAgendaDataStore::DoHasSyncHistory() const
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoHasSyncHistory: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoHasSyncHistory: BEGIN");
 	TBool ret = EFalse;
 	if ( iHasHistory )
 		{
@@ -1525,7 +1022,7 @@ TBool CNSmlAgendaDataStore::DoHasSyncHistory() const
 		{
 		iChangeFinder->SetDataStoreUid( iOpenedStoreId );
 		}
-	FLOG(_L("CNSmlAgendaDataStore::DoHasSyncHistory: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoHasSyncHistory: END");
 	return ret;
     }
 
@@ -1536,40 +1033,13 @@ TBool CNSmlAgendaDataStore::DoHasSyncHistory() const
 //
 const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoAddedItems() const
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoAddedItems: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoAddedItems: BEGIN");
 	if ( iState == ENSmlOpenAndWaiting )
 		{
 		iNewUids->Reset();
 		TRAP_IGNORE( iChangeFinder->FindNewItemsL( *iNewUids ) );
-		
-		// RD_MULTICAL		
-        if( iIsHierarchicalSyncSupported )
-            {
-            CNSmlDataItemUidSet* inactiveuids = NULL;
-            TRAP_IGNORE(inactiveuids = ActiveItemsL( *iNewUids ));
-            delete inactiveuids;
-            }
-        else
-            {
-            TBool syncstatus( EFalse );
-            HBufC* calfilename = NULL;
-            TRAP_IGNORE( calfilename = iOpenedStoreName->AllocL() );
-            TRAP_IGNORE( syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( calfilename ) );
-            if( !syncstatus )
-                {
-                iNewUids->Reset();
-                }
-            delete calfilename;
-            }
-        // RD_MULTICAL		
 		}
-	
-	for( TInt count = 0; count < iNewUids->ItemCount(); count++ )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoAddedItems: list '%d'"), iNewUids->ItemAt(count) );
-        }
-	
-	FLOG(_L("CNSmlAgendaDataStore::DoAddedItems: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoAddedItems: END");
 	return *iNewUids;
     }
 
@@ -1580,93 +1050,13 @@ const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoAddedItems() const
 //
 const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoDeletedItems() const
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoDeletedItems: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoDeletedItems: BEGIN");
 	if ( iState == ENSmlOpenAndWaiting )
 		{
 		iDeletedUids->Reset();
-		TRAP_IGNORE( iChangeFinder->FindDeletedItemsL( *iDeletedUids ) );		
-	
-    	// RD_MULTICAL
-    	if( iIsHierarchicalSyncSupported )
-    	    {
-        	CArrayFixFlat<TInt>* folderuidarr; 
-        	CNSmlDataItemUidSet* tempdeleteuids; 
-        	TSmlDbItemUid uid(0);
-        	
-        	folderuidarr = new CArrayFixFlat<TInt>( KArrayGranularity );
-        	tempdeleteuids= new CNSmlDataItemUidSet();
-        	
-        	// Get the list of Folder ids
-        	for( TInt count =0; count < iDeletedUids->ItemCount(); count++ )
-                {
-                uid = iDeletedUids->ItemAt(count);
-                
-                if( 0 == (uid % iCalOffsetVal) )
-                    {
-                    TRAP_IGNORE( folderuidarr->AppendL(uid) );
-                    FLOG(_L("CNSmlAgendaDataStore::DoDeletedItems: Folderuid: '%d'"), uid);
-                    }        
-                }
-        	
-        	CNSmlDataItemUidSet* inactiveuids = NULL;
-        	TRAP_IGNORE( inactiveuids = ActiveItemsL( *iDeletedUids ) );
-            delete inactiveuids;
-        	
-        	if( folderuidarr->Count() > 0 )
-        	    {
-        	    TInt index = KErrNotFound;
-                TInt err = KErrNone;
-                TKeyArrayFix key( 0, ECmpTInt ); // Find key for Ids.
-                
-                // Fill the temp uid array
-                for (TInt folderidcount = 0; folderidcount< folderuidarr->Count(); folderidcount++)
-                    {
-                    tempdeleteuids->AddItem(folderuidarr->At(folderidcount));
-                    }
-                
-        	    // Filter out ID's of entries for Folder deletion
-                for( TInt count =0; count < iDeletedUids->ItemCount(); count++ )
-                    {
-                    uid = iDeletedUids->ItemAt(count);
-                    uid = (uid/iCalOffsetVal)*iCalOffsetVal;
-                    err = folderuidarr->Find( uid, key, index );
-                    if (err == KErrNone)
-                        {
-                        break;
-                        }
-                    tempdeleteuids->AddItem(uid);
-                    }
-                // Store the proper UID values
-                iDeletedUids->Reset();
-                for( TInt count =0; count < tempdeleteuids->ItemCount(); count++ )
-                    {
-                    iDeletedUids->AddItem(tempdeleteuids->ItemAt(count));
-                    }
-        	    }	
-        	delete tempdeleteuids;
-        	delete folderuidarr;
-    	    }
-    	else
-    	    {
-    	    TBool syncstatus( EFalse );
-    	    HBufC* calfilename = NULL;
-    	    TRAP_IGNORE( calfilename = iOpenedStoreName->AllocL() );
-    	    TRAP_IGNORE( syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( calfilename ) );
-            if( !syncstatus )
-                {
-                iDeletedUids->Reset();
-                }
-            delete calfilename;
-    	    }	    
-    	// RD_MULTICAL
+		TRAP_IGNORE( iChangeFinder->FindDeletedItemsL( *iDeletedUids ) );
 		}
-	
-	for( TInt count = 0; count < iDeletedUids->ItemCount(); count++ )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoDeletedItems: list '%d'"), iDeletedUids->ItemAt(count) );
-        }
-	
-	FLOG(_L("CNSmlAgendaDataStore::DoDeletedItems: END"));	
+	_DBG_FILE("CNSmlAgendaDataStore::DoDeletedItems: END");
 	return *iDeletedUids;
     }
 
@@ -1677,14 +1067,14 @@ const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoDeletedItems() const
 //
 const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoSoftDeletedItems() const
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoSoftDeletedItems: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoSoftDeletedItems: BEGIN");
 	if ( iState == ENSmlOpenAndWaiting )
 		{
 		iSoftDeletedUids->Reset();
 		TRAP_IGNORE(
 		    iChangeFinder->FindSoftDeletedItemsL( *iSoftDeletedUids ) );
 		}
-	FLOG(_L("CNSmlAgendaDataStore::DoSoftDeletedItems: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoSoftDeletedItems: END");
 	return *iSoftDeletedUids;
     }
 
@@ -1695,58 +1085,13 @@ const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoSoftDeletedItems() const
 //
 const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoModifiedItems() const
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoModifiedItems: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoModifiedItems: BEGIN");
 	if ( iState == ENSmlOpenAndWaiting )
 		{
 		iReplacedUids->Reset();
 		TRAP_IGNORE( iChangeFinder->FindChangedItemsL( *iReplacedUids ) );
-		
-		// RD_MULTICAL
-	    if( iIsHierarchicalSyncSupported )
-            {
-            CNSmlDataItemUidSet* inactiveuids = NULL;
-            TRAP_IGNORE( inactiveuids = ActiveItemsL( *iReplacedUids ) );
-            
-            if( inactiveuids )
-                {
-                TRAP_IGNORE( InternalizeCommittedUidL() );
-                for( TInt count = 0; count < inactiveuids->ItemCount(); count++ )
-                    {
-                    TSmlDbItemUid inactiveuid = inactiveuids->ItemAt(count);
-                    FLOG(_L("CNSmlAgendaDataStore::DoModifiedItems: inactive '%d'"), inactiveuid );
-                    for( TInt uidcount = 0; uidcount < iCommittedUidArr->ItemCount(); uidcount++ )
-                        {
-                        if( inactiveuid == iCommittedUidArr->ItemAt( uidcount ) )
-                            {
-                            FLOG(_L("CNSmlAgendaDataStore::DoModifiedItems: '%d'"), inactiveuid );
-                            iReplacedUids->AddItem( inactiveuid );
-                            }
-                        }
-                    }            
-                delete inactiveuids;
-                }
-            }
-        else
-            {
-            TBool syncstatus( EFalse );
-            HBufC* calfilename = NULL;
-            TRAP_IGNORE( calfilename= iOpenedStoreName->AllocL() );
-            TRAP_IGNORE( syncstatus = iAgendaAdapterHandler->FolderSyncStatusL( calfilename ) );
-            if( !syncstatus )
-                {
-                iReplacedUids->Reset();
-                }
-            delete calfilename;
-            }	    
-        // RD_MULTICAL
 		}
-	
-	 for( TInt count = 0; count < iReplacedUids->ItemCount(); count++ )
-	     {
-	     FLOG(_L("CNSmlAgendaDataStore::DoModifiedItems: list '%d'"), iReplacedUids->ItemAt(count) );
-	     }
-	
-	FLOG(_L("CNSmlAgendaDataStore::DoModifiedItems: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoModifiedItems: END");
 	return *iReplacedUids;
     }
 
@@ -1757,19 +1102,13 @@ const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoModifiedItems() const
 //
 const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoMovedItems() const
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoMovedItems: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoMovedItems: BEGIN");
 	if ( iState == ENSmlOpenAndWaiting )
 		{
 		iMovedUids->Reset();
 		TRAP_IGNORE( iChangeFinder->FindMovedItemsL( *iMovedUids ) );
 		}
-	
-	for( TInt count = 0; count < iMovedUids->ItemCount(); count++ )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoMovedItems: list '%d'"), iMovedUids->ItemAt(count) );
-        }
-	
-	FLOG(_L("CNSmlAgendaDataStore::DoMovedItems: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoMovedItems: END");
 	return *iMovedUids;
     }
 
@@ -1780,7 +1119,7 @@ const MSmlDataItemUidSet& CNSmlAgendaDataStore::DoMovedItems() const
 //
 void CNSmlAgendaDataStore::DoResetChangeInfoL( TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoResetChangeInfoL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoResetChangeInfoL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	if ( iState != ENSmlOpenAndWaiting ) 
@@ -1795,7 +1134,7 @@ void CNSmlAgendaDataStore::DoResetChangeInfoL( TRequestStatus& aStatus )
 		RegisterSnapshotL();
 		}
 	User::RequestComplete( iCallerStatus, KErrNone );
-	FLOG(_L("CNSmlAgendaDataStore::DoResetChangeInfoL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoResetChangeInfoL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1806,7 +1145,7 @@ void CNSmlAgendaDataStore::DoResetChangeInfoL( TRequestStatus& aStatus )
 void CNSmlAgendaDataStore::DoCommitChangeInfoL( TRequestStatus& aStatus,
                 const MSmlDataItemUidSet& aItems )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitChangeInfoL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitChangeInfoL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	if ( iState != ENSmlOpenAndWaiting ) 
@@ -1815,28 +1154,8 @@ void CNSmlAgendaDataStore::DoCommitChangeInfoL( TRequestStatus& aStatus,
 		return;
 		}
 	iChangeFinder->CommitChangesL( aItems );
-	
-	// Save the UIDs to the list
-	iCommittedUidArr->Reset();
-	for ( TInt count = 0; count < aItems.ItemCount(); count++ )
-        {
-        iCommittedUidArr->AddItem( aItems.ItemAt( count ) );
-        }
-	CNSmlDataItemUidSet* inactiveuids = NULL;
-	TRAP_IGNORE( inactiveuids = ActiveItemsL( *iCommittedUidArr ) ); 
-	delete inactiveuids;
-	
-	// Print the iCommittedUidArr array
-	FLOG(_L("CNSmlAgendaAdapter::DoCommitChangeInfoL(): CommittedUidArr"));
-    for( TInt count = 0; count < iCommittedUidArr->ItemCount(); count++ )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::iCommittedUidArr: list '%d'"), iCommittedUidArr->ItemAt(count) );
-        }   
-    
-    // Store the array in the stream
-    ExternalizeCommittedUidL();
 	User::RequestComplete( iCallerStatus, KErrNone );
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitChangeInfoL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitChangeInfoL: END");
     }
 
 // -----------------------------------------------------------------------------
@@ -1846,7 +1165,7 @@ void CNSmlAgendaDataStore::DoCommitChangeInfoL( TRequestStatus& aStatus,
 //
 void CNSmlAgendaDataStore::DoCommitChangeInfoL( TRequestStatus& aStatus )
     {
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitChangeInfoL: BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitChangeInfoL: BEGIN");
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	if ( iState != ENSmlOpenAndWaiting ) 
@@ -1855,17 +1174,8 @@ void CNSmlAgendaDataStore::DoCommitChangeInfoL( TRequestStatus& aStatus )
 		return;
 		}
 	iChangeFinder->CommitChangesL();
-    // Print the iInterCommittedUidArr array
-    FLOG(_L("CNSmlAgendaAdapter::DoCommitChangeInfoL() Without Param: CommittedUidArr"));
-    for( TInt count = 0; count < iCommittedUidArr->ItemCount(); count++ )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::iCommittedUidArr: list '%d'"), iCommittedUidArr->ItemAt(count) );
-        }
-    
-    // Store the array in the stream
-    ExternalizeCommittedUidL();
 	User::RequestComplete( iCallerStatus, KErrNone );
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitChangeInfoL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitChangeInfoL: END");
     }
     
 // -----------------------------------------------------------------------------
@@ -1875,82 +1185,50 @@ void CNSmlAgendaDataStore::DoCommitChangeInfoL( TRequestStatus& aStatus )
 //
 void CNSmlAgendaDataStore::RegisterSnapshotL()
     {
-	FLOG(_L("CNSmlAgendaAdapter::RegisterSnapshotL(): begin"));
+	_DBG_FILE("CNSmlAgendaAdapter::RegisterSnapshotL(): begin");
 	CArrayFixSeg<TNSmlSnapshotItem>* snapshot =
 	                new ( ELeave ) CArrayFixSeg<TNSmlSnapshotItem>( 64 );
 	CleanupStack::PushL( snapshot );
-	RArray<TCalLocalUid> uidArray;
-	CleanupClosePushL( uidArray );
 	
-	// RD_MULTICAL
-	if( iIsHierarchicalSyncSupported )
-	    {
-    	// First find all entries ...
-	    iAgendaAdapterHandler->SynchronizableCalendarIdsL( iCalOffsetArr );  
-	    // Populate the Entry ID's associated with the CalFile
-	    SynchronizableCalEntryIdsL( uidArray );
-        }
-	else
-	    {
-	    HBufC* calfilename = iOpenedStoreName->AllocL();
-	    CNSmlAgendaDataStoreUtil* agendautil = CNSmlAgendaDataStoreUtil::NewL();
-        if( agendautil )
-            {
-            CleanupStack::PushL(agendautil);
-            agendautil->InitializeCalAPIsL( calfilename );
-            CleanupStack::Pop(agendautil);
-            }	   
-	    // First find all entries ...
-        TCalTime zeroTime;
-        zeroTime.SetTimeUtcL( Time::NullTTime() );
-        agendautil->iEntryView->GetIdsModifiedSinceDateL( zeroTime, uidArray );
-        delete agendautil;
-        delete calfilename;
-	    }
-	// RD_MULTICAL
-    
-	// ... and then create snapshot items
-	for ( TInt i = 0; i < uidArray.Count(); i++ )
-	    {
-	    TNSmlSnapshotItem newItem = CreateSnapshotItemL( uidArray[i] );
-	    if ( newItem.ItemId() != 0 )
-	        {
-	        snapshot->InsertIsqL( newItem, iKey );
-	        }
-	    }
-	
-	CleanupStack::PopAndDestroy( &uidArray );	
-	
-    for ( TInt i = 0; i < snapshot->Count(); i++ )
+    // First find all entries ...
+    RPointerArray<CCalInstance> array;
+    CleanupRPtrArrayPushL(array);
+
+    TCalTime startDate;
+    startDate.SetTimeLocalL(TDateTime(1900, EJanuary, 1, 0, 0, 0, 0));
+    TCalTime endDate;
+    endDate.SetTimeLocalL(TDateTime(2100, EJanuary, 30, 0, 0, 0, 0));
+    CalCommon::TCalTimeRange timeRange(startDate, endDate);
+
+    iInstanceView->FindInstanceL(array,
+                                 CalCommon::EIncludeAppts|
+                                 CalCommon::EIncludeReminder|
+                                 CalCommon::EIncludeEvents|
+                                 CalCommon::EIncludeAnnivs|
+                                 CalCommon::EIncludeCompletedTodos|
+                                 CalCommon::EIncludeIncompletedTodos|
+                                 CalCommon::EIncludeRptsNextInstanceOnly,
+                                 timeRange);
+    TInt i = 0;
+
+    while (i < array.Count())
         {
-        TNSmlSnapshotItem item = snapshot->At(i);
-        FLOG(_L("CNSmlAgendaAdapter::RegisterSnapshotL(): id: '%d'"), item.ItemId());
+        TNSmlSnapshotItem newItem = CreateSnapshotItemL( array[i]->Entry().LocalUidL() );
+        if ( newItem.ItemId() != 0 )
+            {
+            snapshot->InsertIsqL( newItem, iKey );
+            }
+        i++;
         }
+    CleanupStack::PopAndDestroy(&array);
 		
 	iChangeFinder->SetNewSnapshot( snapshot );
 	
-	// Save the UIDs to the list
-	iCommittedUidArr->Reset();
-	for ( TInt count = 0; count < snapshot->Count(); count++ )
-        {
-        iCommittedUidArr->AddItem( snapshot->At( count ).ItemId() );
-        }
-	CNSmlDataItemUidSet* inactiveuids = NULL;
-	TRAP_IGNORE( inactiveuids = ActiveItemsL( *iCommittedUidArr ) );
-	delete inactiveuids;
-	// Print the iCommittedUidArr array
-	FLOG(_L("CNSmlAgendaAdapter::RegisterSnapshotL(): CommittedUidArr"));
-	for( TInt count = 0; count < iCommittedUidArr->ItemCount(); count++ )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::RegisterSnapshotL: list '%d'"), iCommittedUidArr->ItemAt(count) );
-        }
-	
 	// iChangeFinder takes ownership of items
 	CleanupStack::Pop( snapshot );
-	    
 	iSnapshotRegistered = ETrue;
 	
-	FLOG(_L("CNSmlAgendaAdapter::RegisterSnapshotL(): end"));
+	_DBG_FILE("CNSmlAgendaAdapter::RegisterSnapshotL(): end");
     }
 
 // -----------------------------------------------------------------------------
@@ -1960,85 +1238,25 @@ void CNSmlAgendaDataStore::RegisterSnapshotL()
 TNSmlSnapshotItem CNSmlAgendaDataStore::CreateSnapshotItemL(
                 const TCalLocalUid& aUid )
     {
-    FLOG(_L("CNSmlAgendaAdapter::CreateSnapshotItemL(): Begin"));
-    
     TNSmlSnapshotItem item( 0 );
-    DataMimeType( aUid );
-    
-    switch( iDataMimeType )
-        {
-        case ENSmlFolder:
-            {
-            item = iAgendaAdapterHandler->CreateFolderSnapShotItemL( aUid );
-            }
-            break;
-        case ENSmlCalendar:
-            {
-            CNSmlAgendaDataStoreUtil* agendautil = NULL;
-            HBufC* calfilename = NULL;
-            TCalLocalUid parentid(NULL);
-            TCalLocalUid entryid(aUid);
-            TInt err( KErrNone );
-            
-            if( iIsHierarchicalSyncSupported )
-                {
-                TRAP( err, GetCalendarEntryIdL( parentid, entryid ));
-                if ( err )
-                    {
-                    FLOG(_L("CNSmlAgendaDataStore::CreateSnapshotItemL:Parent Id is not Valid one"));
-                    return item;
-                    }
-                //Get the Folder Information
-                TRAP(err, calfilename = iAgendaAdapterHandler->FolderNameL(parentid) );
-                }  
-            else
-                {
-                calfilename = iOpenedStoreName->AllocL();
-                }
-                
-             if( err != KErrNone || NULL == calfilename )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::CreateSnapshotItemL:Invalid CalendarInfo"));
-                return item;
-                }
-            
-            FLOG(_L("CNSmlAgendaDataStore::CreateSnapshotItemL:Parent Id: '%d'"), parentid);
-            FLOG(_L("CNSmlAgendaDataStore::CreateSnapshotItemL:Entry Id: '%d'"), entryid);
-            
-            agendautil = CNSmlAgendaDataStoreUtil::NewL();
-            if( agendautil )
-                {
-                CleanupStack::PushL(agendautil);
-                TRAP(err, agendautil->InitializeCalAPIsL( calfilename, entryid ));
-                CleanupStack::Pop(agendautil);
-                }            
-            if ( err || !agendautil )
-                {
-                FLOG(_L("CNSmlAgendaDataStore::CreateSnapshotItemL: entry is not valid"));  
-                delete agendautil;
-                delete calfilename; 
-                return item;
-                }
-         
-            CCalEntry::TReplicationStatus replicationStatus =
-                                            agendautil->iEntry->ReplicationStatusL();
-            if ( CanBeSynchronized( replicationStatus ) )
-                {
-                TUint intUid = agendautil->iEntry->LocalUidL() + parentid;
-                item.SetItemId( intUid );
-                item.SetLastChangedDate(
-                        agendautil->iEntry->LastModifiedDateL().TimeUtcL() );
-                item.SetSoftDelete( EFalse );
-                }
-            delete agendautil;
-            delete calfilename;
-            }
-            break;
-        default:
-            break;
-        }
-    FLOG(_L("CNSmlAgendaAdapter::CreateSnapshotItemL(): end"));
-    
+    CCalEntry* entry = iEntryView->FetchL( aUid );
+    CleanupStack::PushL( entry );
+
+    if( entry )
+		{
+		CCalEntry::TReplicationStatus replicationStatus =
+		                    entry->ReplicationStatusL();
+		if ( CanBeSynchronized( replicationStatus ) )
+			{
+			TUint intUid = entry->LocalUidL();
+			item.SetItemId( intUid );
+			item.SetLastChangedDate(
+			                entry->LastModifiedDateL().TimeUtcL() );
+			item.SetSoftDelete( EFalse );
+			}
+		}
+		
+    CleanupStack::PopAndDestroy( entry ); // entry
 	return item;
     }
 
@@ -2049,10 +1267,9 @@ TNSmlSnapshotItem CNSmlAgendaDataStore::CreateSnapshotItemL(
 //
 CDesCArray* CNSmlAgendaDataStore::DoListAgendaFilesLC() const
     {
-    CDesCArray* array = new (ELeave) CDesCArrayFlat(1);
-    array->AppendL(*iDefaultStoreFileName);
-    CleanupStack::PushL( array );
-    return array;
+    CDesCArray* array = iVCalSession->ListCalFilesL();    
+	CleanupStack::PushL( array );
+	return array;
     }
 
 // -----------------------------------------------------------------------------
@@ -2062,11 +1279,11 @@ CDesCArray* CNSmlAgendaDataStore::DoListAgendaFilesLC() const
 //
 const TDesC& CNSmlAgendaDataStore::DoGetDefaultFileNameL() const
     {
-	if ( !iDefaultStoreFileName )
+	if ( !iDefaultStoreName )
 		{
         User::Leave( KErrGeneral );
 		}
-	return *iDefaultStoreFileName;
+	return *iDefaultStoreName;
     }
 
 // -----------------------------------------------------------------------------
@@ -2089,556 +1306,337 @@ TBool CNSmlAgendaDataStore::CanBeSynchronized(
 //
 CSmlDataStoreFormat* CNSmlAgendaDataStore::DoOwnStoreFormatL()
 	{
-	FLOG(_L("CNSmlAgendaDataStore:::DoOwnStoreFormatL(): BEGIN"));
+	_DBG_FILE("CNSmlAgendaDataStore:::DoOwnStoreFormatL(): BEGIN");
+	TFileName fileName;
+	TParse parse;
 	
-	AgendaAdapterHandlerL();
-	
-	if( NULL == iAgendaAdapterHandler )
-	    {
-        FLOG(_L("CNSmlAgendaDataStore:::DoOwnStoreFormatL(): Invalid AgendaAdapterHandler Error END"));
-        User::Leave( KErrGeneral );
-	    }
-	
-    TFileName fileName;
-    TParse* parse = NULL;
-    parse = new(ELeave) TParse();
-    CleanupStack::PushL( parse );
-    
-    // Check correct Data Sync protocol
-    TInt value( EDataSyncNotRunning );
-    TInt error = RProperty::Get( KPSUidDataSynchronizationInternalKeys,
+	// Check correct Data Sync protocol
+	TInt value( EDataSyncNotRunning );
+	TInt error = RProperty::Get( KPSUidDataSynchronizationInternalKeys,
                                  KDataSyncStatus,
                                  value );
-    
-    FLOG(_L("CNSmlAgendaDataStore:::DoOwnStoreFormatL(): SyncStatus: '%d'"), KDataSyncStatus);
-    FLOG(_L("CNSmlAgendaDataStore:::DoOwnStoreFormatL(): value: '%d'"), value);
-    
-    if ( error == KErrNone &&
-         value == EDataSyncRunning )
-        {
-        parse->Set( KNSmlDSAgendaDataStoreRsc_1_1_2,
-                          &KDC_RESOURCE_FILES_DIR, NULL );
-        }
-    else
-        { 
-        FLOG(_L("CNSmlAgendaDataStore:::DoOwnStoreFormatL(): Invoking AdapterHandler Implementation"));
-        CleanupStack::PopAndDestroy( parse );
-        return iAgendaAdapterHandler->StoreFormatL( iStringPool );
-        }
-    
-    fileName = parse->FullName();
-    RResourceFile resourceFile;
-    BaflUtils::NearestLanguageFile( iRfs, fileName );
+	if ( error == KErrNone &&
+	     value == EDataSyncRunning )
+	    {
+	    parse.Set( KNSmlDSAgendaDataStoreRsc_1_1_2,
+	               &KDC_RESOURCE_FILES_DIR, NULL );
+	    }
+	else // error or protocol version 1.2 
+	    {
+	    parse.Set( KNSmlDSAgendaDataStoreRsc_1_2,
+	               &KDC_RESOURCE_FILES_DIR, NULL );
+	    }
+	
+	fileName = parse.FullName();
+	RResourceFile resourceFile;
+	BaflUtils::NearestLanguageFile( iRfs, fileName );
 
-    TRAPD( leavecode, resourceFile.OpenL( iRfs,fileName ) );
-    if ( leavecode != 0 )
-        {
-        CleanupStack::PopAndDestroy(); // parse
-        FLOG(_L("CNSmlAgendaDataStore:::StoreFormatL(): Error END"));
-        User::Leave( leavecode );
-        }
-    
-    CleanupClosePushL( resourceFile );
-    HBufC8* buffer = resourceFile.AllocReadLC( NSML_AGENDA_DATA_STORE );
-    TResourceReader reader;
-    reader.SetBuffer( buffer );
+	TRAPD( leavecode, resourceFile.OpenL( iRfs,fileName ) );
+	if ( leavecode != 0 )
+		{
+		CleanupStack::PopAndDestroy(); // parse
+		_DBG_FILE("CNSmlAgendaDataProvider::DoStoreFormatL(): Resource.OpenL has problem");
+		User::Leave( leavecode );
+		}
+	CleanupClosePushL( resourceFile );
+	HBufC8* profileRes = resourceFile.AllocReadLC( NSML_AGENDA_DATA_STORE );
+	TResourceReader reader;
+	reader.SetBuffer( profileRes );
 
-    CSmlDataStoreFormat* dsFormat = NULL;
-    dsFormat = CSmlDataStoreFormat::NewLC( iStringPool, reader );
-    CleanupStack::Pop(); // dsFormat
-    CleanupStack::PopAndDestroy( 3 ); // buffer, resourceFile, parse
-    
-    FLOG(_L("CNSmlAgendaDataStore::DoOwnStoreFormatL: END"));
-    return dsFormat;
+	CSmlDataStoreFormat* dsFormat = CSmlDataStoreFormat::NewLC( iStringPool,
+	                                                            reader );
+	CleanupStack::Pop();
+	CleanupStack::PopAndDestroy( 2 ); // resourceFile, profileRes
+	_DBG_FILE("CNSmlAgendaDataStore:::DoOwnStoreFormatL(): END");
+	return dsFormat;
 	}
 
 // -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::DoCommitCreateCalItemL
-// Commit Calendar item data to database when adding item.
+// CNSmlAgendaDataStore::DoCommitCreateItemL
+// Commit item data to database when adding item.
 // -----------------------------------------------------------------------------
 //
-void CNSmlAgendaDataStore::DoCommitCreateCalItemL()
+void CNSmlAgendaDataStore::DoCommitCreateItemL()
     {
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: BEGIN"));
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: Parentid: '%d'"), iParentItemId);
+    _DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL: BEGIN");
     iState = ENSmlOpenAndWaiting; // iState set to closed to handle leave
 	CCalEntry::TReplicationStatus  replicationStatus;
-	TInt err(KErrNone);
-	CNSmlAgendaDataStoreUtil* agendautil = NULL;
-	HBufC* calfilename = NULL;
+	
 	RBufReadStream readStream;
 	readStream.Open( *iItemData );
 	readStream.PushL();
 
     RPointerArray<CCalEntry> rdArray;
 	CleanupStack::PushL( PtrArrCleanupItemRArr ( CCalEntry, &rdArray ) );
-	
-    if( iIsHierarchicalSyncSupported )
-        {
-        //Get the Folder Information
-        TRAP(err, calfilename = iAgendaAdapterHandler->FolderNameL(iParentItemId) );
-        }
-    else
-        {
-        calfilename = iOpenedStoreName->AllocL();
-        }
-        
-    if( err != KErrNone || NULL == calfilename )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL:Invalid CalendarInfo"));
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-        iOrphanEvent = EFalse;
-        User::Leave( KErrNotFound );
-        }
-        
-    agendautil = CNSmlAgendaDataStoreUtil::NewL();
-    if( agendautil )
-        {
-        CleanupStack::PushL(agendautil);
-        TRAP(err, agendautil->InitializeCalAPIsL( calfilename ));
-        CleanupStack::Pop(agendautil);
-        }   
-        
-    if ( err || !agendautil )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL:Invalid CalendarInfo"));
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-        delete calfilename;
-        iOrphanEvent = EFalse;
-        User::Leave( KErrNotFound );
-        }
-        
-    if ( iRXEntryType == ENSmlICal )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: ImportICalendarL"));           
-        agendautil->iImporter->ImportICalendarL( readStream, rdArray );
-        }
+	if ( iRXEntryType == ENSmlICal )
+	    {
+	    _DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL: ImportICalendarL");
+	    iImporter->ImportICalendarL( readStream, rdArray );
+	    }
     else if ( iRXEntryType == ENSmlVCal )
         {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: ImportVCalendarL"));
-        agendautil->iImporter->ImportVCalendarL( readStream, rdArray );
+        _DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL: ImportVCalendarL");
+        iImporter->ImportVCalendarL( readStream, rdArray );
         }
     else
         {
         CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-        delete agendautil;
-        delete calfilename; 
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
-                   KErrNotSupported: END"));
-        iOrphanEvent = EFalse;
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL - \
+		           KErrNotSupported: END");
         User::Leave( KErrNotSupported );
         }
     
     // If rdArray is empty or there is multiple items then return error
-    // Multiple items are not supported
-    if ( rdArray.Count() != 1 )
-        {
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-        delete agendautil;
-        delete calfilename; 
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
-                   Multiple items are not supported: END"));
-        iOrphanEvent = EFalse;
+	// Multiple items are not supported
+	if ( rdArray.Count() != 1 )
+	    {
+	    CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL - \
+		           Multiple items are not supported: END");
         User::Leave( KErrNotSupported );
-        }           
-        
-    err = KErrNone;    
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: before StoreL"));
-    TRAP( err, iInterimUtils->StoreL( *agendautil->iEntryView, *rdArray[0], ETrue ) );
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: after StoreL '%d'"), err );
+	    }
+	    
+    TInt err( KErrNone );
+
+    _DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL: before StoreL");
+    TRAP( err, iInterimUtils->StoreL( *iEntryView, *rdArray[0], ETrue ) );
+    DBG_ARGS(_S("CNSmlAgendaDataStore::DoCommitCreateItemL: after StoreL '%d'"), err );
     if ( err )
         {
         CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-        delete agendautil;
-        delete calfilename; 
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL - \
-                   Error at storing item to database: END"));
-        iOrphanEvent = EFalse;
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL - \
+		           Error at storing item to database: END");
         User::Leave( KErrGeneral );
         }
 
-    *iAddItemId = rdArray[0]->LocalUidL();        
-    CCalEntry* newEntry = agendautil->iEntryView->FetchL( *iAddItemId );
+    *iAddItemId = rdArray[0]->LocalUidL();
     
-    // RD_MULTICAL
-    if( iIsHierarchicalSyncSupported )
-        {
-        *iAddItemId = *iAddItemId + iParentItemId;
-        }
-    // RD_MULTICAL
+    CCalEntry* newEntry = iEntryView->FetchL( *iAddItemId );
     
     if( newEntry )
-        {
-        CleanupStack::PushL( newEntry );
+    	{
+	    CleanupStack::PushL( newEntry );
         
-        replicationStatus = newEntry->ReplicationStatusL();
-    
-        if ( CanBeSynchronized( replicationStatus ) )
-            {
-            if ( iChangeFinder )
-                {
-                TNSmlSnapshotItem item( *iAddItemId );
-                    item.SetLastChangedDate(
-                    newEntry->LastModifiedDateL().TimeUtcL() );
-                item.SetSoftDelete( EFalse );
-                TRAPD( changeFinderError, iChangeFinder->ItemAddedL( item ) );
-                if ( changeFinderError == KErrAlreadyExists )
-                    {
-                    iChangeFinder->ItemUpdatedL( item );
-                    }
-                else
-                    {
-                    User::LeaveIfError( changeFinderError );    
-                    }
-                }
-            }
-        CleanupStack::PopAndDestroy();// newEntry,
-        }
-	CleanupStack::PopAndDestroy( 2 ); //  rdArray, readStream 
-    delete agendautil;
-	delete calfilename;     	
-    
-	if( iOrphanEvent )
-	    {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: Exiting with invalidparent"));
-        // Set the Orphan Event ID to the cenrep
-        CRepository* rep = CRepository::NewLC(KRepositoryId);
-        TInt err = rep->Set( KNsmlDsOrphanEvent, *iAddItemId );
-        DBG_ARGS(_S("set the cenrep %d "), err);
-        User::LeaveIfError(err);
-        CleanupStack::PopAndDestroy(rep);
-        iOrphanEvent = EFalse;
-        User::Leave( KErrPathNotFound );        
-	    }	
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateCalItemL: END"));
+		replicationStatus = newEntry->ReplicationStatusL();
+	
+    	if ( CanBeSynchronized( replicationStatus ) )
+			{
+			if ( iChangeFinder )
+				{
+				TNSmlSnapshotItem item( *iAddItemId );
+        			item.SetLastChangedDate(
+                   	newEntry->LastModifiedDateL().TimeUtcL() );
+            	item.SetSoftDelete( EFalse );
+				TRAPD( changeFinderError, iChangeFinder->ItemAddedL( item ) );
+				if ( changeFinderError == KErrAlreadyExists )
+			    	{
+			    	iChangeFinder->ItemUpdatedL( item );
+			    	}
+				else
+			    	{
+			    	User::LeaveIfError( changeFinderError );    
+			    	}
+				}
+			}
+    	CleanupStack::PopAndDestroy();// newEntry,
+    	}
+    CleanupStack::PopAndDestroy( 2 ); //  rdArray, readStream   
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL: END");
     }
     
 // -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::DoCommitReplaceCalItemL
-// Commit Calendar item data to database when replacing item.
+// CNSmlAgendaDataStore::DoCommitReplaceItemL
+// Commit item data to database when replacing item.
 // -----------------------------------------------------------------------------
 //
-void CNSmlAgendaDataStore::DoCommitReplaceCalItemL()
+void CNSmlAgendaDataStore::DoCommitReplaceItemL()
     {
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: BEGIN"));
+    _DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL: BEGIN");
     iState = ENSmlOpenAndWaiting; // iState set to closed to handle leave
 	CBufFlat* oldItem = CBufFlat::NewL( KNSmlItemDataExpandSize );
 	CleanupStack::PushL( oldItem );
 	RBufWriteStream writeStream( *oldItem );
 	writeStream.PushL();
-	CNSmlAgendaDataStoreUtil* agendautil = NULL;
-	HBufC* calfilename = NULL;
-	TInt err( KErrNone );
 	
-    
-    if( iIsHierarchicalSyncSupported )
-        {
-        TRAP(err, calfilename = iAgendaAdapterHandler->FolderNameL(iParentItemId) );
-        }
-    else
-        {
-        calfilename = iOpenedStoreName->AllocL();
-        }
-    
-    if( err != KErrNone || NULL == calfilename )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL:Invalid CalendarInfo"));
-        CleanupStack::PopAndDestroy( 2 ); // olditem, writeStream
-        User::Leave( KErrNotFound );
-        }
-    
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: entry id: '%d'"), iReplaceItemId);
-    
-    agendautil = CNSmlAgendaDataStoreUtil::NewL();
-    if( agendautil )
-        {
-        CleanupStack::PushL(agendautil);
-        TRAP(err, agendautil->InitializeCalAPIsL( calfilename, iReplaceItemId ));
-        CleanupStack::Pop(agendautil);
-        }
-        
-    if ( err || !agendautil )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: entry is not valid"));
-        CleanupStack::PopAndDestroy( 2 ); // olditem, writeStream
-        delete agendautil;
-        delete calfilename;
-        User::Leave( KErrGeneral );
-        }  
-        
-    // Export item from database depending on transmitted item entry type
-    if ( iTXEntryType == ENSmlVCal )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: ExportVCalL"));
-        agendautil->iExporter->ExportVCalL( *agendautil->iEntry, writeStream );        
-        }
+	CCalEntry* entry = NULL;
+	TInt error( KErrNone );
+    TRAP( error, entry = iEntryView->FetchL( iReplaceItemId ) );
+	if ( error || !entry )
+	{
+    	CleanupStack::PopAndDestroy( 2 ); // writeStream, oldItem
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
+		           Error in fetching the item: END");
+    	User::Leave( KErrGeneral );
+    }
+    CleanupStack::PushL( entry );
+	
+	// Export item from database depending on transmitted item entry type
+	if ( iTXEntryType == ENSmlVCal )
+	    {
+	    _DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL: ExportVCalL");
+    	iExporter->ExportVCalL( *entry, writeStream );        
+    	}
 #ifdef __NSML_USE_ICAL_FEATURE
-    else if ( iTXEntryType == ENSmlICal )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: ExportICalL"));
-        agendautil->iExporter->ExportICalL( *agendautil->iEntry, writeStream );
-        }
+	else if ( iTXEntryType == ENSmlICal )
+	    {
+	    _DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL: ExportICalL");
+    	iExporter->ExportICalL( *entry, writeStream );
+	    }
 #endif // __NSML_USE_ICAL_FEATURE
-    else
+	else
         {
-        CleanupStack::PopAndDestroy( 2 ); // olditem, writeStream
-        delete agendautil;
-        delete calfilename;
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL - \
-                   KErrNotSupported: END"));
+        CleanupStack::PopAndDestroy( 2 ); // entry, writeStream
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
+		           KErrNotSupported: END");
         User::Leave( KErrNotSupported );
         }
         
-    writeStream.CommitL();
-    oldItem->Compress();
+	writeStream.CommitL();
+	oldItem->Compress();
 
-    CleanupStack::PopAndDestroy( 1 ); 
-    
-    // Get original UID, geoId and Recurrence-ID properties
-    HBufC8* uid = NULL;
-    HBufC8* recurrenceId = NULL;
-    HBufC8* xRecurrenceId = NULL;
-    HBufC8* geoId = NULL;
-    GetPropertiesFromDataL( oldItem, uid, KVersitTokenUID()  );
-    GetPropertiesFromDataL( oldItem, recurrenceId, KNSmlVersitTokenRecurrenceID() );
-    GetPropertiesFromDataL( oldItem, xRecurrenceId, KNSmlVersitTokenXRecurrenceID() );
-    GetPropertiesFromDataL( oldItem, geoId, KNSmlVersitTokenGeoID() );
-    CleanupStack::PushL( uid );
-    CleanupStack::PushL( recurrenceId );
-    CleanupStack::PushL( xRecurrenceId );
-    CleanupStack::PushL( geoId );
+	CleanupStack::PopAndDestroy( 2 ); // entry, writeStream
+	
+	// Get original UID, geoId and Recurrence-ID properties
+	HBufC8* uid = NULL;
+	HBufC8* recurrenceId = NULL;
+	HBufC8* xRecurrenceId = NULL;
+	HBufC8* geoId = NULL;
+	GetPropertiesFromDataL( oldItem, uid, KVersitTokenUID()  );
+	GetPropertiesFromDataL( oldItem, recurrenceId, KNSmlVersitTokenRecurrenceID() );
+	GetPropertiesFromDataL( oldItem, xRecurrenceId, KNSmlVersitTokenXRecurrenceID() );
+	GetPropertiesFromDataL( oldItem, geoId, KNSmlVersitTokenGeoID() );
+	CleanupStack::PushL( uid );
+	CleanupStack::PushL( recurrenceId );
+	CleanupStack::PushL( xRecurrenceId );
+	CleanupStack::PushL( geoId );
 
-    if ( iDataMod->NeedsMerge() )
-        {
-        // Merge data
-        iDataMod->MergeRxL( *iItemData, *oldItem );
-        }
-    
-    // Add original UID and Recurrence-ID to merged data
-    // This first removes UID and Recurrence-ID from merged data
-    // and then adds original ones
-    if ( uid )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: SetPropertiesToDataL :uid"));
-        SetPropertiesToDataL( uid, KVersitTokenUID() );    
-        }
+#ifdef __NSML_MORE_DEBUG_FOR_ITEMS__
+
+	DBG_DUMP( ( void* )oldItem->Ptr( 0 ).Ptr(), oldItem->Size(),
+	          _S8( "Old item from database:" ) );
+
+#endif // __NSML_MORE_DEBUG_FOR_ITEMS__
+
+   	if ( iDataMod->NeedsMerge() )
+		{
+    	// Merge data
+    	iDataMod->MergeRxL( *iItemData, *oldItem );
+		}
+	
+	// Add original UID and Recurrence-ID to merged data
+	// This first removes UID and Recurrence-ID from merged data
+	// and then adds original ones
+	if ( uid )
+	    {
+	    SetPropertiesToDataL( uid, KVersitTokenUID() );    
+	    }
     else
         {
-        CleanupStack::PopAndDestroy( 5 ); // xRecurrenceId, recurrenceId,
-                                              // uid, oldItem, geoId
-        delete agendautil;
-        delete calfilename;
-        
         User::Leave( KErrNotSupported );
         }
-    if ( recurrenceId )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: SetPropertiesToDataL :recurrenceId"));
-        SetPropertiesToDataL( recurrenceId, KNSmlVersitTokenRecurrenceID() );    
-        }
-    if ( xRecurrenceId )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: SetPropertiesToDataL :xRecurrenceId"));
-        SetPropertiesToDataL( xRecurrenceId, KNSmlVersitTokenXRecurrenceID() );    
-        }
-    if ( geoId )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: SetPropertiesToDataL :geoId"));
-        SetPropertiesToDataL( geoId, KNSmlVersitTokenGeoID() );    
-        }
-    
-    CleanupStack::PopAndDestroy( 5 ); // xRecurrenceId, recurrenceId,
-                                      // uid, oldItem, geoId
-    
-    // Replace item to database
-    RBufReadStream readStream;
-    readStream.Open( *iItemData );
-    readStream.PushL();
+	if ( recurrenceId )
+	    {
+	    SetPropertiesToDataL( recurrenceId, KNSmlVersitTokenRecurrenceID() );    
+	    }
+	if ( xRecurrenceId )
+	    {
+	    SetPropertiesToDataL( xRecurrenceId, KNSmlVersitTokenXRecurrenceID() );    
+	    }
+	if ( geoId )
+	    {
+	    SetPropertiesToDataL( geoId, KNSmlVersitTokenGeoID() );    
+	    }
 
-    RPointerArray<CCalEntry> rdArray;
-    CleanupStack::PushL( PtrArrCleanupItemRArr ( CCalEntry, &rdArray ) );
+#ifdef __NSML_MORE_DEBUG_FOR_ITEMS__
 
-    // Import item to database depending on received item entry type
-    if ( iRXEntryType == ENSmlVCal )
+	DBG_DUMP( ( void* )iItemData->Ptr( 0 ).Ptr(), iItemData->Size(),
+	          _S8( "New item to database:" ) );
+
+#endif // __NSML_MORE_DEBUG_FOR_ITEMS__
+	
+	CleanupStack::PopAndDestroy( 5 ); // xRecurrenceId, recurrenceId,
+	                                  // uid, oldItem, geoId
+    
+	// Replace item to database
+	RBufReadStream readStream;
+	readStream.Open( *iItemData );
+	readStream.PushL();
+
+	RPointerArray<CCalEntry> rdArray;
+	CleanupStack::PushL( PtrArrCleanupItemRArr ( CCalEntry, &rdArray ) );
+
+	// Import item to database depending on received item entry type
+	if ( iRXEntryType == ENSmlVCal )
         {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: ImportVCalendarL"));
-        TRAP( err, agendautil->iImporter->ImportVCalendarL( readStream, rdArray ));
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: ImportVCalendarL error: '%d'"), err);
-        if( err != KErrNone)
-            {
-            User::Leave(err);
-            }
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL: ImportVCalendarL");
+    	iImporter->ImportVCalendarL( readStream, rdArray );
         }
 #ifdef __NSML_USE_ICAL_FEATURE
-    else if ( iRXEntryType == ENSmlICal )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: ImportICalendarL"));
-        agendautil->iImporter->ImportICalendarL( readStream, rdArray );
-        }
+	else if ( iRXEntryType == ENSmlICal )
+		{
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL: ImportICalendarL");
+		iImporter->ImportICalendarL( readStream, rdArray );
+		}
 #endif // __NSML_USE_ICAL_FEATURE
     else
         {
         CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-        delete agendautil;
-        delete calfilename;
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
-                   KErrNotSupported: END"));
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
+		           KErrNotSupported: END");
         User::Leave( KErrNotSupported );
         }
 
     // If rdArray is empty or there is multiple items then return error
-    // Multiple items are not supported
-    if ( rdArray.Count() != 1 )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: Multiple items are not supported "));
-        CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-        delete agendautil;
-        delete calfilename;
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
-                   Multiple items are not supported: END"));
+	// Multiple items are not supported
+	if ( rdArray.Count() != 1 )
+	    {
+	    CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
+		           Multiple items are not supported: END");
         User::Leave( KErrNotSupported );
-        }
-        
-    err = KErrNone;
+	    }
+	    
+	TInt err( KErrNone );
 
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: before StoreL"));
-    TRAP( err, iInterimUtils->StoreL( *agendautil->iEntryView, *rdArray[0], ETrue ) );
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: after StoreL '%d'"), err );
-    
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL: before StoreL");
+    TRAP( err, iInterimUtils->StoreL( *iEntryView, *rdArray[0], ETrue ) );
+    DBG_ARGS(_S("CNSmlAgendaDataStore::DoCommitCreateItemL: after StoreL '%d'"), err );
     if ( err )
         {
         CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-        delete agendautil;
-        delete calfilename;
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL - \
-                   Error at storing item to database: END"));
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL - \
+		           Error at storing item to database: END");
         User::Leave( KErrGeneral );
         }
 
-    CCalEntry::TReplicationStatus  replicationStatus;
-    
-    CCalEntry* replacedEntry = agendautil->iEntryView->FetchL( iReplaceItemId );
-    if( replacedEntry )
-    {
+	CCalEntry::TReplicationStatus  replicationStatus;
+	
+	CCalEntry* replacedEntry = iEntryView->FetchL( iReplaceItemId );
+	if( replacedEntry )
+	{
     CleanupStack::PushL( replacedEntry );
-    
+	
     replicationStatus = replacedEntry->ReplicationStatusL();
-    
-    // RD_MULTICAL
-    if( !iIsHierarchicalSyncSupported )
-        {
-        iParentItemId = 0;
-        }
-    // RD_MULTICAL
-                
-    if ( CanBeSynchronized( replicationStatus ) )
-        {
-        if ( iChangeFinder )
-            {
-            TNSmlSnapshotItem item( iReplaceItemId + iParentItemId );
-            item.SetLastChangedDate(
-                        replacedEntry->LastModifiedDateL().TimeUtcL());
-            item.SetSoftDelete( EFalse );
-            iChangeFinder->ItemUpdatedL( item );
-            }
-        }
-    CleanupStack::PopAndDestroy(); // replacedEntry
-    }
-    
+	            
+	if ( CanBeSynchronized( replicationStatus ) )
+		{
+		if ( iChangeFinder )
+			{
+			TNSmlSnapshotItem item( iReplaceItemId );
+			item.SetLastChangedDate(
+			            replacedEntry->LastModifiedDateL().TimeUtcL());
+			item.SetSoftDelete( EFalse );
+			iChangeFinder->ItemUpdatedL( item );
+			}
+		}
+	CleanupStack::PopAndDestroy(); // replacedEntry
+	}
+	
 	CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
-    delete agendautil;
-	delete calfilename;	
-	FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceCalItemL: END"));
-    }
 
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::DoCommitCreateFolderItemL
-// Commit Folder item data to database when adding item.
-// -----------------------------------------------------------------------------
-//
-void CNSmlAgendaDataStore::DoCommitCreateFolderItemL()
-    {
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateFolderItemL: BEGIN"));
-    
-    TInt err(KErrNone);
-    RBufReadStream readStream;
-    readStream.Open( *iItemData );
-    readStream.PushL();
-    
-    TRAP(err, *iAddItemId = iAgendaAdapterHandler->CreateFolderL( readStream ));
-    if( err != KErrNone )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateFolderItemL: Error in Create Folder"));
-        CleanupStack::PopAndDestroy( &readStream );
-        User::Leave( err );    
-        }
-   
-    // Add snapshotitem
-    if ( iChangeFinder )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateFolderItemL: item id: '%d'"), *iAddItemId );
-        TNSmlSnapshotItem item( *iAddItemId );
-        TTime time;
-        time.HomeTime();
-        item.SetLastChangedDate( time );
-        item.SetSoftDelete( EFalse );
-        TRAPD( changeFinderError, iChangeFinder->ItemAddedL( item ) );
-        if ( changeFinderError == KErrAlreadyExists )
-            {
-            iChangeFinder->ItemUpdatedL( item );
-            }
-        else
-            {
-            User::LeaveIfError( changeFinderError );    
-            }
-        
-        iCalOffsetArr->AppendL(*iAddItemId);
-            
-        }
-    
-    CleanupStack::PopAndDestroy( &readStream );
-    
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitCreateFolderItemL: END"));
+	_DBG_FILE("CNSmlAgendaDataStore::DoCommitReplaceItemL: END");
     }
     
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::DoCommitReplaceFolderItemL
-// Commit Folder item data to database when replacing item.
-// -----------------------------------------------------------------------------
-//
-void CNSmlAgendaDataStore::DoCommitReplaceFolderItemL()
-    {
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceFolderItemL: BEGIN"));
-    
-    TBool syncstatus(ETrue);
-    TInt err(KErrNone);
-    RBufReadStream readStream;
-    readStream.Open( *iItemData );
-    readStream.PushL();
-    
-    TRAP(err, iAgendaAdapterHandler->ReplaceFolderL( iReplaceItemId, readStream, syncstatus ));
-    if(err != KErrNone)
-        {
-        FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceFolderItemL: Error while replacing Folder"));
-        CleanupStack::PopAndDestroy( &readStream );
-        User::Leave(err);
-        }
-   
-    // Update snapshotitem
-    if ( iChangeFinder && syncstatus )
-        {
-        TNSmlSnapshotItem item( iReplaceItemId );
-        TTime time;
-        time.HomeTime();
-        item.SetLastChangedDate(time);
-        item.SetSoftDelete( EFalse );
-        iChangeFinder->ItemUpdatedL( item );
-        }
-        
-    CleanupStack::PopAndDestroy( &readStream );    
-    FLOG(_L("CNSmlAgendaDataStore::DoCommitReplaceFolderItemL: END"));
-    }
 // -----------------------------------------------------------------------------
 // CNSmlAgendaDataStore::GetPropertiesFromDataL
 // Gets property from old item.
@@ -2648,7 +1646,7 @@ void CNSmlAgendaDataStore::GetPropertiesFromDataL( CBufFlat* aOldItem,
                                                    HBufC8*& aValue,
 	                                               const TDesC8& aProperty )
     {
-    FLOG(_L("CNSmlAgendaDataStore::GetPropertiesFromDataL(): begin"));
+    _DBG_FILE("CNSmlAgendaDataStore::GetPropertiesFromDataL(): begin");
     
     // Gemerate property that is searched (Linebreak + property + tokencolon)
     HBufC8* startBuffer = HBufC8::NewLC( KVersitTokenCRLF().Size() +
@@ -2694,7 +1692,7 @@ void CNSmlAgendaDataStore::GetPropertiesFromDataL( CBufFlat* aOldItem,
 	    }
     CleanupStack::PopAndDestroy( startBuffer ); // startBuffer
     
-    FLOG(_L("CNSmlAgendaDataStore::GetPropertiesFromDataL(): end"));
+    _DBG_FILE("CNSmlAgendaDataStore::GetPropertiesFromDataL(): end");
     }
   
 // -----------------------------------------------------------------------------
@@ -2705,7 +1703,7 @@ void CNSmlAgendaDataStore::GetPropertiesFromDataL( CBufFlat* aOldItem,
 void CNSmlAgendaDataStore::SetPropertiesToDataL( HBufC8*& aValue,
 	                                             const TDesC8& aProperty )
     {
-    FLOG(_L("CNSmlAgendaDataStore::SetPropertiesToDataL(): begin"));
+    _DBG_FILE("CNSmlAgendaDataStore::SetPropertiesToDataL(): begin");
     
     // Gemerate property that is searched (Linebreak + property + tokencolon)
     HBufC8* startBuffer = HBufC8::NewLC( KVersitTokenCRLF().Size() +
@@ -2789,769 +1787,7 @@ void CNSmlAgendaDataStore::SetPropertiesToDataL( HBufC8*& aValue,
     
     CleanupStack::PopAndDestroy( 3 ); // endVTodo, endVEvent, startBuffer
     
-    FLOG(_L("CNSmlAgendaDataStore::SetPropertiesToDataL(): end"));
+    _DBG_FILE("CNSmlAgendaDataStore::SetPropertiesToDataL(): end");
     }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::GetCalendarEntryIdL
-// Method to retrieve the Id of the Calendar Entry
-// -----------------------------------------------------------------------------
-void CNSmlAgendaDataStore::GetCalendarEntryIdL( TCalLocalUid& aParentId, TCalLocalUid& aCalId ) const
-    {
-    FLOG(_L("CNSmlAgendaDataStore::GetCalendarEntryIdL: BEGIN"));
-    
-    FLOG(_L("CNSmlAgendaDataStore::GetCalendarEntryIdL: parentid: '%d'"), aParentId);
-    FLOG(_L("CNSmlAgendaDataStore::GetCalendarEntryIdL: aCalId: '%d'"), aCalId);
-    
-    TInt uidcalentry = aCalId;
-    
-    if( uidcalentry < iCalOffsetVal )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::GetCalendarEntryIdL: Invalid CalendarId: '%d'"), aCalId);
-        User::Leave( KErrGeneral );
-        }
-    else if( uidcalentry == iCalOffsetVal ||
-             0 == (uidcalentry % iCalOffsetVal) )
-        {
-        aParentId = uidcalentry;
-        }
-    else
-        {
-        while( uidcalentry > iCalOffsetVal )
-            {
-            uidcalentry = uidcalentry - iCalOffsetVal;
-            }    
-        aParentId = aCalId - uidcalentry;
-        aCalId = uidcalentry;
-        }
-    
-    TInt err(KErrNone);
-    TInt index = KErrNotFound;
-    TKeyArrayFix key( 0, ECmpTInt ); // Find key for Ids.
-    
-    err = iCalOffsetArr->Find( aParentId, key, index );
-    
-    if( err != KErrNone )
-        {
-        User::Leave(err);
-        }   
-    FLOG(_L("CNSmlAgendaDataStore::GetCalendarEntryIdL: END"));    
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::DataMimeType
-// Method to determine the MIME type, provided the UID
-// -----------------------------------------------------------------------------
-void CNSmlAgendaDataStore::DataMimeType( TSmlDbItemUid aUid )
-    {
-    FLOG(_L("CNSmlAgendaDataStore::DataMimeType: BEGIN"));    
-    
-    FLOG(_L("CNSmlAgendaDataStore::DataMimeType: LUID '%d'"), aUid );
-    
-    if( iIsHierarchicalSyncSupported )
-        {
-        // Find a match with the list of Offset values available
-        TInt index = KErrNotFound;
-        TInt err = KErrNone;
-        TKeyArrayFix key( 0, ECmpTInt ); // Find key for Ids.
-        
-        err = iCalOffsetArr->Find( aUid, key, index );
-                   
-        // Determine the Data Mime Type
-        if( err == KErrNone )
-            {
-            iDataMimeType = ENSmlFolder;
-            }
-        else
-            {
-            iDataMimeType = ENSmlCalendar;
-            }
-        }
-    else
-        {
-        iDataMimeType = ENSmlCalendar;
-        }
-    
-    FLOG(_L("CNSmlAgendaDataStore::DataMimeType: END, DataMimeType '%d' "), iDataMimeType);    
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::ListAllAgendaPluginAdaptersL
-// Get All the AdapterHandler instance
-// -----------------------------------------------------------------------------
-void CNSmlAgendaDataStore::ListAllAgendaPluginAdaptersL()
-    {
-    FLOG(_L("CNSmlAgendaDataStore::ListAllAgendaPluginAdaptersL BEGIN"));
-    
-    RImplInfoPtrArray adapterInfoArray;        
-    CNSmlAgendaAdapterHandler* adapterInstance(NULL);
-    
-    REComSession::ListImplementationsL( KAgendaAdapterHandlerInterfaceUid, adapterInfoArray );
-    TInt adapterCount = adapterInfoArray.Count();
-    FLOG(_L("adaptercount:'%d'"),adapterCount); 
-    CImplementationInformation* adapterInfo = NULL;
-    
-    for (TInt adapterIndex = 0 ; adapterIndex < adapterCount; adapterIndex++)
-        {
-        adapterInfo = adapterInfoArray[ adapterIndex ];
-        TUid adapterUid = { adapterInfo->ImplementationUid().iUid  };
-        FLOG(_L("CNSmlAgendaDataStore::ListAllAgendaPluginAdaptersL before newl"));
-        adapterInstance = CNSmlAgendaAdapterHandler::NewL(adapterUid); 
-        FLOG(_L("CNSmlAgendaDataStore::ListAllAgendaPluginAdaptersL after newl"));
-        if( adapterInstance )
-            {
-            adapterInstance->iOpaqueData = adapterInfo->OpaqueData().Alloc();
-            iAgendaPluginAdapters.AppendL( adapterInstance );
-            }
-        }
-    adapterInfoArray.ResetAndDestroy();
-    FLOG(_L("CNSmlAgendaDataStore::ListAllAgendaPluginAdaptersL END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::AgendaAdapterHandlerL
-// Get the AdapterHandler instance
-// -----------------------------------------------------------------------------
-void CNSmlAgendaDataStore::AgendaAdapterHandlerL()
-    {
-    FLOG(_L("CNSmlAgendaDataStore::AgendaAdapterHandlerL BEGIN"));
-    
-    // Get the Opaque data / server id from the cenrep
-    TBuf<KBuffLength> serverid;
-    HBufC8* opaquedata;
-    CRepository* rep = CRepository::NewLC( KNsmlDsSessionInfoKey );
-    TInt err = rep->Get(EDSSessionServerId, serverid );
-    FLOG(_L("CNSmlAgendaDataStore:::AgendaAdapterHandlerL():serverid '%S'"), &serverid );
-    User::LeaveIfError(err);
-    CleanupStack::PopAndDestroy(rep);
-    
-    if( 0 == serverid.Length() )
-        {
-        FLOG(_L("CNSmlAgendaDataStore:::AgendaAdapterHandlerL():serverid length is zero"));
-        opaquedata = KNSmlDefaultOpaqueData().AllocL();
-        }
-    else
-        {
-        opaquedata = HBufC8::NewL( serverid.Length() );
-        TPtr8 name( opaquedata->Des() );
-        CnvUtfConverter::ConvertFromUnicodeToUtf8(name , serverid );
-        }
-    iAgendaAdapterHandler = NULL;
-    for( TInt adaptercount = 0; adaptercount < iAgendaPluginAdapters.Count(); adaptercount++ )
-        {
-        if( 0 == opaquedata->Compare(iAgendaPluginAdapters[adaptercount]->iOpaqueData->Des()) )
-            {
-            iAgendaAdapterHandler = iAgendaPluginAdapters[adaptercount];
-            break;
-            }        
-        }
-    
-    delete opaquedata;
-    
-    if( NULL == iAgendaAdapterHandler )
-        {
-        opaquedata = KNSmlDefaultOpaqueData().AllocL();
-        for( TInt adaptercount = 0; adaptercount < iAgendaPluginAdapters.Count(); adaptercount++ )
-            {
-            if( 0 == opaquedata->Compare(iAgendaPluginAdapters[adaptercount]->iOpaqueData->Des()) )
-                {
-                iAgendaAdapterHandler = iAgendaPluginAdapters[adaptercount];
-                break;
-                }        
-            }
-        delete opaquedata;
-        }
-    
-    FLOG(_L("CNSmlAgendaDataStore::AgendaAdapterHandlerL END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::SynchronizableCalEntryIdsL
-// Retrieve the CalendarFile and associated entries ID
-// -----------------------------------------------------------------------------
-void CNSmlAgendaDataStore::SynchronizableCalEntryIdsL( RArray<TCalLocalUid>& aUidArray )
-    {
-    FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL BEGIN"));
-    
-    TInt err(KErrNone);
-    
-    for( TInt calfilecount = 0; calfilecount < iCalOffsetArr->Count(); calfilecount++ )
-        {
-        TUint calfileid = iCalOffsetArr->At(calfilecount);
-        CNSmlAgendaDataStoreUtil* agendautil = NULL;
-        HBufC* calfilename = NULL;
-        
-        TRAP(err, calfilename = iAgendaAdapterHandler->FolderNameL(calfileid) );
-        FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL calfilename: '%S'"), calfilename);
-           
-        if( err!= KErrNone || NULL == calfilename)
-            {
-            FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL Invalid FileName"));
-            User::Leave(KErrGeneral);
-            }
-        FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL Initialize"));
-       
-        agendautil = CNSmlAgendaDataStoreUtil::NewL();
-        if( agendautil )
-            {
-            CleanupStack::PushL(agendautil);
-            TRAP(err, agendautil->InitializeCalAPIsL( calfilename ));
-            CleanupStack::Pop(agendautil);
-            }
-        if ( err || !agendautil )
-            {
-            FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL Initialization failed"));
-            delete calfilename;
-            User::Leave(KErrGeneral);
-            }
-        
-        TCalTime zeroTime;
-        RArray<TCalLocalUid> entryarray;
-        CleanupClosePushL( entryarray );
-       
-        aUidArray.AppendL(calfileid);            
-    
-        zeroTime.SetTimeUtcL( Time::NullTTime() );
-        agendautil->iEntryView->GetIdsModifiedSinceDateL( zeroTime, entryarray );  
-        
-        for( TInt i=0; i<entryarray.Count(); i++)
-            {
-            aUidArray.AppendL(calfileid + entryarray[i]);
-            FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL, Entry ID: '%d'"), (calfileid + entryarray[i]));
-            }    
-        FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL Clean up start"));
-        CleanupStack::PopAndDestroy( &entryarray );
-        delete agendautil;
-        delete calfilename;
-        FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL Cleanup end"));
-        }    
-    FLOG(_L("CNSmlAgendaDataStore::SynchronizableCalEntryIdsL END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::StoreFormatL
-// Providing DataStore access to CNSmlDataProvider Class
-// -----------------------------------------------------------------------------
-CSmlDataStoreFormat* CNSmlAgendaDataStore::StoreFormatL()
-    {
-    return DoOwnStoreFormatL();
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::OpenStoreL
-// Open the Store if present else create one to work upon
-// -----------------------------------------------------------------------------
-void CNSmlAgendaDataStore::OpenStoreL()
-    {
-    FLOG(_L("CNSmlAgendaDataStore::OpenStoreL BEGIN"));
-
-    TInt profileid = NULL;
-    TBuf<KBuffLength> serverid;
-    TBuf<KBuffLength> profilename;
-	TBool isHandlerAvailable( EFalse );
-    
-    // Get the ServerId, ProfileId and ProfileName from the cenrep
-    CRepository* rep = CRepository::NewLC( KNsmlDsSessionInfoKey );
-    TInt err = rep->Get( EDSSessionProfileId, profileid );
-    err = rep->Get( EDSSessionProfileName, profilename );
-    err = rep->Get(EDSSessionServerId, serverid );
-    User::LeaveIfError(err);
-    CleanupStack::PopAndDestroy(rep);
-    
-    // Reintialize the StoreName
-    if ( iOpenedStoreName )
-        {
-        delete iOpenedStoreName;
-        iOpenedStoreName = NULL;
-        }
-    
-    // Find the CalendarFile having the given ProfileID
-    CDesCArray* calfilearr = new (ELeave) CDesCArrayFlat(1);
-    CleanupStack::PushL(calfilearr);
-    FLOG(_L("CNSmlAgendaDataStore:::OpenStoreL():Profilename '%S'"), &profilename );
-    FLOG(_L("CNSmlAgendaDataStore:::OpenStoreL():serverid '%S'"), &serverid );
 	
-	if( 0 != serverid.Length() )
-        {   
-		HBufC8* opaquedata = HBufC8::NewL( serverid.Length() );
-        TPtr8 name( opaquedata->Des() );
-        CnvUtfConverter::ConvertFromUnicodeToUtf8(name , serverid );
-		
-		for( TInt adaptercount = 0; adaptercount < iAgendaPluginAdapters.Count(); adaptercount++ )
-	        {
-	        if( 0 == opaquedata->Compare(iAgendaPluginAdapters[adaptercount]->iOpaqueData->Des()) )
-	            {
-	            FLOG(_L("CNSmlAgendaDataStore::Handler available"));			
-				isHandlerAvailable = ETrue;
-	            break;
-	            }        
-	        }
-			delete opaquedata;
-        }	
-    
-	if( isHandlerAvailable )
-		{
-		iOpenedStoreName = iDefaultStoreFileName->AllocL();
-		}	
-    else if( IsCalFileAvailableL( profileid, calfilearr ) )
-        {
-        FLOG(_L("CNSmlAgendaDataStore::OpenStoreL Found the assoicated calfile"));
-        
-        // TODO: Yet to get clarification for enable/disable the notification
-        iOpenedStoreName = calfilearr->MdcaPoint(0).AllocL();
-        }
-    else
-        {
-        FLOG(_L("CNSmlAgendaDataStore::OpenStoreL CouldNot Find the Calfile"));
-        
-        // No association found thus creating a CalendarFile
-        HBufC* name = profilename.AllocL();
-        HBufC* calfilename = CreateCalFileL( name, profileid );
-        delete name;
-        iOpenedStoreName = calfilename;
-        }
-        
-    CCalSession* calsession = CCalSession::NewL();
-    CleanupStack::PushL(calsession);
-    TRAP( err, calsession->OpenL( iOpenedStoreName->Des() ) );
-    // Disable notifications
-    TRAP_IGNORE( calsession->DisablePubSubNotificationsL() );
-    TRAP_IGNORE( calsession->DisableChangeBroadcast() );        
-    // Get ID of database
-    calsession->FileIdL( iOpenedStoreId );
-    CleanupStack::PopAndDestroy( calsession );    
-      
-    CleanupStack::PopAndDestroy(calfilearr);
-    FLOG(_L("CNSmlAgendaDataStore::OpenStoreL END"));    
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::IsCalFileAvailableL    
-// Check existance of CalFile with the given ProfileID associativity
-// -----------------------------------------------------------------------------
-TBool CNSmlAgendaDataStore::IsCalFileAvailableL( TInt aProfileId, CDesCArray* aCalFileArr )
-    {
-    FLOG(_L("CNSmlAgendaDataStore::IsCalFileAvailable: BEGIN"));   
-    
-    TBool calfilestatus(EFalse);
-    TBuf8<KBuffLength> keyBuff;
-    CCalSession* vCalSession = NULL;
-    CCalSession* vCalSubSession = NULL;   
-    
-    vCalSession = CCalSession::NewL();
-    CleanupStack::PushL(vCalSession);
-    
-    CDesCArray* calfilearr = vCalSession->ListCalFilesL();            
-    CleanupStack::PushL(calfilearr);
-    
-    for(TInt i = 0; i < calfilearr->Count(); i++)
-        {
-		TInt err = KErrNone;
-        vCalSubSession = CCalSession::NewL(*vCalSession);
-        CleanupStack::PushL(vCalSubSession);
-        vCalSubSession->OpenL(calfilearr->MdcaPoint(i));
-        
-        CCalCalendarInfo* caleninfo = vCalSubSession->CalendarInfoL();
-        CleanupStack::PushL(caleninfo);
-        
-		//Get MARKASDELETE MetaData property
-		keyBuff.Zero();
-		TBool markAsdelete = EFalse;
-		keyBuff.AppendNum( EMarkAsDelete );
-		TPckgC<TBool> pckMarkAsDelete(markAsdelete);
-		TRAP(err,pckMarkAsDelete.Set(caleninfo->PropertyValueL(keyBuff)));
-		if ( err == KErrNone )
-			{
-			markAsdelete = pckMarkAsDelete();
-			if( markAsdelete )
-				{
-				FLOG(_L("CNSmlAgendaDataStore::IsCalFileAvailableL: Dead Calendar"));
-				CleanupStack::PopAndDestroy(caleninfo);
-				CleanupStack::PopAndDestroy(vCalSubSession);  	  	 
-				continue;
-				}
-			}
-		
-		//Get the ProfileId MetaData property 
-        TInt ProfileId;
-        keyBuff.Zero();
-        keyBuff.AppendNum( EDeviceSyncProfileID );
-        TPckgC<TInt> intBuf(ProfileId);
-        TRAP(err,intBuf.Set(caleninfo->PropertyValueL(keyBuff)));
-                    
-        if( err != KErrNone )
-            {
-            FLOG(_L("CNSmlAgendaDataStore::IsCalFileAvailable: Error while retrieving CalFile Property"));
-            CleanupStack::PopAndDestroy(caleninfo);   
-            CleanupStack::PopAndDestroy(vCalSubSession);             
-            continue;
-            }
-        
-        ProfileId = intBuf();
-        
-        if(aProfileId == ProfileId)
-            {
-            aCalFileArr->AppendL(calfilearr->MdcaPoint(i));
-            }
-        CleanupStack::PopAndDestroy(caleninfo);    
-        CleanupStack::PopAndDestroy(vCalSubSession); 
-        }
-    
-    if( aCalFileArr->Count() > 0 )
-        {
-        calfilestatus = ETrue;
-        }
-    else
-        {
-        calfilestatus = EFalse;
-        }
-    CleanupStack::PopAndDestroy(calfilearr);     
-    CleanupStack::PopAndDestroy(vCalSession);
-    
-    FLOG(_L("CNSmlAgendaDataStore::IsCalFileAvailable: END"));    
-    return calfilestatus;
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::OpenStoreL
-// Create CalFile with the attributes provided
-// -----------------------------------------------------------------------------
-HBufC* CNSmlAgendaDataStore::CreateCalFileL( HBufC* aProfileName, TInt aProfileId )
-    {
-    FLOG(_L("CNSmlAgendaDataStore::CreateCalFileL: BEGIN"));
-    
-    TBuf8<KBuffLength> keyBuff;
-    TUint calValue = 0;
-    CCalSession* calSession = CCalSession::NewL();
-    CleanupStack::PushL(calSession);
-    CCalCalendarInfo* calinfo = CCalCalendarInfo::NewL();
-    CleanupStack::PushL(calinfo);   
-    
-    //Visibility
-    calinfo->SetEnabled(ETrue);
-    calinfo->SetNameL(aProfileName->Des());
-    // TODO
-    calinfo->SetColor(Math::Random());
-    
-    // Set Meta Data Properties
-    // LUID Meta Property
-    keyBuff.Zero();
-    keyBuff.AppendNum( EFolderLUID );
-    calValue = CCalenMultiCalUtil::GetNextAvailableOffsetL();
-    FLOG(_L("CNSmlAgendaDataStore::CreateCalFileL: nextoffset: '%d'"), calValue);
-    TPckgC<TUint> pckgUidValue( calValue );
-    calinfo->SetPropertyL( keyBuff, pckgUidValue );
-    
-    // Create & Modified Time Meta Property
-    keyBuff.Zero();
-    keyBuff.AppendNum( ECreationTime );
-    TTime time;
-    time.HomeTime();
-    TPckgC<TTime> pckgCreateTimeValue( time );
-    calinfo->SetPropertyL( keyBuff, pckgCreateTimeValue );
-    keyBuff.Zero();
-    keyBuff.AppendNum( EModificationTime );
-    calinfo->SetPropertyL( keyBuff, pckgCreateTimeValue );
-    
-    // Sync Status
-    keyBuff.Zero();
-    keyBuff.AppendNum( ESyncStatus );
-    TBool syncstatus( ETrue );
-    TPckgC<TBool> pckgSyncStatusValue( syncstatus );
-    calinfo->SetPropertyL( keyBuff, pckgSyncStatusValue );
-    
-    // Global UID MetaDataProperty 
-    keyBuff.Zero();
-    keyBuff.AppendNum( EGlobalUUID );
-    HBufC8* guuid = iInterimUtils->GlobalUidL();
-    TPtr8 guuidPtr = guuid->Des();
-    CleanupStack::PushL( guuid );
-    calinfo->SetPropertyL( keyBuff, guuidPtr );
-    CleanupStack::PopAndDestroy( guuid );
-    
-    // Owner
-    keyBuff.Zero();
-    TInt syncowner = iAgendaAdapterHandler->DeviceSyncOwner(); 
-    keyBuff.AppendNum( EDeviceSyncServiceOwner );
-    TPckgC<TInt> pckgAppUIDValue( syncowner );    
-    calinfo->SetPropertyL( keyBuff, pckgAppUIDValue );
-    
-    // Profile ID Meta Property
-    keyBuff.Zero();
-    keyBuff.AppendNum( EDeviceSyncProfileID );
-    TPckgC<TInt> pckgProfileIdValue( aProfileId );    
-    calinfo->SetPropertyL( keyBuff, pckgProfileIdValue );
-    
-    // Lock the SYNC option
-    keyBuff.Zero();
-    keyBuff.AppendNum( ESyncConfigEnabled );
-    TBool synclockstatus( ETrue );
-    TPckgC<TBool> pckgSyncLockValue( synclockstatus );
-    calinfo->SetPropertyL( keyBuff, pckgSyncLockValue );
-       
-    // Create the CalFile
-    HBufC* calfilename = CCalenMultiCalUtil::GetNextAvailableCalFileL();
-    calSession->CreateCalFileL( calfilename->Des(), *calinfo );
-    CleanupStack::PopAndDestroy(calinfo);
-    CleanupStack::PopAndDestroy(calSession);
-    
-    FLOG(_L("CNSmlAgendaDataStore::CreateCalFileL: END"));
-    
-    return calfilename;    
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::ActiveItemsL
-// Filters out the non-active items from the given array
-// -----------------------------------------------------------------------------
-CNSmlDataItemUidSet* CNSmlAgendaDataStore::ActiveItemsL( CNSmlDataItemUidSet& aUids ) const
-    {
-    FLOG(_L("CNSmlAgendaDataStore::ActiveItemsL: BEGIN"));
-    
-    TInt err(KErrNone);
-    TCalLocalUid uid(0);
-    TCalLocalUid parentid(0);
-    CNSmlDataItemUidSet* tempuids = new ( ELeave ) CNSmlDataItemUidSet();
-    CNSmlDataItemUidSet* inactiveuids = new ( ELeave ) CNSmlDataItemUidSet();
-    for( TInt count =0; count < aUids.ItemCount(); count++ )
-        {
-        parentid = 0;
-        uid = aUids.ItemAt(count);
-        TRAP( err, GetCalendarEntryIdL( parentid, uid ));
-        if ( err && iIsHierarchicalSyncSupported )
-            {
-            FLOG(_L("CNSmlAgendaDataStore::ActiveItemsL: Invalid UID"));
-            delete tempuids;
-            delete inactiveuids;
-            User::Leave( KErrGeneral );
-            }                
-        if( iAgendaAdapterHandler->FolderSyncStatusL( parentid ) )
-            {
-            FLOG(_L("CNSmlAgendaDataStore::ActiveItemsL: ActiveItem: '%d'"), aUids.ItemAt(count));
-            tempuids->AddItem( aUids.ItemAt(count) );
-            }
-        else
-            {
-            FLOG(_L("CNSmlAgendaDataStore::ActiveItemsL: InActiveItem: '%d'"), aUids.ItemAt(count));
-            inactiveuids->AddItem( aUids.ItemAt(count) );
-            }
-        }
-    if( inactiveuids->ItemCount() > 0 )
-        {
-        aUids.Reset();
-        for( TInt count =0; count < tempuids->ItemCount(); count++ )
-            {
-            aUids.AddItem( tempuids->ItemAt(count) );
-            }
-        delete tempuids;
-        FLOG(_L("CNSmlAgendaDataStore::ActiveItemsL: END"));
-        return inactiveuids;
-        }
-    else
-        {
-        delete tempuids;
-        delete inactiveuids;
-        FLOG(_L("CNSmlAgendaDataStore::ActiveItemsL: END"));
-        return NULL;
-        }
-    }
-
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::ExternalizeCommittedUidL
-// Populate iCommittedUidArr from the Stream
-// -----------------------------------------------------------------------------
-void CNSmlAgendaDataStore::ExternalizeCommittedUidL() const
-    {
-    FLOG(_L("CNSmlAgendaDataStore::ExternalizeCommittedUidL: BEGIN"));
-    
-    TUid uid = {KNSmlAgendaAdapterStreamUid};
-    RWriteStream writeStream;
-    
-    // Open stream for writing
-    iAgendaAdapterLog->iSyncRelationship.OpenWriteStreamLC(writeStream, uid);
-      
-    // Write the snapshot to the stream
-    TInt itemCount = iCommittedUidArr->ItemCount();
-    FLOG(_L("CNSmlAgendaDataStore::ExternalizeCommittedUidL: count '%d'"), itemCount);
-    writeStream.WriteInt32L(itemCount);
-    
-    if( itemCount > 0 )
-        {    
-        for (TInt i = 0; i < itemCount; ++i)
-            {
-            writeStream.WriteInt32L(iCommittedUidArr->ItemAt(i));
-            FLOG(_L("CNSmlAgendaDataStore::ExternalizeCommittedUidL: item '%d'"), iCommittedUidArr->ItemAt(i));
-            }        
-        }
-    writeStream.CommitL();
-    CleanupStack::PopAndDestroy(); // writeStream
-    FLOG(_L("CNSmlAgendaDataStore::ExternalizeCommittedUidL: END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStore::InternalizeCommittedUidL
-// Write the contents of iCommittedUidArr to the Stream
-// -----------------------------------------------------------------------------
-void CNSmlAgendaDataStore::InternalizeCommittedUidL() const
-    {
-    FLOG(_L("CNSmlAgendaDataStore::InternalizeCommittedUidL: BEGIN"));
-  
-    TUid uid = {KNSmlAgendaAdapterStreamUid};        
-    TBool hashistory = iAgendaAdapterLog->iSyncRelationship.IsStreamPresentL(uid);
-    
-    if (hashistory)
-        {
-        FLOG(_L("CNSmlAgendaDataStore::InternalizeCommittedUidL: HasHistory"));
-        
-        // Open stream for reading
-        RReadStream readStream;
-        iAgendaAdapterLog->iSyncRelationship.OpenReadStreamLC(readStream, uid);
-        
-        // Read snapshot from the stream
-        TSmlDbItemUid item;
-        TInt itemCount(readStream.ReadInt32L());
-        FLOG(_L("CNSmlAgendaDataStore::InternalizeCommittedUidL: count '%d'"), itemCount);
-        iCommittedUidArr->Reset();
-        for (TInt i = 0; i < itemCount; ++i)
-            {
-            item = readStream.ReadInt32L();
-            FLOG(_L("CNSmlAgendaDataStore::InternalizeCommittedUidL: item '%d'"), item);
-            iCommittedUidArr->AddItem(item);
-            }        
-        CleanupStack::PopAndDestroy(); // readStream
-        }
-
-    FLOG(_L("CNSmlAgendaDataStore::InternalizeCommittedUidL: END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStoreUtil::CNSmlAgendaDataStoreUtil
-// C++ default constructor can NOT contain any code, that
-// might leave.
-// -----------------------------------------------------------------------------
-//
-CNSmlAgendaDataStoreUtil::CNSmlAgendaDataStoreUtil() :
-    iCalSession( NULL ),
-    iExporter( NULL ),
-    iImporter( NULL ),
-    iProgressView( NULL ),
-    iEntryView( NULL ),
-    iEntry( NULL ),
-    iFileName( NULL )
-    {
-    FLOG(_L("CNSmlAgendaDataStoreUtil::CNSmlAgendaDataStoreUtil(): BEGIN"));
-    
-    FLOG(_L("CNSmlAgendaDataStoreUtil::CNSmlAgendaDataStoreUtil(): END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStoreUtil::InitializeCalAPIsL
-// Initialize Calendar APIs for database access using the provided name and id
-// -----------------------------------------------------------------------------
-//
-void CNSmlAgendaDataStoreUtil::InitializeCalAPIsL( HBufC* aFileName, TSmlDbItemUid aUid )
-    {
-    FLOG(_L("CNSmlAgendaDataStoreUtil::InitializeCalAPIsL: BEGIN"));
-    
-    iCalSession = CCalSession::NewL();
-    iCalSession->OpenL(aFileName->Des());        
-    iExporter = CCalenExporter::NewL( *iCalSession );
-    iImporter = CCalenImporter::NewL( *iCalSession );
-    iProgressView = CNSmlAgendaProgressview::NewL();
-    iEntryView = CCalEntryView::NewL( *iCalSession, *iProgressView );
-    CActiveScheduler::Start();
-    TInt completedStatus = iProgressView->GetCompletedStatus();
-    if ( completedStatus != KErrNone )
-        {
-        FLOG(_L("CNSmlAgendaDataStoreUtil::ConstructL: ERROR in Progressview"));
-        }
-    if( aUid != NULL )
-        {
-        iEntry = iEntryView->FetchL( aUid );
-        if( NULL == iEntry )
-            {
-            User::Leave( KErrNotFound );
-            }
-        
-        }    
-    FLOG(_L("CNSmlAgendaDataStoreUtil::InitializeCalAPIsL: END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStoreUtil::NewL
-// Two-phased constructor.
-// -----------------------------------------------------------------------------
-//
-CNSmlAgendaDataStoreUtil* CNSmlAgendaDataStoreUtil::NewL()
-    {
-    FLOG(_L("CNSmlAgendaDataStoreUtil::NewL: BEGIN"));
-    
-    CNSmlAgendaDataStoreUtil* self = new ( ELeave ) CNSmlAgendaDataStoreUtil();
-    
-    FLOG(_L("CNSmlAgendaDataStoreUtil::NewL: END"));
-    return self;
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaDataStoreUtil::~CNSmlAgendaDataStoreUtil
-// Destructor.
-// -----------------------------------------------------------------------------
-//
-CNSmlAgendaDataStoreUtil::~CNSmlAgendaDataStoreUtil()
-    {
-    FLOG(_L("CNSmlAgendaDataStoreUtil::~CNSmlAgendaDataStoreUtil(): BEGIN"));
-
-    delete iEntry;
-    delete iEntryView;
-    delete iExporter;
-    delete iImporter;
-    delete iCalSession;
-    delete iProgressView;
-    
-    FLOG(_L("CNSmlAgendaDataStoreUtil::~CNSmlAgendaDataStoreUtil(): END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaAdapterLog::CNSmlAgendaAdapterLog
-// C++ default constructor can NOT contain any code, that
-// might leave.
-// -----------------------------------------------------------------------------
-//
-CNSmlAgendaAdapterLog::CNSmlAgendaAdapterLog( MSmlSyncRelationship& aSyncRelationship ) :
-    iSyncRelationship( aSyncRelationship )
-    {
-    FLOG(_L("CNSmlAgendaAdapterLog::CNSmlAgendaAdapterLog(): BEGIN"));
-    
-    FLOG(_L("CNSmlAgendaAdapterLog::CNSmlAgendaAdapterLog(): END"));
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaAdapterLog::NewL
-// Two-phased constructor.
-// -----------------------------------------------------------------------------
-//
-CNSmlAgendaAdapterLog* CNSmlAgendaAdapterLog::NewL( MSmlSyncRelationship& aSyncRelationship )
-    {
-    FLOG(_L("CNSmlAgendaAdapterLog::NewL: BEGIN"));
-    
-    CNSmlAgendaAdapterLog* self = new ( ELeave ) CNSmlAgendaAdapterLog(aSyncRelationship);
-    
-    FLOG(_L("CNSmlAgendaAdapterLog::NewL: END"));
-    return self;
-    }
-
-// -----------------------------------------------------------------------------
-// CNSmlAgendaAdapterLog::~CNSmlAgendaAdapterLog
-// Destructor.
-// -----------------------------------------------------------------------------
-//
-CNSmlAgendaAdapterLog::~CNSmlAgendaAdapterLog()
-    {
-    FLOG(_L("CNSmlAgendaAdapterLog::~CNSmlAgendaAdapterLog(): BEGIN"));
-    
-    FLOG(_L("CNSmlAgendaAdapterLog::~CNSmlAgendaAdapterLog(): END"));
-    }
-
-   
 //  End of File  

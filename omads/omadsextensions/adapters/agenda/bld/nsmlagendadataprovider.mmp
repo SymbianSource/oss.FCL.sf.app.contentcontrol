@@ -26,7 +26,7 @@ UID			0x10009d8d 0x101F6DDE
 CAPABILITY	CAP_ECOM_PLUGIN
 VENDORID	VID_DEFAULT
 
-#if defined(ARMCC)
+#if defined(EABI)
 DEFFILE		./def/eabinsmlagendadataprovider
 #elif defined(WINSCW)
 DEFFILE		./def/bwinscwnsmlagendadataprovider
@@ -57,14 +57,14 @@ TARGETPATH	RESOURCE_FILES_DIR
 LANGUAGE_IDS
 END 
 
-//RD_MULTICAL
-LIBRARY 	gdi.lib
-//RD_MULTICAL
+START RESOURCE NSmlAgendaDataStore_1_2.rss
+HEADER
+TARGETPATH	RESOURCE_FILES_DIR
+LANGUAGE_IDS
+END 
+
 LIBRARY		ECom.lib euser.lib efsrv.lib estor.lib smlstoreformat.lib
 LIBRARY		nsmldebug.lib smldataprovider.lib nsmldatamod.lib
 LIBRARY		nsmlchangefinder.lib wbxmllib.lib bafl.lib sysutil.lib
-LIBRARY		CalInterimAPI.lib msgs.lib CalenImp.lib CalenInterimUtils2.lib calencommonutils.lib
+LIBRARY		CalInterimAPI.lib msgs.lib CalenImp.lib CalenInterimUtils2.lib
 LIBRARY 	versit.lib
-LIBRARY 	charconv.lib 
-LIBRARY 	flogger.lib
-LIBRARY 	centralrepository.lib

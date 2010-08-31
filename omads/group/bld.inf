@@ -15,6 +15,12 @@
 *
 */
 
+#include <platform_paths.hrh>
 
-#include "../omadsappui/group/bld.inf"
+PRJ_EXPORTS
+
+//for IAD support
+omads_stub.sis  /epoc32/data/z/system/install/omads_stub.sis
+../rom/omads.iby      CORE_APP_LAYER_IBY_EXPORT_PATH(omads.iby)
+
 #include "../omadsextensions/group/bld.inf"
