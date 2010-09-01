@@ -15,6 +15,7 @@ CHARACTER_SET UTF8/*
 *
 */
 
+
 #include "SmlDataFormat.rh"
 #include "SmlDataFormat.hrh"
 
@@ -78,18 +79,6 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 					data_type="";
 					enum_values={};
 					flags= 0;
-					max_size=256;
-					max_occur=0;
-					params={};
-					},
-				SML_DATA_PROPERTY
-					{
-					version=1;
-					display_name="Uid";
-					name="UID";
-					data_type="";
-					enum_values={};
-					flags=0;
 					max_size=256;
 					max_occur=0;
 					params={};
@@ -199,6 +188,14 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 						SML_DATA_PROPERTY_PARAM
 							{
 							version=1;
+							display_name="Default number";
+							name="PREF";
+							data_type="";
+							enum_values={};
+							},	
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
 							display_name="Car telephone";
 							name="CAR";
 							data_type="";
@@ -230,6 +227,14 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 					max_occur=0;
 					params=
 						{
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name="";
+							name="INTERNET";
+							data_type="";
+							enum_values={};
+							},
 						SML_DATA_PROPERTY_PARAM
 							{
 							version=1;
@@ -316,7 +321,7 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 					data_type="";
 					enum_values={};
 					flags= 0;
-					max_size=256;
+					max_size=1000;
 					max_occur=0;
 					params={};
 					},
@@ -380,6 +385,19 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 					max_occur=0;
 					params={};
 					},
+				SML_DATA_PROPERTY
+					{
+					version=1;
+					display_name="Wireless Village Id";
+					name="X-WV-ID";
+					data_type="";
+					enum_values={};
+					flags= 0;
+					max_size=256;
+					max_occur=0;
+					params={};
+					},
+					
 				SML_DATA_PROPERTY
 					{
 					version=1;
@@ -458,6 +476,104 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 				SML_DATA_PROPERTY
 					{
 					version=1;
+					display_name="Class";
+					name="X-CLASS";
+					data_type="";
+					enum_values={"PUBLIC","PRIVATE","CONFIDENTIAL"};
+					flags= 0;
+					max_size=256;
+					max_occur=0;
+					params={};
+					},
+				SML_DATA_PROPERTY
+					{
+					version=1;
+					display_name="IMPP";
+					name="X-IMPP";
+					data_type="";
+					enum_values={};
+					flags= 0;
+					max_size=256;
+					max_occur=0;
+					params=
+						{
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name=""; 
+							name="PERSONAL";
+							data_type="";
+							enum_values={};
+							},
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name=""; 
+							name="HOME";
+							data_type="";
+							enum_values={};
+							},
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name=""; 
+							name="WORK";
+							data_type="";
+							enum_values={};
+							},
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name=""; 
+							name="BUSINESS";
+							data_type="";
+							enum_values={};
+							},
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name=""; 
+							name="MOBILE";
+							data_type="";
+							enum_values={};
+							},
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name=""; 
+							name="PREF";
+							data_type="";
+							enum_values={};
+							}
+						};
+					},
+					SML_DATA_PROPERTY
+					{
+					version=1;
+					display_name="Top contact";
+					name="X-FAVORITE";
+					data_type="";
+					enum_values={};
+					flags= 0;
+					max_size=256;
+					max_occur=0;
+					params={};
+					},
+				      SML_DATA_PROPERTY
+					{
+					version=1;
+					display_name="My Card";
+					name="X-SELF";
+					data_type="";
+					enum_values={};
+					flags= 0;
+					max_size=256;
+					max_occur=0;
+					params={};
+					},
+				SML_DATA_PROPERTY
+					{
+					version=1;
 					display_name="SIP protocol";
 					name="X-SIP";
 					data_type="";
@@ -467,6 +583,14 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 					max_occur=0;
 					params=
 						{
+						SML_DATA_PROPERTY_PARAM
+							{
+							version=1;
+							display_name="POC";
+							name="POC";
+							data_type="";
+							enum_values={};
+							},
 						SML_DATA_PROPERTY_PARAM
 							{
 							version=1;
@@ -484,7 +608,19 @@ RESOURCE SML_DATA_STORE_FORMAT NSML_CONTACTS_DATA_STORE_FORMAT
 							enum_values={};
 							}
 						};
-					}
+					},
+                    SML_DATA_PROPERTY
+                              {
+                              version=1;
+                              display_name="Categories";
+                              name="X-CATEGORIES";
+                              data_type="";
+                              enum_values={};
+                              flags= 0;
+                              max_size=256;
+                              max_occur=0;
+                              params={};
+                              }
 				};
 				field_level=0;
 				}

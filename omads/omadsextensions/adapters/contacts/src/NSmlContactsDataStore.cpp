@@ -34,15 +34,35 @@
 #include <SmlDataProvider.h>
 #include <e32property.h>
 #include <DataSyncInternalPSKeys.h>
-#include <nsmlcontactsdatastoreextension.h>
-#include <NSmlDataModBase.h>
-#include <nsmlcontactsdatastore.h>
+#include <e32hashtab.h>
+
+#include <CVPbkContactStoreUriArray.h>
+#include <VPbkContactStoreUris.h>
+#include <TVPbkContactStoreUriPtr.h>
+#include <MVPbkContactStoreList.h>
+#include <MVPbkContactStoreProperties.h>
+#include <MVPbkStoreContactProperties.h>
+#include <MVPbkViewContact.h>
+#include <MVPbkStoreContact.h>
+#include <MVPbkStoreContact2.h>
+#include <MVPbkFieldType.h>
+#include <MVPbkContactFieldTextData.h>
+#include <CVPbkContactFieldIterator.h>
+#include <CVPbkContactViewDefinition.h>
+
+#include <MVPbkContactLink.h>
+#include <s32mem.h>
+
+#include <NSmlContactsDataStore.h>
+#include "NSmlContactsModsFetcher.h"
 #include "nsmldebug.h"
 #include "nsmlconstants.h"
+#include <NSmlDataModBase.h>
+#include "nsmlcontactsdefs.h"
 #include "nsmldsimpluids.h"
 #include "nsmlsnapshotitem.h"
 #include "nsmlchangefinder.h"
-
+#include <VPbkEng.rsg>
 
 #ifndef __WINS__
 // This lowers the unnecessary compiler warning (armv5) to remark.
@@ -72,7 +92,7 @@ EXPORT_C CNSmlContactsDataStore* CNSmlContactsDataStore::NewL()
 	CleanupStack::PushL(self);
 		
 	self->ConstructL();
-	CleanupStack::Pop(); // self
+	CleanupStack::Pop(self); // self
 		
 	_DBG_FILE("CNSmlContactsDataStore::NewL: END");
 	return self;
@@ -81,21 +101,35 @@ EXPORT_C CNSmlContactsDataStore* CNSmlContactsDataStore::NewL()
 // ----------------------------------------------------------------------------
 // CNSmlContactsDataStore::CNSmlContactsDataStore() 
 // ----------------------------------------------------------------------------
-EXPORT_C CNSmlContactsDataStore::CNSmlContactsDataStore() : iKey( TKeyArrayFix( _FOFF( TNSmlSnapshotItem,ItemId() ),ECmpTInt ))
+EXPORT_C CNSmlContactsDataStore::CNSmlContactsDataStore() : 
+	iKey( TKeyArrayFix( _FOFF( TNSmlSnapshotItem,ItemId() ),ECmpTInt )),
+	iContactManager(NULL),
+	iStore(NULL),
+	iIdConverter(NULL),
+	iContactViewBase(NULL),
+	iSize(NULL),	
+	iBuf(NULL),
+	iVCardEngine(NULL),
+	iContactLnks(NULL)
 	{
 	_DBG_FILE("CNSmlContactsDataStore::CNSmlContactsDataStore(): begin");
+
 	iSyncHistory = EFalse;
 	iSnapshotRegistered = EFalse;
 
-	iServerMaxObjectSize = 0; // Maximum size default value
+	iServerMaxObjectSize = 0; // Maximum size default value 
 	iItemPos = -1;
 	iModificationCount = KNSmlCompactAfterChanges;
 	
 	iState = ENSmlClosed;
 	iStoreName = NULL;
-	
-	iDrive = -1;
-	
+	iRetCommand = KErrNone;
+	iLastOperation = ENSmlNone;
+	if(iDeleteAllOperation)
+	    {
+	    delete iDeleteAllOperation;
+	    iDeleteAllOperation = NULL;
+	    }
 	_DBG_FILE("CNSmlContactsDataStore::CNSmlContactsDataStore(): end");
 	}
 	
@@ -104,22 +138,23 @@ EXPORT_C CNSmlContactsDataStore::CNSmlContactsDataStore() : iKey( TKeyArrayFix( 
 // ----------------------------------------------------------------------------
 EXPORT_C void CNSmlContactsDataStore::ConstructL()
 	{
-	_DBG_FILE("CNSmlContactsDataStore::CNSmlContactsDataStore(): begin");
-	ConstructL( KNSmlContactStoreNameForDefaultDB );		
+	_DBG_FILE("CNSmlContactsDataStore::ConstructL(): begin");
+	
+	ConstructL( ( VPbkContactStoreUris::DefaultCntDbUri() ), KLegacySymbianDatabase );
+		
 	_DBG_FILE("CNSmlContactsDataStore::ConstructL(): end");
 	}
 
 // ----------------------------------------------------------------------------
 // CNSmlContactsDataStore::ConstructL()
 // ----------------------------------------------------------------------------
-EXPORT_C void CNSmlContactsDataStore::ConstructL( const TDesC& aStoreName )
+EXPORT_C void CNSmlContactsDataStore::ConstructL(
+    const TDesC& aStoreName, const TDesC& aLegacyStore )
     {
-    _DBG_FILE("CNSmlContactsDataStore::CNSmlContactsDataStore(): begin");
-    
-    //TODO: NOT RESPECTING THE aStoreName VALUE FOR 10.1
+    _DBG_FILE("CNSmlContactsDataStore::ConstructL(): begin");
     
     User::LeaveIfError( iRfs.Connect() );
-    
+
     iStringPool.OpenL();
     
     // Uid Sets
@@ -132,18 +167,25 @@ EXPORT_C void CNSmlContactsDataStore::ConstructL( const TDesC& aStoreName )
     // Create iDataMod
     // This should be done after OpenL if there are more than one database
     iDataMod = new (ELeave) CNSmlVCardMod();
-    iContactsDataStoreExtension = NULL;
 
     SetOwnStoreFormatL();
+    // open  contact database
+    CVPbkContactStoreUriArray* uriArray = CVPbkContactStoreUriArray::NewLC();
+    uriArray->AppendL( TVPbkContactStoreUriPtr( aStoreName ));
     
-    // TODO: Determine the Default StoreName
-    iDefaultStoreName = HBufC::NewL(KNSmlDefaultStoreNameMaxSize);
-    *iDefaultStoreName = KNSmlContactStoreNameForDefaultDB;
+    iContactManager = CVPbkContactManager::NewL(*uriArray);
+    CleanupStack::PopAndDestroy(uriArray);
+    //Default store name
+    iDefaultStoreName = aStoreName.AllocL();
     
-    iSnapshot = new (ELeave) CArrayFixSeg<TNSmlSnapshotItem>(KNSmlContactsGranularity);
-    iCntUidList = new(ELeave) CArrayFixFlat<TUid>(KNSmlContactsGranularity);
+    //Fill iPacketStoreName buffer with legacy store name
+    TBuf<KOldSymbianDBLength> dataBase(aLegacyStore);
+    iPacketStoreName = HBufC::NewL(dataBase.Length());
+    TPtr pktStorePtr(iPacketStoreName->Des());
+    pktStorePtr.Copy(dataBase);
+    iDeleteAllOperation = NULL;
         
-    _DBG_FILE("CNSmlContactsDataStore::ConstructL(): end");
+    _DBG_FILE("CNSmlContactsDataStore::ConstructL(): end");    
     }
 
 // ----------------------------------------------------------------------------
@@ -157,40 +199,73 @@ EXPORT_C CNSmlContactsDataStore::~CNSmlContactsDataStore()
 	iStringPool.Close();
 
 	iRfs.Close();
+	iWriteStream.Close();
+	iReadStream.Close();
+	delete iBuf;
+	
 	if ( iChangeFinder )
 		{
 		TRAP_IGNORE( iChangeFinder->CloseL() );
 		delete iChangeFinder;
+		iChangeFinder = NULL;
 		}
 	
-	if( iContactsDataStoreExtension )
+	if(iIdConverter)
+		{
+		delete iIdConverter;
+		iIdConverter = NULL;
+		}
+	if(iContactLnks)
+		{
+        delete iContactLnks;
+		iContactLnks = NULL;
+		}
+
+	if(iContactViewBase)
 	    {
-        delete iContactsDataStoreExtension;
-        iContactsDataStoreExtension = NULL;
+	    delete iContactViewBase;
+	    iContactViewBase = NULL;
 	    }
+	if ( iContactsModsFetcher )
+		{
+		iContactsModsFetcher->CancelRequest(); 
+		delete iContactsModsFetcher;
+		iContactsModsFetcher = NULL;
+		}
+	if ( iContactManager )
+		{
+			if(iStore)
+			{
+			iStore->Close( *this );	
+			}
+	    delete iContactManager;
+	    iContactManager = NULL;
+		}
 	
+	
+	delete iVCardEngine;
+	//  Delete UidSets		
+	//
 	delete iNewUids;
 	delete iDeletedUids;
 	delete iSoftDeletedUids;
 	delete iMovedUids;
 	delete iReplacedUids;
 	
-	delete iSnapshot;
-    delete iCntUidList;
-//
-//	Empty BufferItemList if any
-//
-  if ( iContactsBufferItemList.Count() > 0 )
-  {
-    if ( iContactsBufferItemList[iContactsBufferItemList.Count() - 1]->iItemData == iItemData )
-      {
-      iItemData = NULL;
-      }
-  }
+	//
+	//	Empty BufferItemList if any
+	//
+	if ( iContactsBufferItemList.Count() > 0 )
+		{
+		if ( iContactsBufferItemList[iContactsBufferItemList.Count() - 1]->iItemData == iItemData )
+			{
+			iItemData = NULL;
+			}
+		}
 	iContactsBufferItemList.ResetAndDestroy();
-	
 	delete iDataMod;
-	
+	delete iMergeItem;
+
 	if(iItemData)
     	{
 	    if(iItemData->Size() > 0 )
@@ -205,10 +280,18 @@ EXPORT_C CNSmlContactsDataStore::~CNSmlContactsDataStore()
 		}
 		
 	delete iDefaultStoreName;
+	delete iPacketStoreName;
 
 	delete iStoreName;
 
 	iAddResultArray.Close();
+	
+	if(iDeleteAllOperation)
+	    {
+	    delete iDeleteAllOperation;
+	    iDeleteAllOperation = NULL;
+	    }
+	
 	}
 
 // ----------------------------------------------------------------------------
@@ -217,8 +300,8 @@ EXPORT_C CNSmlContactsDataStore::~CNSmlContactsDataStore()
 //									    TRequestStatus& 	  aStatus)
 // ----------------------------------------------------------------------------
 EXPORT_C void CNSmlContactsDataStore::DoOpenL( const TDesC& aStoreName, 
-                                               MSmlSyncRelationship& aContext, 
-                                               TRequestStatus& aStatus )
+									MSmlSyncRelationship& aContext, 
+									TRequestStatus& aStatus )
 	{
 	DBG_ARGS(_S("CNSmlContactsDataStore::DoOpenL(): '%S' begin"), &aStoreName);
 
@@ -231,12 +314,10 @@ EXPORT_C void CNSmlContactsDataStore::DoOpenL( const TDesC& aStoreName,
 		return;	
 		}
 
-	RFs::CharToDrive( KNSmlDriveC()[0], iDrive );
-
-	/*if( RFs::CharToDrive(aStoreName[0], iDrive) != KErrNone )
+	if( RFs::CharToDrive(aStoreName[0], iDrive) != KErrNone )
 		{
 		RFs::CharToDrive( KNSmlDriveC()[0], iDrive );
-		}*/
+		}
 	iOpened = EFalse;
 	
 	if( iStoreName )
@@ -245,50 +326,47 @@ EXPORT_C void CNSmlContactsDataStore::DoOpenL( const TDesC& aStoreName,
 		iStoreName = NULL;
 		}
 		
-	if ( iContactsDataStoreExtension )
-		{
-		delete iContactsDataStoreExtension;
-		iContactsDataStoreExtension = NULL;
-		}
-		
-	TInt err( KErrNone );
-	
-	// TODO:Change the storename later	
-	TRAP( err, iContactsDataStoreExtension = CNsmlContactsDataStoreExtension::NewL( KNSmlContactStoreNameForDefaultDB() ) );
-	
-	if( err == KErrNone )
-		{
-		iOpened = ETrue;
-		iStoreName = aStoreName.AllocL();
-		iOpenedStoreId = iContactsDataStoreExtension->MachineIdL();
-		}
-	else
-		{
-		DBG_ARGS(_S("CNSmlContactsDataStore::DoOpenL(): result = %d"), err); // Cnt open = err
-		iOpened = EFalse;
-		delete iStoreName;
-		iStoreName = NULL;
-		iOpenedStoreId = 0;
-		User::RequestComplete( iCallerStatus, err );
-		_DBG_FILE("CNSmlContactsDataStore::DoOpenL(): CONTACTS FILE NOTFOUND end");
-		return;
-		}
-		
-	if ( iChangeFinder )
+		if ( iChangeFinder )
 		{
 		iChangeFinder->CloseL();
 		delete iChangeFinder;
 		iChangeFinder = NULL;
 		}
-	iChangeFinder = CNSmlChangeFinder::NewL( aContext, iKey, iSyncHistory, KNSmlContactsAdapterImplUid );
+	// The Change finder maintains a list of all changes to the database.
+	iChangeFinder = CNSmlChangeFinder::NewL(
+					 aContext, iKey, iSyncHistory, KNSmlContactsAdapterImplUid );
+	
+	iState = ENSmlOpenAndWaiting;			
+	
+	//find and open the store
+	if ( aStoreName == KNSmlContactStoreNameForDefaultDB )
+	    {
+	iStore = iContactManager->ContactStoresL().Find(
+	TVPbkContactStoreUriPtr(*iDefaultStoreName));
+	    }
+	else
+	   {
+	    iStore = iContactManager->ContactStoresL().Find(
+	TVPbkContactStoreUriPtr(aStoreName));
+	    }
+	iStore->OpenL(*this);
 
-	iState = ENSmlOpenAndWaiting;		
+	iStoreName = aStoreName.AllocL();
 	
-	err = FetchModificationsL();
+	iVCardEngine = CVPbkVCardEng::NewL( *iContactManager );
+	iIdConverter = CVPbkContactIdConverter::NewL(*iStore );
+	if ( iContactsModsFetcher )
+		{
+		iContactsModsFetcher->CancelRequest();
+		delete iContactsModsFetcher;
+		iContactsModsFetcher = NULL;
+		}
+		
+	iContactsModsFetcher = CreateModsFetcherL();
 	
-	DBG_ARGS(_S("CNSmlContactsDataStore::DoOpenL(): Error: %d"), err);
-	
-	User::RequestComplete( iCallerStatus, err );
+#ifdef __NSML_MODULETEST__
+	CActiveScheduler::Start();
+#endif
 	
 	_DBG_FILE("CNSmlContactsDataStore::DoOpenL(): end");
 	}
@@ -299,6 +377,38 @@ EXPORT_C void CNSmlContactsDataStore::DoOpenL( const TDesC& aStoreName,
 EXPORT_C void CNSmlContactsDataStore::DoCancelRequest()
 	{
 	_DBG_FILE("CNSmlContactsDataStore::DoCancelRequest(): begin");
+	if(iLastOperation == ENSMLDeleteAllOp)
+	    {   
+	    if(iDeleteAllOperation)
+	        {
+	        delete iDeleteAllOperation;
+	        iDeleteAllOperation = NULL;
+	        }
+
+	    if( iChangeFinder )
+	        {
+            TRAP_IGNORE(iChangeFinder->ResetL());
+	        }
+	    iSnapshotRegistered = EFalse;
+
+	    if(iContactLnks)
+	        {
+	        delete iContactLnks;
+	        iContactLnks = NULL;
+			iContactLink = NULL;
+	        }
+
+	    if(iContactViewBase)
+	        {
+	        delete iContactViewBase;
+	        iContactViewBase = NULL;
+	        }
+	    User::RequestComplete( iCallerStatus, KErrCancel );  
+	    }
+		if(iContactsModsFetcher)
+		{
+		iContactsModsFetcher->CancelRequest();
+		}
 	
 	_DBG_FILE("CNSmlContactsDataStore::DoCancelRequest(): NOT NEEDED end");
 	}
@@ -319,14 +429,15 @@ EXPORT_C const TDesC& CNSmlContactsDataStore::DoStoreName() const
 EXPORT_C const TDesC& CNSmlContactsDataStore::DefaultStoreNameL() const
 	{
 	_DBG_FILE("CNSmlContactsDataStore::DefaultStoreNameL(): begin");
-
+	
 	if ( !iDefaultStoreName )
 		{
 		return KNullDesC;
 		}
 
 	_DBG_FILE("CNSmlContactsDataStore::DefaultStoreNameL(): end");
-	return *iDefaultStoreName;
+	//The engine methods that create syncml packet, use this information in Database fields
+	return *iPacketStoreName;
 	}
 	
 // ----------------------------------------------------------------------------
@@ -375,20 +486,14 @@ EXPORT_C void CNSmlContactsDataStore::DoBeginBatchL()
 	_DBG_FILE("CNSmlContactsDataStore::DoBeginBatchL(): begin");
 	
 	iBatchMode = ETrue;			// SUPPORTED on Contacts
-	
-	if( iItemDataAddBatch )
-		{
-		iItemDataAddBatch->Reset();
-		}
-	
+
 	_DBG_FILE("CNSmlContactsDataStore::DoBeginBatchL(): end");
 	}
 
 // ----------------------------------------------------------------------------
 // void CNSmlContactsDataStore::DoCommitBatchL()
 // ----------------------------------------------------------------------------
-EXPORT_C void CNSmlContactsDataStore::DoCommitBatchL( RArray<TInt>& aResultArray, 
-                                                      TRequestStatus& aStatus )
+EXPORT_C void CNSmlContactsDataStore::DoCommitBatchL( RArray<TInt>& aResultArray, TRequestStatus& aStatus )
 	{
 	_DBG_FILE("CNSmlContactsDataStore::DoCommitBatchL(): begin");
 
@@ -403,41 +508,235 @@ EXPORT_C void CNSmlContactsDataStore::DoCommitBatchL( RArray<TInt>& aResultArray
 		}
 //		
 // Go through Buffer and execute all commands return aResultArray
-// If none of commands succeeds KErrGeneral returned as status otherwise KErrNone returned
 //
-	TInt err = KErrNone;
-
-	TRAPD( leavecode, err = ExecuteBufferL(aResultArray) );
+	
+	iResultArray = &aResultArray;
+	
+	iIndex = 0;
+	TRAPD( leavecode,ExecuteBufferL() );
 	
 	if( leavecode != KErrNone )
 		{
-		err = leavecode;
+		User::RequestComplete( iCallerStatus, leavecode );
 		}
-//
-// Empty Buffer
-//	
-	iContactsBufferItemList.ResetAndDestroy();
-	
-	if( iItemDataAddBatch )
-		{
-		iItemDataAddBatch->Reset();
-		}
-	
-	iBatchMode = EFalse; // All data handled
-	User::RequestComplete( iCallerStatus, err );
-		
+
 	_DBG_FILE("CNSmlContactsDataStore::DoCommitBatchL(): end");
 	}
 	
 // ----------------------------------------------------------------------------
 // void CNSmlContactsDataStore::ExecuteBufferL()
 // ----------------------------------------------------------------------------
-EXPORT_C TInt CNSmlContactsDataStore::ExecuteBufferL(RArray<TInt>& aResultArray) 
-    {
-    _DBG_FILE("CNSmlContactsDataStore::ExecuteBufferL()");
-    return DoExecuteBufferL( aResultArray );
-    }
+EXPORT_C void CNSmlContactsDataStore::ExecuteBufferL() 
+	{
+	_DBG_FILE("CNSmlContactsDataStore::ExecuteBufferL(): begin");
+	
+	TInt  retCommand( KErrNone );
+	
+	//
+	// Loop through buffered commands
+	//
+		if( iIndex < iContactsBufferItemList.Count())
+		{
+		
+		if( iContactsBufferItemList[iIndex]->iStatus!= KNSmlNoError )
+			{
+			retCommand = iContactsBufferItemList[iIndex]->iStatus;
+			}
+		else if( iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemAdd )
+			{
+			retCommand = ExecuteAddL();
+			}
+		else if( iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemReplace ||
+            iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemFieldLevelReplace )
+			{
+			ExecuteUpdateL();		
+			}
+		else if( iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemMove )
+			{
+			ExecuteMoveL();
+			}
+		else if( iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemDelete ||
+				 iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemSoftDelete )
+			{
+			ExecuteDeleteL();
+			}
+		//
+		//	Set allready set commands from iContactsBufferItemList
+		//
+		if( ( iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemAdd     ||
+		      iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemReplace ||
+		      iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemFieldLevelReplace ||
+		      iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemDelete  ||
+		      iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemSoftDelete ) &&
+		      iContactsBufferItemList[iIndex]->iStatus  != KNSmlNoError )
+			{
+			retCommand = iContactsBufferItemList[iIndex]->iStatus;
+			}
+			
+		
+		//if an error occurs when performing any operation
+		//return the error status 
+			else if(retCommand!=KErrNone)
+			{
+			User::RequestComplete( iCallerStatus, retCommand );	
+			}
+			
+			iRetCommand = retCommand;
+		}
+	}
+	
+// ----------------------------------------------------------------------------
+// void CNSmlContactsDataStore::ExecuteAddL()
+// ----------------------------------------------------------------------------
+	
+EXPORT_C TInt CNSmlContactsDataStore::ExecuteAddL()
+	{
+	TInt  retCommand( KErrNone );
+	StripPropertyL( iItemDataAddBatch, KVersitTokenUID() ); // Remove UID's from data
 
+	TInt err( KErrNone );
+	if(iBatchMode)			
+		{
+		TRAP( err,LdoAddItemsL( iItemDataAddBatch,
+		                   iItemDataAddBatch->Ptr(0).Length()) );
+		if(err!=KErrNone)			
+			{
+			retCommand = err;
+			TInt j = iIndex;
+			while( j < iContactsBufferItemList.Count() )
+				{
+				if( iContactsBufferItemList[j]->iModType == ENSmlCntItemAdd &&
+				iContactsBufferItemList[j]->iStatus  == KNSmlNoError )
+					{
+					iContactsBufferItemList[j]->iStatus = KErrNotSupported;
+					iResultArray->AppendL(KErrNotSupported);
+					}
+				j++;
+				}
+			}			                          
+		}
+	else
+		{
+		const TPtr8 dataPtr = iItemDataAddBatch->Ptr(0);
+		TRAP( err, LdoAddItemL( dataPtr,
+					iContactsBufferItemList[iIndex]->iSize));
+		if(err!=KErrNone)			
+			{
+			retCommand = err;
+			}	
+		}
+	return retCommand; 
+	}
+	
+// ----------------------------------------------------------------------------
+// void CNSmlContactsDataStore::ExecuteDeleteL()
+// ----------------------------------------------------------------------------
+	
+EXPORT_C void CNSmlContactsDataStore:: ExecuteDeleteL()
+	{
+	
+	if(iBatchMode)			
+		{
+		iContactLnks = CVPbkContactLinkArray::NewL();
+		
+		TInt j=iIndex;
+		while( j < iContactsBufferItemList.Count() )
+			{
+			if( (iContactsBufferItemList[j]->iModType == ENSmlCntItemDelete ||
+			iContactsBufferItemList[j]->iModType == ENSmlCntItemSoftDelete) &&
+			iContactsBufferItemList[j]->iStatus  == KNSmlNoError )
+				{
+				TContactItemId id = iContactsBufferItemList[j]->iUid; 
+
+				if( id != 0 )
+					{
+					MVPbkContactLink* contactLink = iIdConverter->IdentifierToLinkLC(id);
+					//check if the contact link is valid
+					TInt index = iContactViewBase->IndexOfLinkL(*contactLink);
+					if(index != KErrNotFound)
+						{
+						iContactLnks->AppendL(contactLink);	
+						}
+						else
+						{
+						iContactsBufferItemList[j]->iStatus  = KErrNotFound;
+						}
+
+					CleanupStack::Pop();//contactLink				
+					}
+					else 
+					{
+					iContactsBufferItemList[j]->iStatus  = KErrNotFound;
+					}
+				}
+			j++;
+			}
+
+		delete iContactViewBase;
+		iContactViewBase = NULL;
+
+		iContactManager->DeleteContactsL( *iContactLnks, *this );
+		iLastOperation = ENSmlDeleteOp;
+		}
+
+	}
+	
+// ----------------------------------------------------------------------------
+// void CNSmlContactsDataStore::ExecuteUpdateL()
+// ----------------------------------------------------------------------------
+	
+EXPORT_C void CNSmlContactsDataStore::ExecuteUpdateL()
+	{
+	iUid  = iContactsBufferItemList[iIndex]->iUid;
+
+	iDataMod->SetUsedMimeType( iServerMimeType, iServerMimeVersion );
+
+	// Check whether merging is needed or not.
+	if( iDataMod->NeedsMerge() )
+		{
+		iMergeItem = CBufFlat::NewL(64);
+		iWriteStream.Open(*iMergeItem);
+
+		MVPbkContactLink* contactLink = iIdConverter->IdentifierToLinkLC(iUid);
+
+		iVCardEngine->ExportVCardForSyncL(iWriteStream,*contactLink,*this);
+		CleanupStack::PopAndDestroy();
+
+		iLastOperation = ENSMLUpdateExportOp;
+		}
+	else
+		{
+			LdoUpdateItemL();
+		}
+	}
+
+// ----------------------------------------------------------------------------
+// void CNSmlContactsDataStore::ExecuteMoveL
+// ----------------------------------------------------------------------------
+
+EXPORT_C void CNSmlContactsDataStore::ExecuteMoveL()
+	{
+	// move command is not supported
+	if(!iBatchMode)
+		{
+		ResetBuffer();
+		User::RequestComplete( iCallerStatus, KErrNotSupported );	
+		}
+	else
+		{
+		iResultArray->AppendL(KErrNotSupported);
+		iIndex++;
+		if(iIndex == iContactsBufferItemList.Count() )
+			{
+			ResetBuffer();
+			User::RequestComplete( iCallerStatus, KErrNone );	
+			}
+		else
+			{
+				ExecuteBufferL();
+			}		
+		}
+	}
 // ----------------------------------------------------------------------------
 // void CNSmlContactsDataStore::DoCancelBatch()
 // ----------------------------------------------------------------------------
@@ -512,21 +811,10 @@ EXPORT_C void CNSmlContactsDataStore::SetOwnStoreFormatL()
 		{
 		TFileName fileName;
 		TParse parse;
-		
-		// Locate the resource file
-        TFileName dllFileName;
-        Dll::FileName( dllFileName );
-        
-        TFileName resourceFileName;
-        resourceFileName.Copy( TParsePtrC( dllFileName ).Drive() );  
-        
-        resourceFileName.Append( GetStoreFormatResourceFileL() );
 
-        parse.Set( resourceFileName, &KDC_RESOURCE_FILES_DIR, NULL );
+		parse.Set( GetStoreFormatResourceFileL(), &KDC_RESOURCE_FILES_DIR, NULL  );
 
 		fileName = parse.FullName();
-		
-		DBG_ARGS(_S("CNSmlContactsDataStore::SetOwnStoreFormatL(): '%S'"), &parse.FullName());
 
 		RResourceFile resourceFile; 
 		BaflUtils::NearestLanguageFile( iRfs, fileName );
@@ -540,7 +828,7 @@ EXPORT_C void CNSmlContactsDataStore::SetOwnStoreFormatL()
 		reader.SetBuffer( contactsDataFormat );
 
 		iStoreFormat = CSmlDataStoreFormat::NewLC( iStringPool, reader );
-		CleanupStack::Pop(); // iStoreFormat
+		CleanupStack::Pop(iStoreFormat); // iStoreFormat
 		
 		CleanupStack::PopAndDestroy(2); // contactsDataFormat, resourceFile  
 		}
@@ -548,10 +836,10 @@ EXPORT_C void CNSmlContactsDataStore::SetOwnStoreFormatL()
 	iDataMod->SetOwnStoreFormat( *iStoreFormat );
 
 	// Set own MIME type based on store format resource definition. Allows inherited classes to 
-	// use non-standard MIME type by recource change. E.g. Operator specific MIME types can be used.
+    // use non-standard MIME type by recource change. E.g. Operator specific MIME types can be used.
     iUsedMimeType.Set( iStoreFormat->MimeFormat(0).MimeType().DesC() );
     iUsedMimeVersion.Set( iStoreFormat->MimeFormat(0).MimeVersion().DesC() );
-	
+
 	_DBG_FILE("CNSmlContactsDataStore::SetOwnStoreFormatL(): end");
 	return;
 	}
@@ -618,33 +906,10 @@ EXPORT_C void CNSmlContactsDataStore::DoOpenItemL( TSmlDbItemUid aUid,
 		{
 		iItemData->Reset();
 		}
-
-	TInt err = LdoFetchItemL( aUid, *iItemData );
 	
-	if( !err )
-		{
-		iItemData->Compress();
-		
-		iDataMod->StripTxL( *iItemData );
+	 LdoFetchItemL( aUid, *iItemData );
+	 iSize = &aSize;
 	
-//  	Get Item size from database after stripping
-		aSize = iItemData->Size();
-		iState = ENSmlItemOpen;
-		
-		if ( iServerMaxObjectSize == 0 || aSize <= iServerMaxObjectSize )
-			{
-			User::RequestComplete( iCallerStatus, KErrNone );
-			}
-		else
-			{
-			User::RequestComplete( iCallerStatus, KErrTooBig );
-			}
-		}
-	else
-		{
-		User::RequestComplete( iCallerStatus, err );
-		}
-
 	_DBG_FILE("CNSmlContactsDataStore::DoOpenItemL(): end");
 	}
 
@@ -667,8 +932,8 @@ EXPORT_C void CNSmlContactsDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
 	
 	if ( iState != ENSmlOpenAndWaiting )
 		{
-        _DBG_FILE("CNSmlContactsDataStore::DoCreateItemL - KErrNotReady: END");
 		User::RequestComplete( iCallerStatus, KErrNotReady );
+		_DBG_FILE("CNSmlContactsDataStore::DoCreateItemL - KErrNotReady: END");
 		return;
 		}
 		
@@ -700,12 +965,12 @@ EXPORT_C void CNSmlContactsDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
 	    // Allow using custom MIME type defined in store format resource file
 	    ( aMimeType.MatchF( iUsedMimeType ) < 0 ) )
 		{
-        _DBG_FILE("CNSmlContactsDataStore::DoCreateItemL - KErrNotSupported: END");
 		User::RequestComplete( iCallerStatus, KErrNotSupported );
+		_DBG_FILE("CNSmlContactsDataStore::DoCreateItemL - KErrNotSupported: END");
 		return;
 		}
     
-    // Is there enough space on drive ?
+    // Is there enough space on drive 
 	if( DriveBelowCriticalLevelL( aSize ) )
 		{
 		err = KErrDiskFull;
@@ -736,7 +1001,7 @@ EXPORT_C void CNSmlContactsDataStore::DoCreateItemL( TSmlDbItemUid& aUid,
 // ----------------------------------------------------------------------------
 EXPORT_C void CNSmlContactsDataStore::DoReplaceItemL( TSmlDbItemUid aUid, 
 											 TInt aSize, 
-											 TSmlDbItemUid /*aParent*/, 
+											 TSmlDbItemUid /*aParent*/,
 											 TBool aFieldChange, 
 											 TRequestStatus& aStatus )
 	{
@@ -749,7 +1014,7 @@ EXPORT_C void CNSmlContactsDataStore::DoReplaceItemL( TSmlDbItemUid aUid,
 			
 	iUid      = aUid;
 	iItemSize = aSize;
-	iModType  = aFieldChange ? ENSmlCntItemFieldLevelReplace : ENSmlCntItemReplace;
+	iModType  =  aFieldChange ? ENSmlCntItemFieldLevelReplace : ENSmlCntItemReplace;
 	
 	if ( iItemPos == -1 || !iBatchMode )
 		{
@@ -760,9 +1025,9 @@ EXPORT_C void CNSmlContactsDataStore::DoReplaceItemL( TSmlDbItemUid aUid,
 		{
 		iItemData->Reset();
 		}
-		
+
 	iFieldLevelReplace = aFieldChange;
-	
+
 	iItemData = AddBufferListL( aUid, aSize, err );
 	
 	if( iBatchMode )
@@ -772,34 +1037,6 @@ EXPORT_C void CNSmlContactsDataStore::DoReplaceItemL( TSmlDbItemUid aUid,
 		User::RequestComplete( iCallerStatus, KErrNone );
 		return;
 		}
-	
-	CBufBase* tempData = CBufFlat::NewL( KNSmlItemDataExpandSize );
-	CleanupStack::PushL( tempData );
-
-	_DBG_FILE("CNSmlContactsDataStore::DoReplaceItemL(): CContactDatabase::ExportSelectedContactsL() begin");
-	
-	TInt ret = KErrNone;
-	TRAP( err, ret = ExportContactsL( TUid::Uid(aUid), *tempData ) );
-	
-	_DBG_FILE("CNSmlContactsDataStore::DoReplaceItemL(): CContactDatabase::ExportSelectedContactsL() end");
-	CleanupStack::PopAndDestroy( tempData );
-	
-	if ( err || ret )
-	    {
-	    _DBG_FILE("CNSmlContactsDataStore::DoReplaceItemL(): CContactDatabase::ExportSelectedContactsL() ERROR");
-	    if ( err == KErrNone )
-	        {
-            err = ret;
-	        }
-	    User::RequestComplete( iCallerStatus, err );
-		return;
-	    }
-	
-	if( !err && DriveBelowCriticalLevelL( aSize ) ) // Is drive getting full?
-		{
-		err = KErrDiskFull;
-		}
-	
 	if ( err == KErrNone )
 	    {
 	    iState = ENSmlItemUpdating;
@@ -816,6 +1053,7 @@ EXPORT_C void CNSmlContactsDataStore::DoReplaceItemL( TSmlDbItemUid aUid,
 EXPORT_C void CNSmlContactsDataStore::DoReadItemL( TDes8& aBuffer )
 	{
 	_DBG_FILE("CNSmlContactsDataStore::DoReadItemL(): begin");
+
     if ( iState != ENSmlItemOpen || !iItemData )
         {
         iItemPos = -1;
@@ -836,7 +1074,8 @@ EXPORT_C void CNSmlContactsDataStore::DoReadItemL( TDes8& aBuffer )
         {
         iItemData->Read( iItemPos, aBuffer, iItemData->Size() - iItemPos );
         iItemPos = -1;
-        }	
+        }
+
 	_DBG_FILE("CNSmlContactsDataStore::DoReadItemL(): end");
 	}
 
@@ -920,14 +1159,14 @@ EXPORT_C void CNSmlContactsDataStore::DoCommitItemL( TRequestStatus& aStatus )
       	    }
 	    }
 	 else if ((iModType   == ENSmlCntItemAdd ||         // If some write problems
-      	       iModType   == ENSmlCntItemReplace ||
-      	       iModType   == ENSmlCntItemFieldLevelReplace ) && 
-      	       iStateItem != KErrNone &&
-      	       iContactsBufferItemList.Count() > 0) 
+         iModType   == ENSmlCntItemReplace ||
+         iModType   == ENSmlCntItemFieldLevelReplace ) &&  
+      	 iStateItem != KErrNone &&
+      	 iContactsBufferItemList.Count() > 0) 
 	    {
         iContactsBufferItemList[iContactsBufferItemList.Count()-1]->iStatus  = iStateItem; 
 	    }
-	
+
 	if( iBatchMode )
 		{
 		iItemData = NULL;
@@ -936,38 +1175,12 @@ EXPORT_C void CNSmlContactsDataStore::DoCommitItemL( TRequestStatus& aStatus )
 		return;
 		}
 		
-	RArray<TInt> noResultArray;
-	CleanupClosePushL( noResultArray );
-	
-	TRAPD(err, ExecuteBufferL( noResultArray ));
-	if( noResultArray.Count() == 1 )	// Should be a single item commit
-		{
-		err = noResultArray[0];
-		}
-	CleanupStack::PopAndDestroy(); // noResultArray
-	
-	//
-	// Empty Buffer if not batch mode
-	//	
-	if ( !iBatchMode )
-		{
-		if(iItemData)
-		    {
-		    iItemData->Reset();    
-		    }
-		    
-		if(iItemDataAddBatch)
-		    {
-		    iItemDataAddBatch->Reset();    
-		    }
-		
-		iContactsBufferItemList.ResetAndDestroy();
-		}
+
+	iIndex = 0;
+	ExecuteBufferL();
 	
 	iItemData = NULL;
 	iState = ENSmlOpenAndWaiting;
-	
-	User::RequestComplete( iCallerStatus, err );
 	
 	_DBG_FILE("CNSmlContactsDataStore::DoCommitItemL(): end");
 	}
@@ -1022,33 +1235,36 @@ EXPORT_C void CNSmlContactsDataStore::DoMoveItemL( TSmlDbItemUid aUid, TSmlDbIte
 EXPORT_C void CNSmlContactsDataStore::DoDeleteItemL( TSmlDbItemUid aUid, TRequestStatus& aStatus )
 	{
 	_DBG_FILE("CNSmlContactsDataStore::DoDeleteItemL(): begin");
-	TInt err = KErrNone;
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 		
 	if( iBatchMode )
 		{
-		if( iModType != ENSmlCntItemSoftDelete ) // Treated like deletes
-			{
-			iModType  = ENSmlCntItemDelete;	
-			}
-			
-		TInt fSize = 0;
-		AddBufferListL( aUid, fSize, KErrNone );
-		User::RequestComplete( iCallerStatus, KErrNone );
-		return;
-		}
-
-	if( iContactsDataStoreExtension->DeleteContactL( TUid::Uid(aUid) ) )
+		if(iContactViewBase ==NULL)
 		{
-        iChangeFinder->ItemDeleted( TNSmlSnapshotItem( aUid ) );
+		CreateViewL();	
 		}
-	else
-	    {
-        err = KErrGeneral;
-	    }
-		
-	User::RequestComplete( iCallerStatus, err );
+	if( iModType != ENSmlCntItemSoftDelete ) // Treated like deletes
+		{
+		iModType  = ENSmlCntItemDelete;	
+		}
+			
+	TInt fSize = 0;
+	AddBufferListL( aUid, fSize, KErrNone );
+	User::RequestComplete( iCallerStatus, KErrNone );
+	return;
+	}
+	iUid = aUid;
+	
+	//add the contactlink to CVPbkContactLinkArray
+	MVPbkContactLink* contactLink  = iIdConverter->IdentifierToLinkLC(aUid);
+	CleanupStack::Pop();
+	CVPbkContactLinkArray* contactLnks = CVPbkContactLinkArray::NewLC();
+	contactLnks->AppendL( contactLink );
+	
+ 	iContactManager->DeleteContactsL( *contactLnks, *this );
+	CleanupStack::PopAndDestroy(); 
+	iLastOperation = ENSmlDeleteOp;
 	
 	_DBG_FILE("CNSmlContactsDataStore::DoDeleteItemL(): end");
 	}
@@ -1071,23 +1287,17 @@ EXPORT_C void CNSmlContactsDataStore::DoSoftDeleteItemL( TSmlDbItemUid /*aUid*/,
 EXPORT_C void CNSmlContactsDataStore::DoDeleteAllItemsL( TRequestStatus& aStatus )
 	{
 	_DBG_FILE("CNSmlContactsDataStore::DoDeleteAllItemsL(): begin");
+	
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
-
-	if( iContactsDataStoreExtension->DeleteAllContactsL() )
-	    {
-        if( iChangeFinder )
-            {
-            iChangeFinder->ResetL();		
-            }
-        iSnapshotRegistered = EFalse;
-        User::RequestComplete( iCallerStatus, KErrNone );
-	    }
-	else
-	    {
-         DBG_ARGS(_S("CNSmlContactsDataStore::DoDeleteAllItemsL(): Error"));
-         User::RequestComplete( iCallerStatus, KErrGeneral );
-	    }
+	
+	//create view to get all the contactlinks to delete
+	if(iContactViewBase ==NULL)
+		{
+		CreateViewL();	
+		}
+		
+	iLastOperation = ENSMLDeleteAllOp;
 	
 	_DBG_FILE("CNSmlContactsDataStore::DoDeleteAllItemsL(): end");
 	}
@@ -1258,15 +1468,24 @@ EXPORT_C void CNSmlContactsDataStore::DoResetChangeInfoL( TRequestStatus& aStatu
 	iCallerStatus = &aStatus;
 	*iCallerStatus = KRequestPending;
 	
-	iSnapshotRegistered = EFalse;
-	
 	if( iChangeFinder )
 		{
 		iChangeFinder->ResetL();
-		FetchModificationsL();
 		}
+		
+	iSnapshotRegistered = EFalse;
 	
-    User::RequestComplete( iCallerStatus, KErrNone );
+		if ( iContactsModsFetcher )
+		{
+		iContactsModsFetcher->FetchModificationsL( aStatus );
+#ifdef __NSML_MODULETEST__
+		CActiveScheduler::Start();
+#endif
+		}
+	else
+		{
+		User::RequestComplete( iCallerStatus, KErrNone );
+		}
 	
 	_DBG_FILE("CNSmlContactsDataStore::DoResetChangeInfoL(): end");
 	}
@@ -1321,311 +1540,142 @@ EXPORT_C CDesCArray* CNSmlContactsDataStore::DoListStoresLC()
 	{
 	_DBG_FILE("CNSmlContactsDataStore::DoListStoresLC(): begin");
 	
-	 /*CDesCArray* cntStores = new (ELeave) CDesCArrayFlat(1);
-	 iContactsDataStoreExtension->ListStoresL( cntStores );
-     CleanupStack::PushL( cntStores );*/
+	MVPbkContactStoreList& storeList = iContactManager->ContactStoresL();
+	CDesCArrayFlat* stores = new (ELeave) CDesCArrayFlat(storeList.Count());
+	CleanupStack::PushL( stores );
 	
-	 CDesCArray* array = new (ELeave) CDesCArrayFlat(1);
-	 array->AppendL(*iDefaultStoreName);
-	 CleanupStack::PushL( array );
-     
-     _DBG_FILE("CNSmlContactsDataStore::DoListStoresLC(): end");
-     
-     return array;
+  TBuf<KVPbhkPrefixLength> phoneDataBasePrefix(KVPbhkSymbianDBPrefix);
+	
+	for(TInt i=0 ; i< storeList.Count(); i++)
+	{
+	    TBuf<KNSmlDefaultStoreNameMaxSize>  currentStore(storeList.At(i).StoreProperties().Uri().UriDes());	    	   
+	    
+	    if(currentStore.Find(phoneDataBasePrefix) == 0)//Check if Symbian Database
+	    {	    
+	    		//For backward compatability with local and remote servers
+        	    //The Symbian Db name remains unchanged	   
+        	    //The engine methods that create syncml packet, use this information in Database fields
+	            stores->AppendL(*iPacketStoreName);
+	    }
+	    else//End Symbian Database check
+	    {
+		     stores->AppendL(storeList.At(i).StoreProperties().Uri().UriDes());
+	    }
+	}
+	
+	_DBG_FILE("CNSmlContactsDataStore::DoListStoresLC(): end");
+
+	return stores;
 	}
 	
 // ------------------------------------------------------------------------------------------------
 // TInt CNSmlContactsDataStore::LdoFetchItemL( TSmlDbItemUid& aUid, CBufBase& aItem )
 // ------------------------------------------------------------------------------------------------
-EXPORT_C TInt CNSmlContactsDataStore::LdoFetchItemL( TSmlDbItemUid& aUid, CBufBase& aItem )
+EXPORT_C void CNSmlContactsDataStore::LdoFetchItemL( TSmlDbItemUid& aUid, CBufBase& aItem )
 	{
 	_DBG_FILE("CNSmlContactsDataStore::LdoFetchItemL(): begin");
 	
-	_DBG_FILE("CNSmlContactsDataStore::FetchItemL(): CContactDatabase::ExportSelectedContactsL() begin");
-	
-	TInt err = KErrNone;	
-	TInt ret = KErrNone;
-	
-	TRAP( err, ret = ExportContactsL( TUid::Uid(aUid), aItem ) );
-	
-	if( ret != KErrNone )
-	    {
-        DBG_ARGS(_S("CNSmlContactsDataStore::FetchItemL(): Error = %d"), ret);
-        err = ret;
-	    }
-	
-	_DBG_FILE("CNSmlContactsDataStore::FetchItemL(): CContactDatabase::ExportSelectedContactsL() end");
+	 iWriteStream.Open(aItem);
+		
+	 MVPbkContactLink* contactLink  = iIdConverter->IdentifierToLinkLC(aUid);
+	 iVCardEngine->ExportVCardForSyncL(iWriteStream,*contactLink,*this);
+	 CleanupStack::PopAndDestroy();
+	 
+	 iLastOperation = ENSMLFetchOp;
 	
 	_DBG_FILE("CNSmlContactsDataStore::LdoFetchItemL(): end");
-	return err;
+
 	}
 
 // ------------------------------------------------------------------------------------------------
 // TInt CNSmlContactsDataStore::LdoAddItemL( TSmlDbItemUid& aUid,
 //                                           const TDesC8& aItem,
 //                                           TInt aSize,
-//                                           TTime& aLastModified )
+//                                           TTime& aLastModified,
+//                                           TBool& aConfidential )
 // ------------------------------------------------------------------------------------------------
-EXPORT_C TInt CNSmlContactsDataStore::LdoAddItemL( TSmlDbItemUid& aUid,
-                                                   const TDesC8& aItem,
-                                                   TInt aSize,
-                                                   TTime& aLastModified )
+EXPORT_C void CNSmlContactsDataStore::LdoAddItemL( const TDesC8& aItem,
+                                          TInt aSize)
 	{
 	_DBG_FILE("CNSmlContactsDataStore::LdoAddItemL(): begin");
-	
-	TInt ret( KErrNone );
-	
+
 	if( !iOpened )
 		{
 		User::Leave( KErrNotReady );
 		}
 		
-	// Is there enough space on drive ?
+	// Is there enough space on drive 
 	if( DriveBelowCriticalLevelL( aSize ) )
 		{
-		return KErrDiskFull;
+		User::Leave( KErrDiskFull );
 		}
 
-	HBufC8* buf = aItem.AllocLC();
-	StripPropertyL( buf, KVersitTokenUID() );
+	 iBuf = aItem.AllocLC();
+	StripPropertyL( iBuf, KVersitTokenUID() );
 
-	CArrayFixFlat<TUid>* entryArray = NULL;
-	TRAP( ret, entryArray = ImportContactsL( *buf ) );
-
-    DBG_ARGS(_S("New item to database with return value: '%d'"), ret );
-
-	if( ret == KErrNone && entryArray != NULL )
-		{
-		CleanupStack::PushL( entryArray );
-		if( entryArray->Count() )
-			{
-            TInt err(KErrNone);
-			TUid tId = entryArray->At( 0 );	
-			CNsmlContactItem* contactitem = CNsmlContactItem::NewL();
-			CleanupStack::PushL( contactitem );
-			err = iContactsDataStoreExtension->ReadContactL( tId, contactitem );
-			if( err == KErrNone)
-			    {
-                aLastModified = contactitem->iLastModified;
-                aUid = tId.iUid;
-			    }			
-			CleanupStack::PopAndDestroy( contactitem );
-			}
-		else
-			{
-			ret = KErrNotSupported;
-			}
-		CleanupStack::PopAndDestroy( entryArray );
-		CleanupStack::PopAndDestroy( buf );
-		} 
-	else
-		{
-		ret = KErrNotSupported;
-        CleanupStack::PopAndDestroy( buf );
-		}
+	 iReadStream.Open( *iBuf );
+	// import a vcard without checking for duplicates
+	iVCardEngine->ImportVCardForSyncL(*iStore,iReadStream,*this);
+	iLastOperation = ENSmlAddOp;
+	CleanupStack::Pop(iBuf);
 
 	_DBG_FILE("CNSmlContactsDataStore::LdoAddItemL(): end");
-	return ret;
+	
 	}
-
 // ------------------------------------------------------------------------------------------------
-// TInt CNSmlContactsDataStore::LdoAddItemsL( RArray<TInt>& aUids,CBufBase*& aItems,
-//                                            TInt aSize, TTime& aLastModified )
+// TInt CNSmlContactsDataStore::LdoAddItemsL( CBufBase*& aItems,
+//                                           TInt aSize)
 // ------------------------------------------------------------------------------------------------
-EXPORT_C TInt CNSmlContactsDataStore::LdoAddItemsL( RArray<TInt>& aUids,
-                                                    CBufBase*& aItems,
-                                                    TInt aSize,
-                                                    TTime& aLastModified  )
+EXPORT_C void CNSmlContactsDataStore::LdoAddItemsL( CBufBase*& aItems,
+                                          TInt aSize)
 	{
-	_DBG_FILE("CNSmlContactsDataStore::LdoAddItemsL(): begin");
-	
-	TInt ret( KErrNone );
-	
+	_DBG_FILE("CNSmlContactsDataStore::LdoAddItemL(): begin");
+
 	if( !iOpened )
 		{
 		User::Leave( KErrNotReady );
 		}
 		
-	// Is there enough space on drive ?
+	// Is there enough space on drive 
 	if( DriveBelowCriticalLevelL( aSize ) )
 		{
-		return KErrDiskFull;
+		User::Leave( KErrDiskFull );
 		}
 
-	CArrayFixFlat<TUid>* entryArray = NULL;
-    TRAP( ret, entryArray = ImportContactsL( aItems->Ptr( 0 ) ) );
+	iReadStream.Open( aItems->Ptr(0) );
+	 // import vcards without checking for duplicates
+	iVCardEngine->ImportVCardForSyncL(*iStore,iReadStream,*this);
+	iLastOperation = ENSmlAddOp;
+	_DBG_FILE("CNSmlContactsDataStore::LdoAddItemL(): end");
 	
-    DBG_ARGS(_S("New items to database with return value: '%d'"), ret );
-
-	if( ret == KErrNone && entryArray != NULL)
-		{
-		CleanupStack::PushL( entryArray );
-		if( entryArray->Count() )
-			{
-			TInt i = 0;
-			while( i < entryArray->Count() )
-				{
-				TUid tId = entryArray->At(i);
-				if (i == (entryArray->Count()-1) ) // Get last Modified date
-					{
-                    TInt err(KErrNone);
-                    CNsmlContactItem* contactitem = CNsmlContactItem::NewL();
-                    CleanupStack::PushL( contactitem );
-                    err = iContactsDataStoreExtension->ReadContactL( tId, contactitem );    
-				    if( err == KErrNone )
-                        {
-                        aLastModified = contactitem->iLastModified;
-                        }
-					CleanupStack::PopAndDestroy( contactitem );
-					}
-				aUids.Append( tId.iUid );
-				i++;
-				}
-			}
-		else
-			{
-			ret = KErrNotSupported;
-			}
-		CleanupStack::PopAndDestroy( entryArray );
-		} 
-	else
-		{
-	    ret = KErrNotSupported;
-		}
-
-	_DBG_FILE("CNSmlContactsDataStore::LdoAddItemsL(): end");
-	return ret;
 	}
-	
+		
 // ------------------------------------------------------------------------------------------------
 // TInt CNSmlContactsDataStore::LdoUpdateItemL(TSmlDbItemUid aUid,
 //                                             const TDesC8& aItem,
 //                                             TInt aSize,
 //                                             TTime& aLastModified )
 // ------------------------------------------------------------------------------------------------
-EXPORT_C TInt CNSmlContactsDataStore::LdoUpdateItemL( TSmlDbItemUid aUid,
-                                             const TDesC8& aItem,
-                                             TInt aSize,
-                                             TTime& aLastModified )
+EXPORT_C void CNSmlContactsDataStore::LdoUpdateItemL()
 	{
 	_DBG_FILE("CNSmlContactsDataStore::LdoUpdateItemL(): begin");
-	TInt ret(KErrNone);
-		
-	// Is there enough space on drive ?
-	if( DriveBelowCriticalLevelL( aSize) )
-		{
-		return KErrDiskFull;
-		}
 	
-	CNsmlContactItem* contactitem = CNsmlContactItem::NewL();
-	CleanupStack::PushL( contactitem );
-    ret = iContactsDataStoreExtension->ReadContactL( TUid::Uid( aUid ), contactitem );
-    
-    if( ret != KErrNone )
-        {
-        CleanupStack::PopAndDestroy( contactitem );
-        DBG_ARGS(_S("CNSmlContactsDataStore::LdoUpdateItemL(): Error = %d"), ret);
-        return ret;
-        }
-    
-    // Set mimetype + version
-	iDataMod->SetUsedMimeType( iServerMimeType, iServerMimeVersion );
+	iBuf = iContactsBufferItemList[iIndex]->iItemData->Ptr(0).AllocLC();
+	// Remove UID's from data
+	StripPropertyL( iBuf, KVersitTokenUID() );
 
-	DBG_DUMP((void*)aItem.Ptr(), aItem.Length(),
-	        _S8("CNSmlContactsDataStore::LdoUpdateItemL(): ReceivedItem:"));    
-	
-	CBufBase* bItem = LdoMergeLC( aUid, aItem );
-	HBufC8* hItemBuf = HBufC8::NewL( bItem->Size() + 80 );
-	*hItemBuf = bItem->Ptr(0);
-	CleanupStack::PopAndDestroy(); // bItem
-	CleanupStack::PushL( hItemBuf );
-	StripPropertyL( hItemBuf, KVersitTokenUID() );
-	
-	TPtr8 hItemPtr( hItemBuf->Des() );
-	HBufC8* endPropBuf = HBufC8::NewLC( KVersitTokenEND().Length() + KVersitTokenCRLF().Length() + KVersitTokenColon().Length() );
-	TPtr8 endPropPtr( endPropBuf->Des() );
-	endPropPtr.Append( KVersitTokenCRLF() );
-	endPropPtr.Append( KVersitTokenEND() ); 
-	endPropPtr.Append( KVersitTokenColon() ); 
-	TInt endPos = hItemPtr.Find( endPropPtr );
-	if( endPos == KErrNotFound )
-		{
-		User::Leave( KErrNotSupported );
-		}
-	hItemPtr.Insert( endPos, KVersitTokenCRLF() );
-	endPos += KVersitTokenCRLF().Length();
-	hItemPtr.Insert( endPos, KVersitTokenUID() );
-	endPos += KVersitTokenUID().Length();
-	hItemPtr.Insert( endPos, KVersitTokenColon() );
-	endPos += KVersitTokenColon().Length();
-	hItemPtr.Insert( endPos, *contactitem->iGuid );
-	
-	DBG_DUMP((void*)hItemPtr.Ptr(), hItemPtr.Length(),
-	            _S8("CNSmlContactsDataStore::LdoUpdateItemL(): MergedItem:"));
-	
-	CleanupStack::PopAndDestroy( endPropBuf );
+	iReadStream.Open( *iBuf );
+	iContactLink = iIdConverter->IdentifierToLinkLC(iUid);
+	iVCardEngine->ImportVCardMergeL(*iContactLink, *iStore, iReadStream, *this);
 
-	// TODO: Get it reviewed
-	CArrayFixFlat<TUid>* entryArray = NULL;
-    TRAP( ret, entryArray = ImportContactsL( hItemPtr ) );
+	CleanupStack::Pop();
+	iLastOperation = ENSMLUpdateImportOp;
+	CleanupStack::Pop(iBuf);
 	
-    if( ret == KErrNone && entryArray != NULL)
-		{
-        CleanupStack::PushL( entryArray );
-		if( !entryArray->Count() )
-			{
-			ret = KErrNotSupported;								
-			}
-		else
-			{
-            TInt err(KErrNone);
-			TUid tId = TUid::Uid( aUid );
-			CNsmlContactItem* updatedContactitem = CNsmlContactItem::NewL();
-			CleanupStack::PushL( updatedContactitem );
-			err = iContactsDataStoreExtension->ReadContactL( tId, contactitem );
-            if( err == KErrNone)
-                {
-                aLastModified = updatedContactitem->iLastModified;
-                }
-			CleanupStack::PopAndDestroy( updatedContactitem ); // updatedContact
-			}
-		CleanupStack::PopAndDestroy(3); // contactitem,  hItemBuf, entryArray
-		}
-	else
-		{
-		ret = KErrNotSupported;
-		CleanupStack::PopAndDestroy(2); // contactitem,  hItemBuf
-		}
-	
-	iFieldLevelReplace = EFalse;
 	_DBG_FILE("CNSmlContactsDataStore::LdoUpdateItemL(): end");
-	return ret;
+
 	}
 
-// ------------------------------------------------------------------------------------------------
-//  CBufBase* CNSmlContactsDataStore::LdoMergeLC( TSmlDbItemUid& aUid, const TDesC8& aItem )
-// ------------------------------------------------------------------------------------------------
-EXPORT_C CBufBase* CNSmlContactsDataStore::LdoMergeLC( TSmlDbItemUid& aUid, const TDesC8& aItem )
-	{
-	_DBG_FILE("CNSmlContactsDataStore::LdoMergeLC(): begin");
-	CBufFlat* b = CBufFlat::NewL(64);
-	CleanupStack::PushL( b );
-	b->InsertL( 0, aItem );
-
-	if( iDataMod->NeedsMerge() )
-		{
-		CBufFlat* mergeItem = CBufFlat::NewL(64);
-		CleanupStack::PushL( mergeItem );
-		if( LdoFetchItemL( aUid, *mergeItem) == KErrNone )
-			{
-            iDataMod->MergeRxL( *b, *mergeItem, iFieldLevelReplace );
-			}
-		CleanupStack::PopAndDestroy(); // mergeItem
-		}
-	
-	_DBG_FILE("CNSmlContactsDataStore::LdoMergeLC(): end");
-	return b;
-	}
 
 // ------------------------------------------------------------------------------------------------
 // CNSmlContactsDataStore::DriveBelowCriticalLevelL()
@@ -1674,7 +1724,6 @@ EXPORT_C CBufBase* CNSmlContactsDataStore::AddBufferListL( TSmlDbItemUid& aUid, 
 	iMimeTypeItem.Set( KNullDesC8 ); 
 	iMimeVersionItem.Set( KNullDesC8 );
 	
-	iLastItem = ETrue;
 	
 	CleanupStack::Pop();	
 	
@@ -1758,399 +1807,756 @@ EXPORT_C void CNSmlContactsDataStore::StripPropertyL( CBufBase*& aItem, const TD
 	CleanupStack::PopAndDestroy(); // propBuf
 	_DBG_FILE("CNSmlContactsDataStore::StripPropertyL(): end");
 	}
+	
+// ----------------------------------------------------------------------------
+// CNSmlContactsDataStore::IsConfidentialL
+// ----------------------------------------------------------------------------
+//	
+EXPORT_C TBool CNSmlContactsDataStore::IsConfidentialL(  MVPbkStoreContact& aItem )
+    {
+    _DBG_FILE("CNSmlContactsDataStore::IsConfidentialL(): begin");
+    TBool ret( EFalse );
+    
+    //find X-CLASS field type
+	const MVPbkFieldType* syncclass = 
+        iContactManager->FieldTypes().Find(R_VPBK_FIELD_TYPE_SYNCCLASS );
+	CVPbkBaseContactFieldTypeIterator* itr = 
+        CVPbkBaseContactFieldTypeIterator::NewLC( *syncclass, 
+            aItem.Fields() );
+	while ( itr->HasNext() )
+        {
+        const MVPbkBaseContactField* field = itr->Next();
+        const MVPbkContactFieldTextData& data = MVPbkContactFieldTextData::Cast(field->FieldData());
+        TPtrC ptr = data.Text();
+        //compare the sync type
+        if ( ptr.Compare( KNSmlContactSyncNoSync ) == 0 )
+            {
+            _DBG_FILE("CNSmlContactsDataStore::IsConfidentialL(): \
+                       find confidential");
+            ret = ETrue;
+            }
+         
+        }
+	CleanupStack::PopAndDestroy( itr );
+    
+    _DBG_FILE("CNSmlContactsDataStore::IsConfidentialL(): end");
+    return ret;
+    }
+    
+ // ----------------------------------------------------------------------------
+// CNSmlContactsDataStore::ResetBuffer
+// ----------------------------------------------------------------------------
+//	
+EXPORT_C void CNSmlContactsDataStore:: ResetBuffer()
+	{
+	if( iItemDataAddBatch )
+		{
+		iItemDataAddBatch->Reset();
+		}
+	iContactsBufferItemList.ResetAndDestroy();
+	}
+// -----------------------------------------------------------------------------
+// From MVPbkContactStoreListObserver  
+// Called when a contact store is ready to use.
+// -----------------------------------------------------------------------------
+ 
+EXPORT_C void CNSmlContactsDataStore::StoreReady( MVPbkContactStore& /*aContactStore*/ )
+	{
+	_DBG_FILE("CNSmlContactsDataStore::StoreReady(): begin");
+	//The contact data base opened successfully
+	iOpened = ETrue;
+	//id to uniquely identify the opened store 
+	iOpenedStoreId = DefaultHash::Des16(
+						iStore->StoreProperties().Uri().UriDes());
+	
+	TRAPD(error, iContactsModsFetcher->FetchModificationsL( *iCallerStatus ));
+	if(error != KErrNone)
+		{
+		User::RequestComplete( iCallerStatus, error );
+		}
+	_DBG_FILE("CNSmlContactsDataStore::StoreReady(): end");
+	}
+
+
+// ---------------------------------------------------------------------------
+//  From MVPbkContactStoreListObserver  
+//	Called when a contact store becomes unavailable.
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::StoreUnavailable(
+        MVPbkContactStore& /*aContactStore*/,
+        TInt aReason )
+    {
+    _DBG_FILE("CNSmlContactsDataStore::StoreUnavailable(): begin");
+
+    //Unable open the default contact data base
+	iOpened = EFalse;
+	delete iStoreName;
+	iStoreName = NULL;
+	iOpenedStoreId = 0;
+	User::RequestComplete( iCallerStatus, aReason );
+	_DBG_FILE("CNSmlContactsDataStore::StoreUnavailable(): end");		
+	return;
+	
+    }
+
+// ---------------------------------------------------------------------------
+// From MVPbkContactStoreListObserver  
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::HandleStoreEventL(
+        MVPbkContactStore& /*aContactStore*/,
+        TVPbkContactStoreEvent /*aStoreEvent*/ )
+	{
+	//Indication not needed.
+	}
+    
+// ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::VPbkSingleContactOperationComplete
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::VPbkSingleContactOperationComplete(
+		MVPbkContactOperationBase& aOperation,
+		MVPbkStoreContact* aContact )
+	{
+	MVPbkContactOperationBase* operation = &aOperation;
+	if ( operation )
+	{
+		delete operation;
+		operation = NULL;
+	}
+	TRAPD(error ,SingleContactOperationCompleteL(aContact));
+	delete aContact;
+	if(error!= KErrNone)
+		{
+			User::RequestComplete( iCallerStatus, error );
+		}
+	}
+
+// ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::VPbkSingleContactOperationFailed
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::VPbkSingleContactOperationFailed(
+    MVPbkContactOperationBase& aOperation,
+    TInt aError )
+    {
+	MVPbkContactOperationBase* operation = &aOperation;
+	if ( operation )
+	    {
+		delete operation;
+		operation = NULL;
+	    }
+	
+	 if(iLastOperation == ENSMLFetchOp)
+		{
+	 	iWriteStream.Close();
+	 	User::RequestComplete( iCallerStatus, aError );
+	 	}
+	else if (iLastOperation == ENSMLUpdateExportOp)
+        {
+        iWriteStream.Close();
+        delete iMergeItem;
+        iMergeItem = NULL;
+        User::RequestComplete( iCallerStatus, aError );
+        }
+	else if (iLastOperation == ENSMLUpdateImportOp)
+        {
+        if(iBatchMode)
+            {
+            iResultArray->Append( aError ); 
+            } 
+		delete iContactLink;
+        iContactLink = NULL;	
+        delete iBuf;
+        iBuf = NULL;
+        iReadStream.Close();
+        iIndex++;
+        if(iIndex == iContactsBufferItemList.Count() )
+            {
+            ResetBuffer();
+            User::RequestComplete( iCallerStatus, aError );    
+            }
+        else
+            {
+            _DBG_FILE("VPbkSingleContactOperationFailed, Continuing to complete the Batch Operation");
+            ExecuteBufferL();
+            }
+        }
+	else if(iLastOperation == ENSmlRetrieveOp)
+	    {
+        iRetrieveCount--;	        
+        if(iBatchMode)
+            {
+            iResultArray->AppendL( aError ); 
+            }        
+        iIndex++;
+        if(iIndex == iContactsBufferItemList.Count() )
+            {
+            ResetBuffer();
+            User::RequestComplete( iCallerStatus, aError );    
+            }
+        else if(!iRetrieveCount)
+            {
+            _DBG_FILE("VPbkSingleContactOperationFailed, Continuing to complete the Batch Operation");
+            ExecuteBufferL();
+            }
+	    }
+    else
+        {
+        _DBG_FILE("VPbkSingleContactOperationFailed, No Matching LastOperation Completing the Operation");
+        User::RequestComplete( iCallerStatus, aError );    
+        }	
+	_DBG_FILE("CNSmlContactsDataStore::VPbkSingleContactOperationFailed(): end");
+	}
+ // ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::VPbkSingleContactOperationFailed
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::SingleContactOperationCompleteL(
+ 		MVPbkStoreContact* aContact)
+	{
+	if(iLastOperation == ENSMLFetchOp)
+		{
+		iWriteStream.Close();
+
+		iItemData->Compress();
+		//strip the fields not supported by server
+		iDataMod->StripTxL( *iItemData );
+		*iSize = iItemData->Size();
+		iState = ENSmlItemOpen;
+		if ( iServerMaxObjectSize == 0 || *iSize <= iServerMaxObjectSize )
+			{
+			User::RequestComplete( iCallerStatus, KErrNone );
+			}
+		else
+			{
+			User::RequestComplete( iCallerStatus, KErrTooBig );
+			}
+		}
+	else if (iLastOperation == ENSMLUpdateExportOp)
+		{
+		iDataMod->MergeRxL( *iContactsBufferItemList[iIndex]->iItemData, 
+		    *iMergeItem, iFieldLevelReplace );
+		iWriteStream.Close();
+		delete iMergeItem;
+		iMergeItem = NULL;
+		LdoUpdateItemL();
+		}
+	else if (iLastOperation == ENSMLUpdateImportOp)
+		{
+		iFieldLevelReplace = EFalse;
+		
+		if(!IsConfidentialL(*aContact))
+			{
+			TInt32 id = iIdConverter->LinkToIdentifier(*aContact->CreateLinkLC());
+			
+			TNSmlSnapshotItem item(id);
+			
+			MVPbkStoreContact2* tempContact = 
+					reinterpret_cast<MVPbkStoreContact2*> (aContact->StoreContactExtension (KMVPbkStoreContactExtension2Uid));
+       		
+			MVPbkStoreContactProperties *contactProterties 
+										= tempContact ->PropertiesL();;
+			CleanupDeletePushL(contactProterties);				
+			item.SetLastChangedDate(contactProterties->LastModifiedL());
+			CleanupStack::PopAndDestroy();
+			
+			item.SetSoftDelete( EFalse );
+			
+			TRAP_IGNORE(iChangeFinder->ItemUpdatedL( item ));
+			
+			CleanupStack::PopAndDestroy();
+			if(iBatchMode)
+				{
+				iResultArray->Append(KErrNone);	
+				}
+			
+	        delete iContactLink;
+	        iContactLink = NULL;
+			
+			delete iBuf;
+			iBuf = NULL;
+			iReadStream.Close();
+			
+			iIndex++;
+			if(iIndex == iContactsBufferItemList.Count() )
+				{
+				ResetBuffer();
+				User::RequestComplete( iCallerStatus, iRetCommand );	
+				}
+			else
+				{
+					ExecuteBufferL();
+				}
+			}
+		
+		}
+	else if(iLastOperation == ENSmlRetrieveOp)
+		{
+		iRetrieveCount--;	
+		if(!IsConfidentialL(*aContact))
+			{
+			TInt32 id = iIdConverter->LinkToIdentifier(*aContact->CreateLinkLC());
+			*iContactsBufferItemList[iIndex]->iPUid = id;
+			
+			TNSmlSnapshotItem item(id);
+			
+       		MVPbkStoreContact2* tempContact = 
+       		    reinterpret_cast<MVPbkStoreContact2*> (aContact->StoreContactExtension (KMVPbkStoreContactExtension2Uid));  
+       		       			
+			MVPbkStoreContactProperties *contactProterties 
+										= tempContact ->PropertiesL();;
+			CleanupDeletePushL(contactProterties);				
+			item.SetLastChangedDate(contactProterties->LastModifiedL());
+			CleanupStack::PopAndDestroy();
+			
+			item.SetSoftDelete( EFalse );
+			// Add the snapshot item to the Change Finder.
+			TRAP_IGNORE(iChangeFinder->ItemAddedL( item ));
+			
+			CleanupStack::PopAndDestroy();
+			}
+			if(iBatchMode)
+			{
+			iResultArray->AppendL(iRetCommand);	
+			}
+			
+			iIndex++;
+			if(iIndex == iContactsBufferItemList.Count() )
+				{
+				ResetBuffer();
+				User::RequestComplete( iCallerStatus, iRetCommand );	
+				}
+			else if(!iRetrieveCount)
+				{
+					ExecuteBufferL();
+				}
+			
+			}
+ }
+ // ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::ContactsSaved.
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::ContactsSaved( 
+		MVPbkContactOperationBase& aOperation,
+        MVPbkContactLinkArray* aResults ) 
+	{
+	MVPbkContactOperationBase* operation = &aOperation;
+	if ( operation )
+	{
+		delete operation;
+		operation = NULL;
+	}
+
+	if(iLastOperation == ENSmlAddOp)
+		{
+		//Count of contacts to be added from server to client 
+		TInt  cntAddCount( 0 );
+		TInt i(iIndex);
+		while( i<iContactsBufferItemList.Count() )
+			{
+			if ( iContactsBufferItemList[i]->iModType == ENSmlCntItemAdd &&
+			     iContactsBufferItemList[i]->iStatus  == KNSmlNoError )
+				{
+				cntAddCount++;
+				}
+			i++;
+			}
+		
+		//Count of contacts successfully added to client	
+		iRetrieveCount = aResults->Count();
+		
+		//Count of contacts which could not be added
+		TInt cntAddFailedCount(0);
+		cntAddFailedCount = cntAddCount-iRetrieveCount;
+		while(cntAddFailedCount > 0)
+		{
+			iContactsBufferItemList[iIndex++]->iStatus  = KErrGeneral;
+			iResultArray->Append(KErrGeneral);
+			cntAddFailedCount--;
+		}
+		
+		if ( aResults->Count() > 0 )
+			{
+			for(TInt i=0;i<aResults->Count();i++)
+				{
+				//retrieve the contact
+				TRAPD(error,iContactManager->RetrieveContactL( aResults->At(i), *this ));
+				if(error != KErrNone)
+					{
+					User::RequestComplete( iCallerStatus, error );	
+					}
+			iLastOperation = ENSmlRetrieveOp;				 	
+				}
+			}
+		delete iBuf;
+		delete aResults;
+		iBuf = NULL;
+		iReadStream.Close();	
+		}
+	
+	}
+        
+ // ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::ContactsSavingFailed
+// ---------------------------------------------------------------------------
+//       
+EXPORT_C void CNSmlContactsDataStore::ContactsSavingFailed( 
+        MVPbkContactOperationBase& aOperation, TInt aError )
+	{
+	MVPbkContactOperationBase* operation = &aOperation;
+	if ( operation )
+	{
+		delete operation;
+		operation = NULL;
+	}
+	
+	if(iLastOperation == ENSmlAddOp)
+	{
+	if(iBatchMode)
+		{
+		while( iIndex < iContactsBufferItemList.Count() &&
+		iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemAdd )
+			{
+			iContactsBufferItemList[iIndex++]->iStatus  = KErrGeneral;
+			iResultArray->Append(KErrGeneral);
+			}	
+		}
+	else
+		{
+		iIndex++;			
+		}
+
+	if(iIndex == iContactsBufferItemList.Count())
+		{
+		User::RequestComplete( iCallerStatus, aError );
+		ResetBuffer();
+		delete iBuf;
+	 	iBuf = NULL;
+	 	iReadStream.Close();	
+		}
+		//Execute the remaining commands in batch
+		else
+		{
+			TRAPD(error,ExecuteBufferL());
+			if(error != KErrNone)
+			{
+			User::RequestComplete( iCallerStatus, error );	
+			}
+		}
+		}
+	}
+// ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::StepComplete
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::StepComplete(
+		 MVPbkContactOperationBase& /*aOperation*/, 
+        TInt aStepSize )
+	{
+	if(iLastOperation == ENSmlDeleteOp)
+		{
+		if(iBatchMode)
+			{
+			for(TInt i = 0 ; i<aStepSize && iIndex < iContactsBufferItemList.Count() ;i++)
+				{
+				iResultArray->Append(KErrNone);
+				if( iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemDelete &&
+			    iContactsBufferItemList[iIndex]->iStatus  == KNSmlNoError )
+					{
+					iContactsBufferItemList[iIndex]->iStatus  = KErrNone;
+					iUid  = iContactsBufferItemList[iIndex]->iUid;
+					iChangeFinder->ItemDeleted( TNSmlSnapshotItem( iUid ));
+					}						
+					else if( iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemSoftDelete &&
+				   		 iContactsBufferItemList[iIndex]->iStatus  == KNSmlNoError )
+					{
+					
+					iContactsBufferItemList[iIndex]->iStatus  = KErrNone;
+					iUid  = iContactsBufferItemList[iIndex]->iUid;
+					TRAP_IGNORE(iChangeFinder->ItemSoftDeletedL( TNSmlSnapshotItem( iUid ) ));
+					}
+					iIndex++;
+				}
+			}
+			else
+			{
+			iChangeFinder->ItemDeleted( TNSmlSnapshotItem( iUid ) );	
+			User::RequestComplete( iCallerStatus, KErrNone );
+			}
+		}
+	}
+ // ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::StepFailed
+// ---------------------------------------------------------------------------
+//
+EXPORT_C TBool CNSmlContactsDataStore::StepFailed(
+        MVPbkContactOperationBase& /*aOperation*/,
+        TInt /*aStepSize*/,
+        TInt aError )
+ {
+ if(iLastOperation == ENSmlDeleteOp)
+	{
+	 	if(iBatchMode)
+	 	{
+			if( iIndex < iContactsBufferItemList.Count() &&
+			iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemDelete )
+			{
+			iContactsBufferItemList[iIndex++]->iStatus  = KErrGeneral;
+			iResultArray->Append(KErrGeneral);
+			}
+		 	
+	 	}
+	 	else
+	 	{
+	 		User::RequestComplete( iCallerStatus, aError );	
+	 	}
+	}
+	return ETrue;
+ }
+// ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::OperationComplete
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::OperationComplete
+		( MVPbkContactOperationBase& aOperation )
+	{
+	MVPbkContactOperationBase* operation = &aOperation;
+	if ( operation )
+	{
+		delete operation;
+		operation = NULL;
+	}
+
+	TRAPD(error ,OperationCompleteL());	
+	if(error != KErrNone)
+		{
+		User::RequestComplete( iCallerStatus, error );
+		}
+	}
+
+// ---------------------------------------------------------------------------
+//  CNSmlContactsDataStore::OperationCompleteL
+// ---------------------------------------------------------------------------
+//
+EXPORT_C void CNSmlContactsDataStore::OperationCompleteL()
+	{
+	if(iLastOperation == ENSmlDeleteOp)
+		{
+		if(iBatchMode )
+			{
+			if(iResultArray->Count() != iContactsBufferItemList.Count())
+				{
+				while( iIndex < iContactsBufferItemList.Count() && 
+				iContactsBufferItemList[iIndex]->iModType == ENSmlCntItemDelete 
+				&& iContactsBufferItemList[iIndex]->iStatus  == KErrNotFound )
+					{
+					iResultArray->Append(KErrNotFound);
+					iIndex++;
+					}
+				}
+			
+			if(iIndex == iContactsBufferItemList.Count())
+				{
+				if(iItemData)
+					{
+					iItemData->Reset();    
+					}
+
+				ResetBuffer();
+				User::RequestComplete( iCallerStatus, KErrNone );
+				}
+				else
+				{
+				ExecuteBufferL();
+				}	
+			}
+			else
+			{
+			
+			if(iItemData)
+				{
+				iItemData->Reset();    
+				}
+
+			ResetBuffer();
+			}
+		}
+		else
+		{
+		if(iLastOperation == ENSMLDeleteAllOp)
+	        {
+	        iDeleteAllOperation = NULL;
+	        }
+		if( iChangeFinder )
+			{
+			iChangeFinder->ResetL();		
+			}
+		iSnapshotRegistered = EFalse;
+		
+		delete iContactLnks;
+		iContactLnks = NULL;
+		iContactLink = NULL;
+		
+		delete iContactViewBase;
+		iContactViewBase = NULL;
+		User::RequestComplete( iCallerStatus, KErrNone );	
+		
+		}
+		
+	}
+
+// ---------------------------------------------------------------------------
+// CNSmlContactsDataStore::ContactViewReady
+// Implements the view ready function of MVPbkContactViewObserver
+// --------------------------------------------------------------------------- 
+EXPORT_C void CNSmlContactsDataStore::ContactViewReady(
+                MVPbkContactViewBase& /*aView*/ ) 
+	{
+	if(iLastOperation == ENSMLDeleteAllOp)
+		{
+		TRAPD(error,DoDeleteAllContactsL());
+		if(error != KErrNone)
+			{
+			User::RequestComplete( iCallerStatus, error );
+			}
+		}
+	}
+// ---------------------------------------------------------------------------
+// CNSmlContactsDataStore::PrepareForContactsDeleteL()
+// Delete all the contacts at client
+// ---------------------------------------------------------------------------	
+EXPORT_C void CNSmlContactsDataStore::DoDeleteAllContactsL()
+	{
+	iContactLnks = CVPbkContactLinkArray::NewL();
+	TInt contactCount = iContactViewBase->ContactCountL();
+	//add all the contact links to  ContactLinkArray
+	for( TInt i = 0; i < contactCount; i++ )
+		{
+			const MVPbkViewContact& contact = 
+						iContactViewBase->ContactAtL(i);
+			iContactLink = contact.CreateLinkLC();
+			iContactLnks->AppendL(iContactLink);
+			CleanupStack::Pop();
+		}
+	
+	iDeleteAllOperation = iContactManager->DeleteContactsL( *iContactLnks, *this );
+	
+	}
+
+// ---------------------------------------------------------------------------
+// CNSmlContactsDataStore::ContactViewUnavailable
+// Implements the view unavailable function of MVPbkContactViewObserver
+// --------------------------------------------------------------------------- 
+EXPORT_C void CNSmlContactsDataStore::ContactViewUnavailable(
+                MVPbkContactViewBase& /*aView*/ )  
+	{
+	   
+	}
+
+// ---------------------------------------------------------------------------
+// CNSmlContactsDataStore::ContactAddedToView
+// Implements the add contact function of MVPbkContactViewObserver
+// --------------------------------------------------------------------------- 
+EXPORT_C void CNSmlContactsDataStore::ContactAddedToView(
+            MVPbkContactViewBase& /*aView*/, 
+            TInt /*aIndex*/, 
+            const MVPbkContactLink& /*aContactLink*/ ) 
+	{
+	}
+
+// ---------------------------------------------------------------------------
+// CNSmlContactsDataStore::ContactRemovedFromView
+// Implements the remove contact function of MVPbkContactViewObserver
+// --------------------------------------------------------------------------- 
+EXPORT_C void CNSmlContactsDataStore::ContactRemovedFromView(
+                MVPbkContactViewBase& /*aView*/, 
+                TInt /*aIndex*/, 
+                const MVPbkContactLink& /*aContactLink*/ )  
+	{
+	}
+
+// ---------------------------------------------------------------------------
+// CNSmlContactsDataStore::ContactViewError
+// Implements the view error function of MVPbkContactViewObserver
+// --------------------------------------------------------------------------- 
+EXPORT_C void CNSmlContactsDataStore::ContactViewError(
+            MVPbkContactViewBase& /*aView*/, 
+            TInt /*aError*/, 
+            TBool /*aErrorNotified*/ )  
+	{
+
+	}
+
+// -----------------------------------------------------------------------------
+// CNSmlContactsDataStore::CreateViewL()
+// Create a contact view 
+// -----------------------------------------------------------------------------
+EXPORT_C void CNSmlContactsDataStore::CreateViewL()
+	{
+	
+	CVPbkContactViewDefinition* viewDef = CVPbkContactViewDefinition::NewL();
+	CleanupStack::PushL( viewDef );
+	viewDef->SetType( EVPbkContactsView );
+
+	viewDef->SetUriL(iStore->StoreProperties().Uri().UriDes());
+
+	 iContactViewBase = iContactManager->CreateContactViewLC( 
+				                         *this, 
+				                         *viewDef, 
+				                         iContactManager->FieldTypes()  );
+	CleanupStack::Pop();
+	CleanupStack::PopAndDestroy(viewDef);	
+	}
 
 // ------------------------------------------------------------------------------------------------
 // CNSmlContactsDataStore::GetStoreFormatResourceFileL
 // ------------------------------------------------------------------------------------------------
-EXPORT_C const TDesC& CNSmlContactsDataStore::GetStoreFormatResourceFileL() const
+EXPORT_C const TDesC& CNSmlContactsDataStore::GetStoreFormatResourceFileL()
     {
-    _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL(): BEGIN");
-
+    _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL(): begin");
+    
     // Check correct Data Sync protocol
     TInt value( EDataSyncNotRunning );
     TInt error = RProperty::Get( KPSUidDataSynchronizationInternalKeys,
-                                     KDataSyncStatus,
-                                     value );
-    if ( error == KErrNone && value == EDataSyncRunning )
+        KDataSyncStatus, value );
+    if ( error == KErrNone &&
+         value == EDataSyncRunning )
         {
-        _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL() 1.1.2: END");
         return KNSmlContactsStoreFormatRsc_1_1_2;
         }
     else // error or protocol version 1.2 
         {
-        _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL() 1.2: END");
         return KNSmlContactsStoreFormatRsc_1_2;
         }
-    }
-
-
-// ----------------------------------------------------------------------------
-// CNSmlContactsDataStore::DoExecuteBufferL
-// ----------------------------------------------------------------------------
-EXPORT_C TInt CNSmlContactsDataStore::DoExecuteBufferL(RArray<TInt>& aResultArray)
-    {
-    _DBG_FILE("CNSmlContactsDataStore::DoExecuteBufferL(): begin");
-
-    TBool batchOK = EFalse;
-    TInt  ret( KErrNone );
-    TInt  retCommand( KErrNone );
-    TInt  itemAdds( 0 );
-
-    aResultArray.Reset();
-
-    if( iContactsBufferItemList.Count() == 0 )
-        {
-        return retCommand;
-        }
-
-    TInt i = 0;
-    //
-    // ResultArray initialized
-    //
-    while( i<iContactsBufferItemList.Count() )
-        {
-        if ( iContactsBufferItemList[i]->iModType == ENSmlCntItemAdd &&
-             iContactsBufferItemList[i]->iStatus  == KNSmlNoError )
-            {
-            itemAdds++;
-            }
-        aResultArray.Append( KErrGeneral ); 
-        i++;
-        }
-
-    i = 0;
-    //
-    // Loop through buffered commands
-    //
-    while( i<iContactsBufferItemList.Count() )
-        {       
-        if( iContactsBufferItemList[i]->iStatus!= KNSmlNoError )
-            {
-            retCommand = iContactsBufferItemList[i]->iStatus;
-            }
-        else if( iContactsBufferItemList[i]->iModType == ENSmlCntItemAdd )
-            {
-            ret =0 ;
-            iPUid  = 0;
-
-            StripPropertyL( iItemDataAddBatch, KVersitTokenUID() ); // Remove UID's from data
-
-            TInt err( KErrNone );
-            TTime lastModified;
-            if( iBatchMode )    // All adds handled when first add on iContactsBufferItemList
-                {
-                iAddResultArray.Reset();
-                
-                TRAP( err, ret = LdoAddItemsL( iAddResultArray, iItemDataAddBatch,
-                                               iItemDataAddBatch->Ptr(0).Length(),
-                                               lastModified ) );
-                if( err == KErrNone && ret == KErrNone &&
-                    itemAdds == iAddResultArray.Count() )
-                    {
-                    TInt j = i;
-                    TInt k = 0;
-                    while( j < iContactsBufferItemList.Count() )
-                        {
-                        if( iContactsBufferItemList[j]->iModType == ENSmlCntItemAdd &&
-                            iContactsBufferItemList[j]->iStatus  == KNSmlNoError &&
-                            k < iAddResultArray.Count() )
-                            {
-                            iContactsBufferItemList[j]->iStatus = KErrNone;
-                            *iContactsBufferItemList[j]->iPUid = iAddResultArray[k];
-
-                            TNSmlSnapshotItem item( iAddResultArray[k]);
-                            item.SetLastChangedDate( lastModified );
-                            item.SetSoftDelete( EFalse );
-                            iChangeFinder->ItemAddedL( item );
-                           
-                            k++;
-                            }
-                        j++;
-                        }
-                    }
-                else
-                    {
-                    TInt j = i;
-                    while( j < iContactsBufferItemList.Count() )
-                        {
-                        if( iContactsBufferItemList[j]->iModType == ENSmlCntItemAdd &&
-                            iContactsBufferItemList[j]->iStatus  == KNSmlNoError )
-                            {
-                            iContactsBufferItemList[j]->iStatus = KErrNotSupported;
-                            }
-                        j++;
-                        }
-                    }
-                }
-            else
-                {
-                TTime lastModified;
-                iPUid  =iContactsBufferItemList[i]->iPUid;
-                const TPtr8 dataPtr = iItemDataAddBatch->Ptr(0);
-                TRAP( err, ret = LdoAddItemL(*iPUid, dataPtr,
-                                             iContactsBufferItemList[i]->iSize,
-                                             lastModified));
-                if( (err == KErrNone) && (ret == KErrNone))
-                    {
-                    // Add the snapshot item to the Change Finder.
-                    // The Change finder maintains a list of all changes to the database.
-
-                    TNSmlSnapshotItem item( *iPUid );
-                    item.SetLastChangedDate( lastModified );
-                    item.SetSoftDelete( EFalse );
-
-                    iChangeFinder->ItemAddedL( item );
-                    retCommand = KErrNone;
-                    }
-                else if( err == KErrNone )
-                    {
-                    retCommand = ret;
-                    }
-                else
-                    {
-                    retCommand = err;
-                    }
-                }
-            }
-        else if( iContactsBufferItemList[i]->iModType == ENSmlCntItemReplace  ||
-            iContactsBufferItemList[i]->iModType == ENSmlCntItemFieldLevelReplace )
-            {
-            iItemData = iContactsBufferItemList[i]->iItemData;
-            iUid  = iContactsBufferItemList[i]->iUid;
-            const TPtr8 dataPtr = iItemData->Ptr(0);
-            ret = 0;
-            TTime lastModified;
-           
-            TRAPD( err, ret = LdoUpdateItemL(iUid, dataPtr,
-                                             iContactsBufferItemList[i]->iSize,
-                                             lastModified ));
-            if( (err == KErrNone) && (ret == KErrNone) )
-                {
-                retCommand = KErrNone;
-                iContactsBufferItemList[i]->iStatus = KErrNone;
-
-                TNSmlSnapshotItem item( iUid );
-                item.SetLastChangedDate( lastModified );
-                item.SetSoftDelete( EFalse );
-
-                iChangeFinder->ItemUpdatedL( item );
-                }
-            else if( err == KErrNone )
-                {
-                retCommand = ret;
-                iContactsBufferItemList[i]->iStatus = ret;
-                }
-            else
-                {
-                retCommand = err;
-                iContactsBufferItemList[i]->iStatus = err;
-                }
-            iItemData = NULL;
-            }
-        else if( iContactsBufferItemList[i]->iModType == ENSmlCntItemMove )
-            {
-            retCommand = KErrNotSupported;
-            }
-        else if( iContactsBufferItemList[i]->iModType == ENSmlCntItemDelete ||
-                 iContactsBufferItemList[i]->iModType == ENSmlCntItemSoftDelete )
-            {
-            if( iBatchMode )    // All deletes handled when 1'st occurrence on list
-                {
-                CArrayFixFlat<TUid>* arrDelete = new(ELeave) CArrayFixFlat<TUid>(4);
-                CleanupStack::PushL( arrDelete );
-                TInt j=i;
-                while( j < iContactsBufferItemList.Count() )
-                    {
-                    if( (iContactsBufferItemList[j]->iModType == ENSmlCntItemDelete ||
-                         iContactsBufferItemList[j]->iModType == ENSmlCntItemSoftDelete) &&
-                         iContactsBufferItemList[j]->iStatus  == KNSmlNoError )
-                        {
-                        TUid id = TUid::Uid( iContactsBufferItemList[j]->iUid ); 
-                        CNsmlContactItem* contactitem = CNsmlContactItem::NewL();
-                        CleanupStack::PushL( contactitem );
-                        TInt err = KErrNone;
-                        TInt ret = KErrNone;
-                        TRAP( err, ret = iContactsDataStoreExtension->ReadContactL( id, contactitem ) ); 
-                        if( err == KErrNone && ret == KErrNone && id.iUid != 0 )
-                            {
-                            arrDelete->AppendL( id );
-                            }
-                        else if( err == KErrNone && ret == KErrNone )
-                            {
-                            iContactsBufferItemList[j]->iStatus  = KErrNotFound;
-                            }
-                        else
-                            {
-                            iContactsBufferItemList[j]->iStatus  = err;
-                            }
-                        CleanupStack::PopAndDestroy( contactitem ); // item
-                        }
-                    j++;
-                    }
-                if( arrDelete->Count() > 0 )
-                    {
-                    TInt err2 = KErrInUse;
-                    TRAP( err2, iContactsDataStoreExtension->DeleteContactsL( arrDelete ) );
-                    CleanupStack::PopAndDestroy( arrDelete );
-
-                    if( err2 == KErrInUse )
-                        {
-                        err2 = KErrGeneral;
-                        }
-
-                    j= i;
-                    while( j < iContactsBufferItemList.Count() ) // Mark deleted items
-                        {
-                        if( iContactsBufferItemList[j]->iModType == ENSmlCntItemDelete &&
-                            iContactsBufferItemList[j]->iStatus  == KNSmlNoError )
-                            {
-
-                            iContactsBufferItemList[j]->iStatus  = err2;
-                            if( err2 == KErrNone )
-                                {
-                                iUid  = iContactsBufferItemList[j]->iUid;
-                                iChangeFinder->ItemDeleted( TNSmlSnapshotItem( iUid ));
-                                }
-                            }
-                        else if( iContactsBufferItemList[j]->iModType == ENSmlCntItemSoftDelete &&
-                                 iContactsBufferItemList[j]->iStatus  == KNSmlNoError )
-                            {
-
-                            iContactsBufferItemList[j]->iStatus  = err2;
-                            if( err2 == KErrNone )
-                                {
-                                iUid  = iContactsBufferItemList[j]->iUid;
-                                iChangeFinder->ItemSoftDeletedL( TNSmlSnapshotItem( iUid ) );
-                                }
-                            }
-                        j++;
-                        }
-                    }
-                else
-                    {
-                    CleanupStack::PopAndDestroy( arrDelete );
-                    }
-                }
-            else
-                {
-                iUid  = iContactsBufferItemList[i]->iUid;
-                TInt err = KErrNone;
-                TRAP( err, iContactsDataStoreExtension->DeleteContactL( TUid::Uid( iUid ) ) );
-                if( err == KErrNone )
-                    {
-                    iChangeFinder->ItemDeleted( TNSmlSnapshotItem( iUid ) );
-                    }
-
-                iContactsBufferItemList[i]->iStatus  = err;
-                retCommand = err;
-                }
-            }
-        //
-        //  Set allready set commands from iContactsBufferItemList
-        //
-        if( ( iContactsBufferItemList[i]->iModType == ENSmlCntItemAdd     ||
-              iContactsBufferItemList[i]->iModType == ENSmlCntItemReplace ||
-              iContactsBufferItemList[i]->iModType == ENSmlCntItemFieldLevelReplace ||
-              iContactsBufferItemList[i]->iModType == ENSmlCntItemDelete  ||
-              iContactsBufferItemList[i]->iModType == ENSmlCntItemSoftDelete ) &&
-              iContactsBufferItemList[i]->iStatus  != KNSmlNoError )
-            {
-            retCommand = iContactsBufferItemList[i]->iStatus;
-            }
-
-        
-        if( !batchOK && retCommand == KErrNone ) // If one command is OK => batchOK
-            {
-            batchOK = ETrue;
-            }
-
-        aResultArray[i++] = retCommand;
-        }
-
-    if ( batchOK )
-        {
-        _DBG_FILE("CNSmlContactsDataStore::DoExecuteBufferL(): end");
-        return KErrNone;
-        }
-
-    _DBG_FILE("CNSmlContactsDataStore::DoExecuteBufferL(): ERROR end");
-    return KErrGeneral; // All commands failed    
+    _DBG_FILE("CNSmlContactsDataStore::GetStoreFormatResourceFileL(): end");
     }
 
 // ------------------------------------------------------------------------------------------------
-// CNSmlContactsDataStore::FetchModificationsL
+// CNSmlContactsDataStore::CreateModsFetcherL
 // ------------------------------------------------------------------------------------------------
-//
-TInt CNSmlContactsDataStore::FetchModificationsL()
+EXPORT_C MContactsModsFetcher* CNSmlContactsDataStore::CreateModsFetcherL()
     {
-    _DBG_FILE("CNSmlContactsDataStore::FetchModificationsL(): begin");
-  
-    TInt error = KErrNone;
-    
-    if( !iSnapshot )
-        {
-        iSnapshot = new (ELeave) CArrayFixSeg<TNSmlSnapshotItem>( KNSmlContactsGranularity );
-        }
-    
-    iCntUidList->Reset();
-    iContactsDataStoreExtension->ListContactsL( iCntUidList );
-    
-    if( !iSnapshotRegistered )
-        {
-        DBG_ARGS(_S("CNSmlContactsDataStore::FetchModificationsL(): Count = %d"), iCntUidList->Count());
-        for ( TInt i = 0; i < iCntUidList->Count(); i++ )
-            {
-            CNsmlContactItem* contactitem = CNsmlContactItem::NewL();
-            CleanupStack::PushL( contactitem );
-            error = iContactsDataStoreExtension->ReadContactL( iCntUidList->At(i), contactitem ); 
-            if(error != KErrNone)
-                {
-                DBG_ARGS(_S("CNSmlContactsDataStore::FetchModificationsL(): Error = %d"), error);
-                CleanupStack::PopAndDestroy(contactitem); // item
-                return error;
-                }           
-            TNSmlSnapshotItem snap( iCntUidList->At(i).iUid  );
-            snap.SetLastChangedDate( contactitem->iLastModified );
-            iSnapshot->InsertIsqL( snap, iKey );       
-                
-            CleanupStack::PopAndDestroy(contactitem); // item
-            }
-        iSnapshot->Compress();
-          
-        iChangeFinder->SetNewSnapshot( iSnapshot ); // changefinder takes ownership
-        iSnapshot = NULL;
-        iSnapshotRegistered = ETrue;
-        }
-    
-    _DBG_FILE("CNSmlContactsDataStore::FetchModificationsL(): end");
-    return KErrNone;
+    _DBG_FILE("CNSmlContactsDataStore::CreateModsFetcherL(): begin");
+    CNSmlContactsModsFetcher* modsFetcher = 
+        new ( ELeave ) CNSmlContactsModsFetcher( iSnapshotRegistered, 
+        *iContactManager,*iStore, iKey, *iChangeFinder );
+    CleanupStack::PushL( modsFetcher );
+    modsFetcher->ConstructL();
+    CleanupStack::Pop( modsFetcher );
+    _DBG_FILE("CNSmlContactsDataStore::CreateModsFetcherL(): end");
+    return modsFetcher;
     }
 
-// ----------------------------------------------------------------------------»
+// ------------------------------------------------------------------------------------------------
 // CNSmlContactsDataStore::GetDataMod
-// return reference to datamod instance.
-// ----------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
 EXPORT_C CNSmlDataModBase& CNSmlContactsDataStore::GetDataMod()
     {
+    _DBG_FILE("CNSmlContactsDataStore::GetDataMod()");
     return *iDataMod;
-    }
-
-// ----------------------------------------------------------------------------
-// CNSmlContactsDataStore::ExportContactsL
-// ----------------------------------------------------------------------------
-EXPORT_C TInt CNSmlContactsDataStore::ExportContactsL( 
-    const TUid& aUid, CBufBase& aContactBufBase )
-    {
-    return iContactsDataStoreExtension->ExportContactsL( aUid, aContactBufBase ); 
-    }
-
-// ----------------------------------------------------------------------------
-// CNSmlContactsDataStore::ImportContactsL
-// ----------------------------------------------------------------------------
-EXPORT_C CArrayFixFlat<TUid>* CNSmlContactsDataStore::ImportContactsL( 
-    const TDesC8& aContactBufBase )
-    {
-    return iContactsDataStoreExtension->ImportContactsL( aContactBufBase ); 
     }
 
 // End of File  

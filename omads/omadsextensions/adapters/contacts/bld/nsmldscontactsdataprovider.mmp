@@ -15,6 +15,7 @@
 *
 */
 
+
 #include <platform_paths.hrh>
 #include <defaultcaps.hrh>
 #include <data_caging_paths.hrh>
@@ -27,7 +28,7 @@ TARGETTYPE      PLUGIN
 UID             0x10009D8D 0x101F6DDD
 VENDORID		VID_DEFAULT
 
-#if defined(EABI)
+#if defined(ARMCC)
 DEFFILE		./def/eabicontactsdataprovider
 #elif defined(WINSCW)
 DEFFILE		./def/bwinscwcontactsdataprovider
@@ -36,13 +37,14 @@ DEFFILE		./def/bwinscwcontactsdataprovider
 SOURCEPATH      ../src
 SOURCE          NSmlContactsDataProvider.cpp
 SOURCE          NSmlContactsDataStore.cpp
+SOURCE          NSmlContactsModsFetcher.cpp
 
 APP_LAYER_SYSTEMINCLUDE
 SYSTEMINCLUDE 	/epoc32/include/ecom
 SYSTEMINCLUDE 	/epoc32/include/syncml
 
 USERINCLUDE     ../inc ../../inc
-
+USERINCLUDE     ../../../datamod/inc
 
 START RESOURCE 101F6DD6.rss
 HEADER
@@ -68,5 +70,6 @@ LIBRARY		ECom.lib bafl.lib euser.lib efsrv.lib estor.lib nsmldebug.lib sysutil.l
 LIBRARY		nsmlchangefinder.lib cntmodel.lib wbxmllib.lib
 LIBRARY		nsmldatamod.lib smlstoreformat.lib smldataprovider.lib
 LIBRARY		nsmldshostclient.lib
-LIBRARY		nsmlcontactsdatastoreextension.lib
+LIBRARY		VPbkEng.lib
+LIBRARY     vpbkvcardEng.lib
 

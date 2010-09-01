@@ -17,7 +17,7 @@
 &EN
 
 ; Header
-#{"MMS DS Plugin"},(0x101FB0E9),1,35,0, TYPE=SA
+#{"MMS DS Plugin"},(0x101FB0E9),1,0,0, TYPE=SA
 
 ; Localised Vendor name
 %{"Nokia"}

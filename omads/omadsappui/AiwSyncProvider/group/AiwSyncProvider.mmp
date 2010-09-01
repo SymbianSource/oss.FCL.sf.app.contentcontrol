@@ -1,0 +1,73 @@
+/*
+* Copyright (c) 2002 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  Project specification file.
+*
+*/
+
+
+#include "../inc/AiwSyncProviderUids.hrh"
+#include <data_caging_paths.hrh>
+#include <platform_paths.hrh>
+
+TARGET		AiwSyncProvider.dll
+TARGETTYPE	PLUGIN
+
+VENDORID VID_DEFAULT
+
+CAPABILITY      CAP_ECOM_PLUGIN
+
+// uid for aiwsyncprovider 0x101F871F
+// #define KEComRecognitionUID2 0x10009D8D
+UID	0x10009D8D KAspSyncProviderDllUid
+
+
+USERINCLUDE	../inc
+
+// for AspSyncUtilApi.h
+USERINCLUDE     ../../../omadsappui/AspSyncUtil/inc
+
+// for nsmldssync.loc
+USERINCLUDE     ../../../omadsappui/AspSyncUtil/src
+
+
+APP_LAYER_SYSTEMINCLUDE
+SYSTEMINCLUDE	/epoc32/include/ecom
+
+SOURCEPATH	../src
+SOURCE		AiwSyncProvider.cpp
+
+
+START RESOURCE  101F871F.rss
+TARGET          AiwSyncProvider
+TARGETPATH ECOM_RESOURCE_DIR
+END
+
+START RESOURCE  AiwSyncProvider.rss
+HEADER
+TARGET          AiwSyncProvider
+TARGETPATH RESOURCE_FILES_DIR
+LANGUAGE_IDS
+END
+
+
+
+LIBRARY	euser.lib
+LIBRARY ServiceHandler.lib
+LIBRARY aspsyncutil.lib
+
+LIBRARY	efsrv.lib
+LIBRARY avkon.lib
+
+DEBUGLIBRARY flogger.lib
+

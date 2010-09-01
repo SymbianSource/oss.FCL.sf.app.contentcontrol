@@ -1,0 +1,84 @@
+/*
+* Copyright (c) 2002 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  Project specification file.
+*
+*/
+
+
+#include <defaultcaps.hrh>
+#include <data_caging_paths.hrh>
+
+#include <platform_paths.hrh>
+CAPABILITY 	CAP_ECOM_PLUGIN
+
+TARGET          OmaDsAppUiPlugin.dll
+TARGETTYPE      PLUGIN
+UID             0x10009D8D 0x102833A1
+VENDORID	    VID_DEFAULT
+
+#if defined(ARMCC)
+DEFFILE		../eabi/OmaDsAppUiPlugin.def
+#elif defined(WINSCW)
+DEFFILE		../BWinscw/OmaDsAppUiPlugin.def
+#endif
+
+SOURCEPATH      ../src
+// SOURCE tags needs to be here.
+SOURCE OmaDsAppUiPluginInterface.cpp
+SOURCE OmaDsAppUiPluginProxy.cpp
+
+APP_LAYER_SYSTEMINCLUDE
+SYSTEMINCLUDE 		/epoc32/include/ecom
+
+USERINCLUDE     ../inc 
+
+// for AspSyncUtilApi.h
+USERINCLUDE     ../../AspSyncUtil/inc
+
+// for nsmldssync.loc
+USERINCLUDE     ../../AspSyncUtil/src
+
+
+SOURCEPATH      ../data
+START RESOURCE  102833A1.rss					//Plugin registration data
+TARGET          OmaDsAppUiPlugin.rsc			
+END
+
+SOURCEPATH      ../data
+START RESOURCE  NsmlDSGSPluginResource.rss       
+TARGET          NsmlDSGSPluginResource.rsc
+TARGETPATH      RESOURCE_FILES_DIR
+LANGUAGE_IDS
+HEADER
+END
+
+
+LIBRARY    GSEcomPlugin.lib
+LIBRARY    GSFramework.lib 
+LIBRARY    aknskins.lib
+LIBRARY    aknicon.lib
+LIBRARY    Egul.lib
+LIBRARY    euser.lib
+LIBRARY    cone.lib
+LIBRARY    eikcore.lib
+LIBRARY    eikcoctl.lib
+LIBRARY	   avkon.lib
+LIBRARY    aspsyncutil.lib
+LIBRARY    CommonEngine.lib
+LIBRARY    bafl.lib
+
+// Required only for embedded app
+LIBRARY    apgrfx.lib
+LIBRARY    ws32.lib
+LIBRARY    apparc.lib

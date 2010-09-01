@@ -22,7 +22,7 @@
 // INCLUDES
 #include <msvids.h>
 #include <nsmlchangefinder.h>
-#include "snapshotitem.h"
+#include "SnapshotItem.h"
 
 // DATATYPES
 typedef CArrayFixSeg<TSnapshotItem> CSnapshotArray;

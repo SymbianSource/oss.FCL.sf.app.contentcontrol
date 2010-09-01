@@ -1,0 +1,9 @@
+EXPORTS
+	_Z24ImplementationGroupProxyRi @ 1 NONAME
+	_ZTI19CNSmlDummyDataStore @ 2 NONAME ; #<TI>#
+	_ZTI21CNSmlDummyModsFetcher @ 3 NONAME ; #<TI>#
+	_ZTI22CNSmlDummyDataProvider @ 4 NONAME ; #<TI>#
+	_ZTV19CNSmlDummyDataStore @ 5 NONAME ; #<VT>#
+	_ZTV21CNSmlDummyModsFetcher @ 6 NONAME ; #<VT>#
+	_ZTV22CNSmlDummyDataProvider @ 7 NONAME ; #<VT>#
+

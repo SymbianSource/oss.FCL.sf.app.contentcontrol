@@ -20,9 +20,14 @@
 #define __LOGGER_H__
 
 #ifdef _DEBUG
-    
-    // Define this to enable file logging
-    #define __FLOGGING__
+    #ifdef __WINS__
+        // File logging for WINS
+        #define __FLOGGING__
+    #else
+        // Logging with RDebug for target HW
+        #define __CLOGGING__
+        //#define __FLOGGING__ // enable to log file on target HW
+    #endif //__WINS__
     
     #include <f32file.h>
     #include <flogger.h>

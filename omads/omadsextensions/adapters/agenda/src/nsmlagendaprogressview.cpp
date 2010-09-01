@@ -18,8 +18,9 @@
 
 
 // INCLUDES
-#include "nsmldebug.h"
+#include "nsmlagendadebug.h"
 #include "nsmlagendadatastore.h"
+#include <nsmldebug.h>
 
 // ===================================== MEMBER FUNCTIONS ======================
 // -----------------------------------------------------------------------------
@@ -28,10 +29,10 @@
 // -----------------------------------------------------------------------------
 CNSmlAgendaProgressview* CNSmlAgendaProgressview::NewL()
 	{
-	_DBG_FILE("CNSmlAgendaProgressview::NewL(): BEGIN");
+	FLOG(_L("CNSmlAgendaProgressview::NewL(): BEGIN"));
 	CNSmlAgendaProgressview* self = new (ELeave) CNSmlAgendaProgressview();
 	self->ConstructL();
-	_DBG_FILE("CNSmlAgendaProgressview::NewL(): END");
+	FLOG(_L("CNSmlAgendaProgressview::NewL(): END"));
 	return self;
 	}
 	
@@ -41,9 +42,9 @@ CNSmlAgendaProgressview* CNSmlAgendaProgressview::NewL()
 // -----------------------------------------------------------------------------
 CNSmlAgendaProgressview::~CNSmlAgendaProgressview()
 	{
-	_DBG_FILE("CNSmlAgendaProgressview::~CNSmlAgendaProgressview(): BEGIN");
+	FLOG(_L("CNSmlAgendaProgressview::~CNSmlAgendaProgressview(): BEGIN"));
 	// Nothing to do
-	_DBG_FILE("CNSmlAgendaProgressview::~CNSmlAgendaProgressview(): END");
+	FLOG(_L("CNSmlAgendaProgressview::~CNSmlAgendaProgressview(): END"));
 	}
 
 // -----------------------------------------------------------------------------
@@ -53,8 +54,8 @@ CNSmlAgendaProgressview::~CNSmlAgendaProgressview()
 // -----------------------------------------------------------------------------
 void CNSmlAgendaProgressview::Progress( TInt /*aPercentageCompleted*/ )
 	{
-	_DBG_FILE("CNSmlAgendaProgressview::Progress(): BEGIN");
-	_DBG_FILE("CNSmlAgendaProgressview::Progress(): END");
+	FLOG(_L("CNSmlAgendaProgressview::Progress(): BEGIN"));
+	FLOG(_L("CNSmlAgendaProgressview::Progress(): END"));
 	}
 	
 // -----------------------------------------------------------------------------
@@ -63,12 +64,12 @@ void CNSmlAgendaProgressview::Progress( TInt /*aPercentageCompleted*/ )
 // -----------------------------------------------------------------------------
 void CNSmlAgendaProgressview::Completed( TInt aError )
 	{
-	_DBG_FILE("CNSmlAgendaProgressview::Completed(): BEGIN");
+	FLOG(_L("CNSmlAgendaProgressview::Completed(): BEGIN"));
 
     iCompletedStatus = aError;
 	CActiveScheduler::Stop();
 
-    _DBG_FILE("CNSmlAgendaProgressview::Completed(): END");
+    FLOG(_L("CNSmlAgendaProgressview::Completed(): END"));
 	}
 
 // -----------------------------------------------------------------------------
@@ -86,8 +87,8 @@ TInt CNSmlAgendaProgressview::GetCompletedStatus()
 // -----------------------------------------------------------------------------
 TBool CNSmlAgendaProgressview::NotifyProgress()
 	{
-	_DBG_FILE("CNSmlAgendaProgressview::NotifyProgress(): BEGIN");
-	_DBG_FILE("CNSmlAgendaProgressview::NotifyProgress(): END");
+	FLOG(_L("CNSmlAgendaProgressview::NotifyProgress(): BEGIN"));
+	FLOG(_L("CNSmlAgendaProgressview::NotifyProgress(): END"));
 	return EFalse;
 	}
 
@@ -98,9 +99,9 @@ TBool CNSmlAgendaProgressview::NotifyProgress()
 CNSmlAgendaProgressview::CNSmlAgendaProgressview() :
 	iCompletedStatus( KErrNotReady )
 	{
-	_DBG_FILE("CNSmlAgendaProgressview::CNSmlAgendaProgressview(): BEGIN");
+	FLOG(_L("CNSmlAgendaProgressview::CNSmlAgendaProgressview(): BEGIN"));
 	// Nothing to do
-	_DBG_FILE("CNSmlAgendaProgressview::CNSmlAgendaProgressview(): END");
+	FLOG(_L("CNSmlAgendaProgressview::CNSmlAgendaProgressview(): END"));
 	}
 	
 // -----------------------------------------------------------------------------
@@ -109,9 +110,9 @@ CNSmlAgendaProgressview::CNSmlAgendaProgressview() :
 // -----------------------------------------------------------------------------
 void CNSmlAgendaProgressview::ConstructL()
     {
-    _DBG_FILE("CNSmlAgendaProgressview::ConstructL(): BEGIN");
+    FLOG(_L("CNSmlAgendaProgressview::ConstructL(): BEGIN"));
     // Nothing to do
-    _DBG_FILE("CNSmlAgendaProgressview::ConstructL(): END");
+    FLOG(_L("CNSmlAgendaProgressview::ConstructL(): END"));
     }
 
 //  End of File  

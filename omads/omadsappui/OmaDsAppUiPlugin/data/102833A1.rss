@@ -1,0 +1,43 @@
+/*
+* Copyright (c) 1028 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  This rss file which contains the 
+				 interface implementation information.
+*
+*/
+
+
+#include <ecom/registryinfo.rh>
+
+RESOURCE REGISTRY_INFO theInfo
+{
+dll_uid = 0x102833A1;   //DSGS Plugin dll UID3 (security UID)  
+interfaces = 
+    {
+    INTERFACE_INFO
+        {
+        interface_uid               = 0x10207236;  // CGSPluginInterface UID   
+        implementations = 
+            {
+            IMPLEMENTATION_INFO
+                {
+                implementation_uid  = 0x102833A2; // DSGS Plugin implementation UID for CGSPluginInterface
+                version_no          = 1;
+                display_name        = "Data syncronization plugin";
+                default_data        = "0x10283319"; // Parent UID (DSGS is under "Connection UI")
+                opaque_data         = "10";         // Order number 
+                }
+            };
+        }
+    };
+}

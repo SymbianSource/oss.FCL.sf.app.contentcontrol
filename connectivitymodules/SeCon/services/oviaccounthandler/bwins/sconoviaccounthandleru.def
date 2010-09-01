@@ -1,3 +1,0 @@
-EXPORTS
-	?CreateCSconOviAccountHandlerL@@YAPAVCSconOviAccountHandler@@XZ @ 1 NONAME ; class CSconOviAccountHandler * CreateCSconOviAccountHandlerL(void)
-

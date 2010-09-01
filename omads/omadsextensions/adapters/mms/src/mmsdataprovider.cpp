@@ -284,7 +284,7 @@ CSmlDataStoreFormat* CMmsDataProvider::DoOwnStoreFormatL()
     TRAPD( error, resourceFile.OpenL( iRFs, fileName ) );
     if ( error )
         {
-        LOGGER_WRITE_1( "RResourceFile::OpenL leaved with %d - try again", error );
+        LOGGER_MSG_EC( "RResourceFile::OpenL leaved with %d - try again", error );
         parse->Set( KMmsStoreFormatRsc, &KDC_RESOURCE_FILES_DIR, NULL );
         fileName = parse->FullName();
         BaflUtils::NearestLanguageFile( iRFs, fileName );

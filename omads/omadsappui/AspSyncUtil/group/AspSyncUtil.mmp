@@ -1,0 +1,142 @@
+/*
+* Copyright (c) 2002 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  Project specification file.
+*
+*/
+
+
+#include <data_caging_paths.hrh>
+#include <platform_paths.hrh>
+#include <bldvariant.hrh>
+
+TARGET        AspSyncUtil.dll
+TARGETTYPE    dll
+
+// 0x101F8720 AspSyncUtil.dll
+UID	0x10009D8D 0x101F8720
+
+VENDORID VID_DEFAULT
+
+CAPABILITY CAP_GENERAL_DLL
+
+
+USERINCLUDE	../inc
+
+APP_LAYER_SYSTEMINCLUDE
+SYSTEMINCLUDE	/epoc32/include/ecom
+
+
+SOURCEPATH	../src
+SOURCE		AspSyncUtilApi.cpp
+SOURCE		AspSyncHandler.cpp
+SOURCE		AspUtil.cpp
+SOURCE		AspState.cpp
+SOURCE		AspResHandler.cpp
+SOURCE		AspDbNotifier.cpp
+SOURCE		AspSyncUtil.cpp
+SOURCE		AspProfile.cpp
+SOURCE		AspProgressDialog.cpp
+SOURCE		AspContentDialog.cpp
+SOURCE		AspSettingDialog.cpp
+SOURCE		AspProfileDialog.cpp
+SOURCE		AspDialogUtil.cpp
+SOURCE		AspProfileWizard.cpp
+SOURCE		AspProfileWizardDialog.cpp
+SOURCE		AspLogDialog.cpp
+SOURCE		AspScheduleDialog.cpp
+SOURCE		AspSchedule.cpp
+SOURCE          AspSettingViewDialog.cpp
+SOURCE          AspAutoSyncHandler.cpp
+SOURCE		AspAdvanceSettingsDialog.cpp AspPreSyncPluginInterface.cpp
+
+
+//SOURCE		AspProfileSelectionDialog.cpp
+//SOURCE		AspFilterDialog.cpp
+//SOURCE		AspFilter.cpp
+
+// other resources must be placed in z:/system/data
+START RESOURCE ../src/AspSyncUtil.rss
+TARGETPATH      RESOURCE_FILES_DIR
+HEADER
+LANGUAGE_IDS
+END
+
+
+LIBRARY	euser.lib
+LIBRARY cone.lib 
+
+LIBRARY eikcore.lib 
+LIBRARY avkon.lib
+LIBRARY eikctl.lib
+LIBRARY ecom.lib
+LIBRARY eikdlg.lib
+LIBRARY bafl.lib
+LIBRARY commonengine.lib
+LIBRARY eikcoctl.lib
+LIBRARY estor.lib
+LIBRARY edbms.lib
+LIBRARY AknSkins.lib
+LIBRARY aknicon.lib
+LIBRARY fbscli.lib
+LIBRARY egul.lib
+LIBRARY etext.lib
+LIBRARY gdi.lib
+LIBRARY cdlengine.lib
+LIBRARY AknLayout2Scalable.lib
+
+
+LIBRARY	FeatMgr.lib
+LIBRARY commdb.lib
+LIBRARY apengine.lib
+LIBRARY	efsrv.lib
+LIBRARY commondialogs.lib
+LIBRARY	hlplch.lib
+LIBRARY	apsettingshandlerui.lib
+LIBRARY ConnectionUiUtilities.lib
+LIBRARY Muiu.lib
+LIBRARY ws32.lib
+
+LIBRARY	schsvr.lib
+LIBRARY	centralrepository.lib
+LIBRARY	connmon.lib
+
+LIBRARY	cmmanager.lib
+//LIBRARY SmlClient.lib
+LIBRARY SyncMLClientAPI.lib
+//LIBRARY syncmldatafilter.lib
+LIBRARY nsmltransporthandler.lib
+
+//#ifdef __SAP_POLICY_MANAGEMENT
+LIBRARY	policyengine.lib calinterimapi.lib 
+//#endif
+LIBRARY     	calencommonutils.lib
+LIBRARY			CalenInterimUtils2.lib
+
+//LIBRARY nsmlxml.lib
+//LIBRARY nsmlwbxml.lib
+//LIBRARY nsmltransport.lib
+//LIBRARY nsmlhistorylog.lib
+//LIBRARY nsmldshostserver.lib
+//LIBRARY nsmldshostclient.lib
+//LIBRARY NSmlDSSettings.lib
+//LIBRARY nsmlagentcommon.lib
+
+//LIBRARY nsmldebug.lib
+DEBUGLIBRARY flogger.lib
+
+//EXPORTUNFROZEN
+
+
+
+

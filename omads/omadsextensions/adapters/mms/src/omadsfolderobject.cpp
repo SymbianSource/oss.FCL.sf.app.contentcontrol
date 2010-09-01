@@ -256,16 +256,16 @@ TInt COMADSFolderObject::Characters( const TDesC8& aBuf, TInt aStart, TInt aLeng
         
         if ( error > 0 )
             {
-            LOGGER_WRITE_1("Too long name, number of uncorverted bytes: %d", error);
+            LOGGER_MSG_EC("Too long name, number of uncorverted bytes: %d", error);
             }
         else if ( error != KErrNone )
             {
-            LOGGER_WRITE_1("ConvertToUnicodeFromUtf8 failed with %d", error);
+            LOGGER_MSG_EC("ConvertToUnicodeFromUtf8 failed with %d", error);
             iError = error;
             }
         else if ( length > iName.MaxLength() )
             {
-            LOGGER_WRITE_1("Too long name total: %d", length);
+            LOGGER_MSG_EC("Too long name total: %d", length);
             }
         else
             {

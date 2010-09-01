@@ -22,7 +22,7 @@
 // INCLUDES
 #include <msvids.h>
 #include <nsmlsnapshotitem.h>
-#include "smsdataproviderdefs.h"
+#include "SmsDataProviderDefs.h"
 
 typedef TBuf<KMaxFolderNameLength> TFolderName;
 

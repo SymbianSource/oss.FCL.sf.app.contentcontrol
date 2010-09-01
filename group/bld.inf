@@ -25,13 +25,8 @@
 //omads
 #include "../omads/group/bld.inf"
 
-
+//contentctrl_plat
+#include "../contentctrl_plat/group/bld.inf"
 
 //ds dcmo adapter
 #include "../dsdcmoadapter/group/bld.inf"
-
-//connectivity module
-#include "../connectivitymodules/group/bld.inf"
-
-//contentctrl_plat
-#include "../contentctrl_plat/group/bld.inf"

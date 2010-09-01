@@ -46,7 +46,8 @@
 //
 CMmsAdapterMsvApi::~CMmsAdapterMsvApi()
     {
-    TRACE_FUNC;
+    LOGGER_ENTERFN( "CMmsAdapterMsvApi::~CMmsAdapterMsvApi" );
+    LOGGER_LEAVEFN( "CMmsAdapterMsvApi::~CMmsAdapterMsvApi" );
     }
        
 // -----------------------------------------------------------------------------
@@ -64,6 +65,8 @@ CMmsAdapterMsvApi::CMmsAdapterMsvApi( CMsvSession& aMsvSession ):
 //
 void CMmsAdapterMsvApi::ConstructL()
     {
+    LOGGER_ENTERFN( "CMmsAdapterMsvApi::ConstructL" );
+    LOGGER_LEAVEFN( "CMmsAdapterMsvApi::ConstructL" );
     }
 
 
@@ -73,7 +76,7 @@ void CMmsAdapterMsvApi::ConstructL()
 //
  TInt CMmsAdapterMsvApi::DeleteUserFolderL( TMsvId aUid )
     {
-    TRACE_FUNC_ENTRY;
+    LOGGER_ENTERFN( "MsvApi::DeleteUserFolderL" );
     
     CMsvEntry* entry = iSession.GetEntryL(aUid);
     CleanupStack::PushL(entry);
@@ -108,7 +111,7 @@ void CMmsAdapterMsvApi::ConstructL()
     entry->DeleteL( aUid );
     
     CleanupStack::PopAndDestroy( entry );
-    TRACE_FUNC_EXIT;
+    LOGGER_LEAVEFN( "MsvApi::DeleteUserFolderL" );
     return KErrNone;
     }   
     
@@ -236,8 +239,8 @@ TBool CMmsAdapterMsvApi::FindUserFolderL( const TDesC& aName, TMsvId& aFolder )
 // -----------------------------------------------------------------------------        
 TInt CMmsAdapterMsvApi::AddUserFolderL( TMsvId& aFolder, const TDesC& aName )
     {
-    TRACE_FUNC_ENTRY;
-    LOGGER_WRITE_1( "aName: %S", &aName );
+    LOGGER_ENTERFN( "CMmsAdapterMsvApi::AddUserFolderL" );
+    LOG(aName);
         
     // Make sure that we are not going to add same folder twise
     TBool found( EFalse );
@@ -273,7 +276,7 @@ TInt CMmsAdapterMsvApi::AddUserFolderL( TMsvId& aFolder, const TDesC& aName )
     
     aFolder = folderEntry.Id();
     
-    TRACE_FUNC_EXIT;
+    LOGGER_LEAVEFN( "CMmsAdapterMsvApi::AddUserFolderL" );
     return KErrNone;
     }
     
@@ -283,8 +286,8 @@ TInt CMmsAdapterMsvApi::AddUserFolderL( TMsvId& aFolder, const TDesC& aName )
 // -----------------------------------------------------------------------------    
 TInt CMmsAdapterMsvApi::UpdateUserFolderL( TMsvId aFolder, const TDesC& aName )
     {
-    TRACE_FUNC_ENTRY;
-    LOGGER_WRITE_1( "aName: %S", &aName );
+    LOGGER_ENTERFN( "CMmsAdapterMsvApi::UpdateUserFolderL" );
+    LOG( aName );
     
     CMsvEntry* entry = iSession.GetEntryL( aFolder );
     CleanupStack::PushL( entry );
@@ -295,7 +298,7 @@ TInt CMmsAdapterMsvApi::UpdateUserFolderL( TMsvId aFolder, const TDesC& aName )
         {
         CleanupStack::PopAndDestroy( entry );
         LOGGER_WRITE( "No message folder" );
-        TRACE_FUNC_EXIT;
+        LOGGER_LEAVEFN( "CMmsAdapterMsvApi::UpdateUserFolderL" );
         return KErrNotSupported;
         }
        
@@ -306,7 +309,7 @@ TInt CMmsAdapterMsvApi::UpdateUserFolderL( TMsvId aFolder, const TDesC& aName )
     
     CleanupStack::PopAndDestroy( entry );
     
-    TRACE_FUNC_EXIT;
+    LOGGER_LEAVEFN( "CMmsAdapterMsvApi::UpdateUserFolderL" );
     return KErrNone;
     } 
     

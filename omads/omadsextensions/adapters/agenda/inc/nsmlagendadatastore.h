@@ -21,10 +21,6 @@
 
 
 //  INCLUDES
-#include "nsmlconstants.h"
-#include "nsmlchangefinder.h"
-#include "NSmlDataModBase.h"
-#include "nsmlagendadefines.hrh"
 #include <calentry.h>
 #include <calsession.h> 
 #include <caldataexchange.h> 
@@ -36,9 +32,13 @@
 #include <msvapi.h>
 #include <CalenImporter.h>
 #include <CalenExporter.h>
-#include <calinstanceview.h>
 #include <CalenInterimUtils2.h>
 #include <versittls.h>
+#include <nsmlagendaadapterhandler.h>
+#include "nsmlconstants.h"
+#include "nsmlchangefinder.h"
+#include "NSmlDataModBase.h"
+#include "nsmlagendadefines.hrh"
 
 // CONSTANTS
 const TInt KNSmlAgendaCompressLimit        = 20;
@@ -49,15 +49,36 @@ const TInt KNSmlAgendaOwnMaxObjectSize     = 1048576;
 const TInt KNSmlCompactAfterChanges        = 30;
 const TInt KNSmlDefaultStoreNameMaxSize    = 256;
 const TInt KNSmlItemDataExpandSize         = 1024;
+const TInt KDbPersonal                     = 100000;
+const TUid KRepositoryId                   = { 0x2000CF7E };   
+const TInt KNsmlDsOrphanEvent              = 0xB ;
+const TUint KNSmlAgendaAdapterUid    	   = 0x101F6DDD;
+const TUint KNSmlAgendaAdapterStreamUid    = 0x101F6DDD+0x10009d8d;
 _LIT( KNSmlDriveC, "C" );
-_LIT( KNSmlAgendaStoreNameForDefaultDB, "C:Calendar" );
-_LIT8( KNSmlMRUtilitiesEComPlugInUID,   "AgnEntryUi" );
+_LIT( KNSmlAgendaStoreNameForDefaultDB, "Calendar" );
+_LIT( KNSmlAgendaFileNameForDefaultDB, "c:calendar" );
 _LIT8( KNSmlVersitTokenRecurrenceID, 	"RECURRENCE-ID");
 _LIT8( KNSmlVersitTokenXRecurrenceID, 	"X-RECURRENCE-ID");
 _LIT8(KNSmlVersitTokenGeoID,"GEO");
 
+//RD_MULTICAL
+// MIME content type for folder item
+_LIT8( KNSmlContentTypeFolder, "application/vnd.omads-folder+xml" );
+// Email folder item type version
+_LIT8( KNSmlContentTypeFolderVersion, "1.2" );
+_LIT8( KNSmlDefaultOpaqueData, "Default" );
+
+const TInt KArrayGranularity    = 30;
+const TInt KBuffLength = 128;
 
 // DATA TYPES
+enum TNSmlDataMimeType
+    {
+    ENSmlNone = 0,
+    ENSmlCalendar,
+    ENSmlFolder
+    };
+//RD_MULTICAL
 enum TNSmlDataStoreStatus
 	{
 	ENSmlClosed = 0,
@@ -73,6 +94,8 @@ enum TNSmlDataEntryType
 	ENSmlICal,
 	ENSmlNotSet
 	};
+// FORWARD CLASS DECLARATIONS
+class CNSmlAgendaAdapterLog;
 
 // CLASS DECLARATIONS
 // ----------------------------------------------------------------------------
@@ -175,6 +198,20 @@ class CNSmlAgendaDataStore : public CSmlDataStore
         */
 	    const TDesC& DoGetDefaultFileNameL() const;
 	    
+	    /**
+	    * Providing DataStore access to CNSmlDataProvider Class
+	    */
+	    CSmlDataStoreFormat* StoreFormatL();
+	    
+	    /**
+        * Check existance of CalFile with the given ProfileID associativity
+        */
+	    TBool IsCalFileAvailableL( TInt aProfileId, CDesCArray* aCalFileArr );
+	    
+	    /**
+        * Create CalFile with the attributes provided
+        */
+	    HBufC* CreateCalFileL( HBufC* aProfileName, TInt aProfileId );	    
     private:
 
         /**
@@ -474,12 +511,21 @@ class CNSmlAgendaDataStore : public CSmlDataStore
 	    /**
 		* Completes an item operation started in DoCreateItemL().
 		*/
-	    void DoCommitCreateItemL();
+	    void DoCommitCreateCalItemL();
 	    
 	    /**
 		* Completes an item operation started in DoReplaceItemL().
 		*/
-	    void DoCommitReplaceItemL();
+	    void DoCommitReplaceCalItemL();
+	    /**
+       * Completes an Folder item operation started in DoCreateItemL().
+       */
+       void DoCommitCreateFolderItemL();
+       
+       /**
+       * Completes an Folder item operation started in DoReplaceItemL().
+       */
+       void DoCommitReplaceFolderItemL();
 	    
 	    /**
 		* Gets property from old item.
@@ -499,7 +545,51 @@ class CNSmlAgendaDataStore : public CSmlDataStore
 		*/
 	    void SetPropertiesToDataL( HBufC8*& aValue,
 	                               const TDesC8& aProperty );
+	    
+		/**
+        * Method to determine the MIME type, provided the UID
+        */
+		void DataMimeType( TSmlDbItemUid aUid );
+		
+		/**
+        * Get All the AdapterHandler instance
+        */
+	    void ListAllAgendaPluginAdaptersL();
+	    
+	    /**
+        * Get the AdapterHandler instance
+        */
+	    void AgendaAdapterHandlerL();
+	    
+	    /**
+        * Retrieve the CalendarFile and associated entries ID
+        */
+	    void SynchronizableCalEntryIdsL( RArray<TCalLocalUid>& aUidArray );	    
+
+        /**
+        * Method to retrieve the Id of the Calendar Entry
+        */
+        void GetCalendarEntryIdL( TCalLocalUid& aParentId, TCalLocalUid& aCalId ) const;
         
+        /**
+        * Open the Store if present else create one to work upon
+        */
+        void OpenStoreL();
+        
+        /**
+        * Filters out the non-active items from the given array
+        */
+        CNSmlDataItemUidSet* ActiveItemsL( CNSmlDataItemUidSet& aUids ) const;
+        
+        /**
+        * Populate iCommittedUidArr from the Stream
+        */
+        void ExternalizeCommittedUidL() const;
+        
+        /**
+        * Write the contents of iCommittedUidArr to the Stream
+        */
+        void InternalizeCommittedUidL() const;
 
     private: // Data
         // Key
@@ -534,8 +624,10 @@ class CNSmlAgendaDataStore : public CSmlDataStore
 	    TInt iServerMaxObjectSize;
         // Name of the opened database
 	    HBufC* iOpenedStoreName;
+	    // Name of the received storename
+	    HBufC* iReceivedStoreName;
         // Default name of the database
-	    HBufC* iDefaultStoreName;
+	    HBufC* iDefaultStoreFileName;
         // Opened database ID
 	    TInt64 iOpenedStoreId;
         // Item's ID that is to be added
@@ -556,26 +648,113 @@ class CNSmlAgendaDataStore : public CSmlDataStore
 	    CNSmlDataItemUidSet* iReplacedUids;
         // Uids of moved items
 	    CNSmlDataItemUidSet* iMovedUids;
-        // Session to calendar server
+        /*// Session to calendar server
 	    CCalSession* iVCalSession;
         // Internal progress notifier
-	    CNSmlAgendaProgressview* iAgendaProgressview;
+	    CNSmlAgendaProgressview* iAgendaProgressview;*/
 	    // Interim Utility
 	    CCalenInterimUtils2* iInterimUtils;
 	    
-        // Importer
+        /*// Importer
 	    CCalenImporter* iImporter;
 	    // Exporter
 	    CCalenExporter* iExporter;
 	    
-	    //Instance View
-	    CCalInstanceView*   iInstanceView;
-	    
 	    // Entry view
         CCalEntryView* iEntryView;
-        CVersitTlsData *iVersitTlsData; // for better performance
+        CVersitTlsData *iVersitTlsData; // for better performance*/
+        // Flag is Hierarchical Sync is supported
+		TBool iIsHierarchicalSyncSupported;
+		// Mime Type of Calendar Item
+		TNSmlDataMimeType iDataMimeType;
+		// Parent Id of the Calendar Item
+		TInt iParentItemId;
+		// Offset value
+		TUint iCalOffsetVal;
+		// Offset memory values of the Calendar DB
+		CArrayFixFlat<TUint>* iCalOffsetArr;
+		// List of committed UIDs
+		CNSmlDataItemUidSet* iCommittedUidArr;
+		// Agenda Adapter Handler Instance
+		RPointerArray<CNSmlAgendaAdapterHandler>  iAgendaPluginAdapters;  
+		// Agenda Adapter Handler Instance
+        CNSmlAgendaAdapterHandler* iAgendaAdapterHandler;
+        // SyncRelationship instance
+        CNSmlAgendaAdapterLog* iAgendaAdapterLog;
+        // Flag indicating a Orphan Event
+        TBool iOrphanEvent;
 	};
 
+// ----------------------------------------------------------------------------
+// CNSmlAgendaDataStoreUtil provides services to cope with maintaining calendar 
+// API's used for database access
+// @lib nsmlagendadataprovider.dll
+// ----------------------------------------------------------------------------
+NONSHARABLE_CLASS(CNSmlAgendaDataStoreUtil) : public CBase
+    {
+    public:
+        /**
+        * Two-phased constructor.
+        */
+        static CNSmlAgendaDataStoreUtil* NewL();
+        
+        /**
+        * Destructor.
+        */
+        virtual ~CNSmlAgendaDataStoreUtil();
+      
+    private:
+        /**
+        * C++ default constructor.
+        */
+        CNSmlAgendaDataStoreUtil();
+        
+    public: // New Functions
+        /**
+        * Initialize Calendar APIs for database access using the provided name and id
+        */
+        void InitializeCalAPIsL( HBufC* aFileName, TSmlDbItemUid aUid = NULL );
+       
+    
+    public: // Data
+        CCalSession* iCalSession;
+        CCalenExporter* iExporter;
+        CCalenImporter* iImporter;
+        CNSmlAgendaProgressview* iProgressView;
+        CCalEntryView* iEntryView;
+        CCalEntry* iEntry;
+        HBufC8* iFileName;
+        TSmlDbItemUid iUid;
+    };
+
+// ----------------------------------------------------------------------------
+// CNSmlAgendaAdapterLog provides services know active Sync 
+// API's used for database access
+// @lib nsmlagendadataprovider.dll
+// ----------------------------------------------------------------------------
+NONSHARABLE_CLASS(CNSmlAgendaAdapterLog) : public CBase
+    {
+    public:
+        /**
+        * Two-phased constructor.
+        */
+        static CNSmlAgendaAdapterLog* NewL( MSmlSyncRelationship& aSyncRelationship );
+        
+        /**
+        * Destructor.
+        */
+        virtual ~CNSmlAgendaAdapterLog();
+      
+    private:
+        /**
+        * C++ default constructor.
+        */
+        CNSmlAgendaAdapterLog( MSmlSyncRelationship& aSyncRelationship );
+    
+    public: // Data
+        MSmlSyncRelationship& iSyncRelationship;
+        
+    };
 #endif // __NSMLAGENDADATASTORE_H__
             
 // End of File

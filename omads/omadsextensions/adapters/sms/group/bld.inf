@@ -23,7 +23,8 @@ PRJ_PLATFORMS
 DEFAULT
 
 PRJ_EXPORTS
-./10206b5c.xml      Z:/private/101F99F6/capability/10206b5c.xml
+./10206B5C.XML      /epoc32/data/Z/private/101F99F6/capability/10206B5C.xml
+./10206B5C.XML      /epoc32/release/winscw/udeb/z/private/101F99F6/capability/10206B5C.xml
 ./smsdsa_stub.sis   /epoc32/data/z/system/install/smsdsa_stub.sis
 ../rom/smsdsa.iby   CORE_APP_LAYER_IBY_EXPORT_PATH(smsdsa.iby)
 

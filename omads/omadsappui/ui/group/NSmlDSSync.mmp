@@ -1,0 +1,75 @@
+/*
+* Copyright (c) 2002-2005 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description:  
+*
+*/
+
+
+#include <data_caging_paths.hrh>
+#include <platform_paths.hrh>
+
+TARGET      NSmlDSSync.exe
+TARGETTYPE  exe
+UID  0x100039CE 0x101F6DE4 
+
+EPOCSTACKSIZE 	0x5000
+
+VENDORID VID_DEFAULT
+
+CAPABILITY  CAP_APPLICATION
+
+SOURCEPATH ../src
+
+START RESOURCE ../src/NSmlDSSync.rss
+HEADER
+TARGETPATH APP_RESOURCE_DIR
+LANGUAGE_IDS
+END  // RESOURCE
+
+
+START RESOURCE ../src/NSmlDSSync_reg.rss
+DEPENDS nsmldssync.rsg
+// Do not change the UID below.
+TARGETPATH /private/10003a3f/apps
+END
+
+
+SOURCE  NSmlDSSyncApp.cpp 
+SOURCE  NSmlDSSyncAppUi.cpp
+SOURCE  NSmlDSSyncDocument.cpp
+SOURCE  NSmlDSSyncContainer.cpp
+//SOURCE  NSmlDSSyncAppServer.cpp
+
+USERINCLUDE . 
+USERINCLUDE ../inc
+
+// for AspSyncUtilApi.h
+USERINCLUDE     ../../../omadsappui/AspSyncUtil/inc
+
+// for nsmldssync.loc
+USERINCLUDE     ../../../omadsappui/AspSyncUtil/src
+
+APP_LAYER_SYSTEMINCLUDE
+
+LIBRARY euser.lib apparc.lib cone.lib eikcore.lib 
+LIBRARY eikcoctl.lib avkon.lib
+LIBRARY bafl.lib
+LIBRARY	aknskins.lib
+LIBRARY aspsyncutil.lib
+LIBRARY apgrfx.lib
+
+LIBRARY     estor.lib
+//LIBRARY     syncservice.lib
+
+DEBUGLIBRARY flogger.lib

@@ -1,0 +1,39 @@
+/*
+* Copyright (c) 2009 Nokia Corporation and/or its subsidiary(-ies). 
+* All rights reserved.
+* This component and the accompanying materials are made available
+* under the terms of "Eclipse Public License v1.0"
+* which accompanies this distribution, and is available
+* at the URL "http://www.eclipse.org/legal/epl-v10.html".
+*
+* Initial Contributors:
+* Nokia Corporation - initial contribution.
+*
+* Contributors:
+*
+* Description: AIW sync plugin constants declaration
+*
+*/
+
+#ifndef _ASP_SYNPROVIDER_UIDS_HRH
+#define _ASP_SYNPROVIDER_UIDS_HRH
+
+//
+// Series60 Bulletin Board/Module Uids for Series60 - Part III
+// 270501663/101F871F AiwSyncProvider.dll
+// 270501664/101F8720 AspSyncUtil.dll
+//
+// 0x101F8721 AiwImplemetationUid
+
+// dll uid
+#define KAspSyncProviderDllUid   0x101F871F
+
+// aiw service class uid
+#define KAspSyncProviderIfaceUid 0x101F8652    // KAiwClassMenu (aiw	common.hrh)
+
+// aiw service command uid
+#define KAspSyncProviderImplUid  0x101F8721
+
+
+
+#endif  // _ASP_SYNPROVIDER_UIDS_HRH

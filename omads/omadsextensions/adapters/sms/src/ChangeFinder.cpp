@@ -16,8 +16,8 @@
 */
 
 
-#include "changefinder.h"
-#include "logger.h"
+#include "ChangeFinder.h"
+#include "Logger.h"
 
 const TUint KSnapshotFormatVersion ( 0xf0000001 ); // format version
 
