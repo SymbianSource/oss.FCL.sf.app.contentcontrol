@@ -48,3 +48,6 @@ LIBRARY         bafl.lib
 LIBRARY         charconv.lib
 LIBRARY         smlstoreformat.lib
 DEBUGLIBRARY    flogger.lib
+
+
+SMPSAFE

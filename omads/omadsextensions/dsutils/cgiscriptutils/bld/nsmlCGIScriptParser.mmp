@@ -47,3 +47,6 @@ SOURCE          NSmlCGIScriptParseData.cpp
 
 LIBRARY         euser.lib InetProtUtil.lib
 
+
+
+SMPSAFE

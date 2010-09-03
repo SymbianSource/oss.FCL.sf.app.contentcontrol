@@ -61,3 +61,6 @@ LIBRARY         catalogspcconnectivityplugin.lib
 LIBRARY         apmime.lib 
 LIBRARY         bluetooth.lib
 LIBRARY         esock.lib 
+
+
+SMPSAFE

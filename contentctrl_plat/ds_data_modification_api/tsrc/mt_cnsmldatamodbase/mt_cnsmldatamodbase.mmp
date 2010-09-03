@@ -65,3 +65,6 @@ LIBRARY         euser.lib EUnit.lib efsrv.lib estor.lib
 LIBRARY         nsmldatamod.lib
 LIBRARY         smlstoreformat.lib
 LIBRARY         bafl.lib
+
+
+SMPSAFE

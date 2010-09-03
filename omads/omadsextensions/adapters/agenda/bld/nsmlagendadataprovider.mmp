@@ -68,3 +68,6 @@ LIBRARY		nsmldebug.lib smldataprovider.lib nsmldatamod.lib
 LIBRARY		nsmlchangefinder.lib wbxmllib.lib bafl.lib sysutil.lib
 LIBRARY		CalInterimAPI.lib msgs.lib CalenImp.lib CalenInterimUtils2.lib
 LIBRARY 	versit.lib
+
+
+SMPSAFE

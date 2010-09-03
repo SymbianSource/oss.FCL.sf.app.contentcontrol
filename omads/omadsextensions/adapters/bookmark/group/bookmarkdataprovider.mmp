@@ -74,3 +74,5 @@ LIBRARY         sysutil.lib
 LIBRARY         commonengine.lib        // For resource reader
 LIBRARY         FeedsServerClient.lib
 LIBRARY         hash.lib
+
+SMPSAFE

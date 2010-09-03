@@ -76,3 +76,6 @@ LIBRARY         metadatautility.lib
 LIBRARY         platformenv.lib
 LIBRARY         mdccommon.lib
 LIBRARY         mdeclient.lib
+
+
+SMPSAFE

@@ -698,24 +698,24 @@ void CNSmlNotepadDataStore::DoWriteItemL( const TDesC8& aData )
 	{
 	_NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::DoWriteItemL(): begin");
 	if ( iState == ENSmlItemCreating || iState == ENSmlItemUpdating )
-		{
-		TInt totalSize = aData.Size() + iItemData->Size();
-		if( SysUtil::DiskSpaceBelowCriticalLevelL( &iRfs, totalSize, iDrive ) )
-			{
-			User::RequestComplete(iCallerStatus, KErrDiskFull);
-			return;
-			}
+	{
 		if ( iItemData )
-			{
-			if ( iWriterPosition  == -1 )
-				{
+		{
+		    TInt totalSize = aData.Size() + iItemData->Size();
+		    if( SysUtil::DiskSpaceBelowCriticalLevelL( &iRfs, totalSize, iDrive ) )
+		  	  {
+			   User::RequestComplete(iCallerStatus, KErrDiskFull);
+			   return;
+			  }
+		    if ( iWriterPosition  == -1 )
+			  {
 				User::Leave( KErrEof );
-				}
-			iItemData->InsertL( iWriterPosition , aData );
-			iWriterPosition  = aData.Size();
-			return;
-			}
+			  }
+			 iItemData->InsertL( iWriterPosition , aData );
+			 iWriterPosition  = aData.Size();
+		   return;			
 		}
+	}
 	User::Leave( KErrNotReady );
 	_NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::DoWriteItemL(): end");
 	}

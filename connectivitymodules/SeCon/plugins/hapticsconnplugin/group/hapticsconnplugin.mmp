@@ -56,3 +56,6 @@ LIBRARY         bafl.lib
 LIBRARY         platformenv.lib
 LIBRARY         irobex.lib
 LIBRARY         hwrmhapticspacketizer.lib
+
+
+SMPSAFE

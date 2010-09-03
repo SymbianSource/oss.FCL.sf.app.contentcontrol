@@ -47,3 +47,6 @@ LIBRARY			vcard.lib
 LIBRARY			bafl.lib
 LIBRARY			smlstoreformat.lib
 LIBRARY			nsmldebug.lib
+
+
+SMPSAFE

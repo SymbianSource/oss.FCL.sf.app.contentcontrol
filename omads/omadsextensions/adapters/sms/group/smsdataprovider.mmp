@@ -72,3 +72,6 @@ LIBRARY         etext.lib
 LIBRARY         cntmodel.lib 
 LIBRARY         SenXml.lib 
 LIBRARY         charconv.lib 
+
+
+SMPSAFE

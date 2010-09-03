@@ -245,11 +245,6 @@ void CNSmlNotepadDatabase::GetNoteL(const TInt aKey, CNpdItem& aItem)
             //CleanupStack::Pop(aItem);
             CleanupStack::PopAndDestroy(entryTobeFetched);
             }
-        else
-            {
-            delete entryTobeFetched;
-            entryTobeFetched = NULL;
-            }
         }   
     
     _NOTEPAD_DBG_FILE("CNSmlNotepadDatabase::GetNoteL(): end");

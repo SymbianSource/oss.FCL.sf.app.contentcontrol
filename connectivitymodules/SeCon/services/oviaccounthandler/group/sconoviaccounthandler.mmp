@@ -45,3 +45,6 @@ DEBUGLIBRARY	flogger.lib
 LIBRARY         euser.lib
 LIBRARY         wsaccountmanager.lib
 LIBRARY         estor.lib // For RWriteStream
+
+
+SMPSAFE

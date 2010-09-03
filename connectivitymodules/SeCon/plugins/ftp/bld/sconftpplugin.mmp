@@ -55,3 +55,6 @@ LIBRARY         ecom.lib
 LIBRARY	        efsrv.lib 
 LIBRARY         bluetooth.lib
 LIBRARY         esock.lib 
+
+
+SMPSAFE

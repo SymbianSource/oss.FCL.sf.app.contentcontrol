@@ -1395,6 +1395,16 @@ void CNSmlAgendaDataStore::DoCommitCreateItemL()
 		           Multiple items are not supported: END");
         User::Leave( KErrNotSupported );
 	    }
+		
+	// Check the validity of the calentry	
+	CCalEntry* arrayentry = rdArray[0];
+	if ( !arrayentry ) 
+		{
+		CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL - \
+		           Invalid Calentry: END");
+		User::Leave( KErrGeneral );
+		}		
 	    
     TInt err( KErrNone );
 
@@ -1595,6 +1605,16 @@ void CNSmlAgendaDataStore::DoCommitReplaceItemL()
 		           Multiple items are not supported: END");
         User::Leave( KErrNotSupported );
 	    }
+		
+	// Check the validity of the calentry	
+	CCalEntry* arrayentry = rdArray[0];
+	if ( !arrayentry ) 
+		{
+		CleanupStack::PopAndDestroy( 2 ); // rdArray, readStream
+		_DBG_FILE("CNSmlAgendaDataStore::DoCommitCreateItemL - \
+		           Invalid Calentry: END");
+		User::Leave( KErrGeneral );
+		}
 	    
 	TInt err( KErrNone );
 

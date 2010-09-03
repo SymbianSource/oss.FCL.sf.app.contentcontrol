@@ -48,3 +48,6 @@ LIBRARY	        versit.lib
 LIBRARY	        vcard.lib
 LIBRARY         bafl.lib
 DEBUGLIBRARY    flogger.lib
+
+
+SMPSAFE

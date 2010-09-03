@@ -54,3 +54,6 @@ SYSTEMINCLUDE   /epoc32/include/libc
 LIBRARY         euser.lib
 LIBRARY         estor.lib
 DEBUGLIBRARY    flogger.lib
+
+
+SMPSAFE

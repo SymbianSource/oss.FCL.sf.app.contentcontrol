@@ -112,7 +112,7 @@ EXPORT_C TInt CNSmlDataModBase::SetUsedMimeType( const RStringF aMimeType, const
 EXPORT_C void CNSmlDataModBase::StripTxL( CBufBase& aItem )
 	{
 	_DBG_FILE("CNSmlDataModBase::StripTxL(): begin");
-	HBufC8* buf = HBufC8::NewLC(aItem.Size() * 2);
+	HBufC8* buf = HBufC8::NewLC(aItem.Size());
 	*buf = aItem.Ptr(0);
 	TPtr8 ptrBuf = buf->Des();
 
@@ -285,7 +285,7 @@ void CNSmlDataModBase::StripAllOnPartnerListL( CVersitParser* aEntity, TBool& aM
         for( TInt i = 0; i < allProps->Count(); ) // Variable i is not increased here because size of count might be changes during loop
             {
             const CParserProperty& ownProperty = *allProps->At( i );
-            CParserPropertyValue* ownValue = ownProperty.Value();
+           
 
             TBool removeMe( EFalse );
             
@@ -458,8 +458,7 @@ void CNSmlDataModBase::StripAllNotOnPartnerListL( CVersitParser* aEntity, TBool&
         for( TInt i = 0; i < allProps->Count(); ) // Variable i is not increased here because size of count might be changes during loop
             {
             const CParserProperty& ownProperty = *allProps->At( i );
-            CParserPropertyValue* ownValue = ownProperty.Value();
-
+             
             TBool removeMe( ETrue );
             
             for( TInt i2 = 0; i2 < iRemoteStoreFormat->MimeFormat( iUsedRemoteMimeType ).PropertyCount(); i2++ )

@@ -69,3 +69,6 @@ LIBRARY         hash.lib
 LIBRARY         cntmodel.lib
 LIBRARY         vcard.lib
 LIBRARY         versit.lib
+
+
+SMPSAFE

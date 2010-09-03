@@ -68,3 +68,6 @@ LIBRARY		nsmldshostclient.lib
 LIBRARY		calinterimapi.lib caleninterimutils2.lib
 LIBRARY		nsmldebug.lib
 
+
+
+SMPSAFE

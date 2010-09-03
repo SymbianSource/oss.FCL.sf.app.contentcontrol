@@ -75,3 +75,6 @@ LIBRARY         javaregistryclient.lib
 LIBRARY         sysversioninfo.lib
 LIBRARY         etel3rdparty.lib
 LIBRARY         platformver.lib
+
+
+SMPSAFE

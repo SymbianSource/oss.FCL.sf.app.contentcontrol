@@ -70,3 +70,6 @@ LIBRARY		nsmldatamod.lib smlstoreformat.lib smldataprovider.lib
 LIBRARY		nsmldshostclient.lib
 LIBRARY		nsmlcontactsdatastoreextension.lib
 
+
+
+SMPSAFE

@@ -37,3 +37,6 @@ APP_LAYER_SYSTEMINCLUDE
 
 LIBRARY                 euser.lib
 LIBRARY                 apmime.lib
+
+
+SMPSAFE
