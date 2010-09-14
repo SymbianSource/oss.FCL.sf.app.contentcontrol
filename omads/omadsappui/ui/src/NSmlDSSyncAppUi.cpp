@@ -22,7 +22,7 @@
 #include "NSmlDSSyncContainer.h" 
 #include "NSmlDSSyncDocument.h"
 
-#include <NSmlDSSync.rsg>
+#include <nsmldssync.rsg>
 #include "NSmlDSSync.hrh"
 #include "AspDebug.h"
 

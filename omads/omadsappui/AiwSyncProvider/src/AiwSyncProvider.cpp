@@ -25,7 +25,7 @@
 
 #include <data_caging_path_literals.hrh>  // for resource and bitmap directories
 
-#include <AiwSyncProvider.rsg>
+#include <aiwsyncprovider.rsg>
 #include "AiwSyncProvider.h"
 #include "AiwSyncProviderUids.hrh"
 #include "AiwSyncProvider.rh"

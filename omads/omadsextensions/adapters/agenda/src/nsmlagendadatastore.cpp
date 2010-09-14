@@ -34,7 +34,7 @@
 #include <SmlDataFormat.h>
 #include <SmlDataSyncDefs.h>
 #include <data_caging_path_literals.hrh>
-#include <NSmlAgendaDataStore_1_1_2.rsg>
+#include <nsmlagendadatastore_1_1_2.rsg>
 #include <e32property.h>
 #include <DataSyncInternalPSKeys.h>
 #include <CalenImporter.h>
@@ -656,7 +656,15 @@ void CNSmlAgendaDataStore::DoOpenItemL( TSmlDbItemUid aUid,
             iItemData->Compress();
             iPos = 0;
      
-            iDataMod->StripTxL( *iItemData );
+            TRAPD(error,iDataMod->StripTxL( *iItemData ));
+            if (error)
+                {
+                delete agendautil;
+                delete calfilename;
+                CleanupStack::PopAndDestroy( ); // writeStream
+                User::RequestComplete( iCallerStatus, error);
+                return;
+                }
             delete agendautil;
             delete calfilename;
             }

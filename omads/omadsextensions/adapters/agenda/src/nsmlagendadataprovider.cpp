@@ -21,7 +21,7 @@
 #include <ecom.h>
 #include <barsc.h>
 #include <bautils.h>
-#include <NSmlAgendaDataStore_1_1_2.rsg>
+#include <nsmlagendadatastore_1_1_2.rsg>
 #include <SmlDataFormat.h>
 #include <implementationproxy.h>
 #include <data_caging_path_literals.hrh>
