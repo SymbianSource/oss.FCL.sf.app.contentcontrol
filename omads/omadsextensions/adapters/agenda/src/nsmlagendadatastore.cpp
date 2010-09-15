@@ -217,6 +217,8 @@ CNSmlAgendaDataStore::~CNSmlAgendaDataStore()
        iCommittedUidArr->Reset();
        delete iCommittedUidArr;
        }
+    
+     delete iAgendaAdapterLog;
 	FLOG(_L("CNSmlAgendaDataStore::~CNSmlAgendaDataStore(): END"));
 	}
 
@@ -272,6 +274,11 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
 	
 	iChangeFinder = CNSmlChangeFinder::NewL( aContext, iKey, iHasHistory,
 	                                         KNSmlAgendaAdapterImplUid );
+	if (iAgendaAdapterLog)
+	    {
+	    delete iAgendaAdapterLog;
+	    iAgendaAdapterLog = NULL;
+	    }
 	iAgendaAdapterLog = CNSmlAgendaAdapterLog::NewL( aContext );
 	iState = ENSmlOpenAndWaiting;
     User::RequestComplete( iCallerStatus, err );

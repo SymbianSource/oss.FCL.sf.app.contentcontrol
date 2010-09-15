@@ -112,7 +112,7 @@ EXPORT_C TInt CNSmlDataModBase::SetUsedMimeType( const RStringF aMimeType, const
 EXPORT_C void CNSmlDataModBase::StripTxL( CBufBase& aItem )
 	{
 	_DBG_FILE("CNSmlDataModBase::StripTxL(): begin");
-	HBufC8* buf = HBufC8::NewLC(aItem.Size() * 2);
+	HBufC8* buf = HBufC8::NewLC(aItem.Size());
 	*buf = aItem.Ptr(0);
 	TPtr8 ptrBuf = buf->Des();
 
@@ -133,7 +133,29 @@ EXPORT_C void CNSmlDataModBase::MergeRxL( CBufBase& aNewItem, CBufBase& aOldItem
 	_DBG_FILE("CNSmlDataModBase::MergeRxL(): begin");
 	if( NeedsMerge() )
 		{
-		HBufC8* b1 = HBufC8::NewLC(aNewItem.Size() + aOldItem.Size());
+	
+        TInt totalSize = aNewItem.Size();
+        
+        /*
+         
+        Extra size is allocated to buffer as versit parser will increase the stream size by spliting 
+		
+		the whole data into multiple lines each containing 64 byte data and it will append 6 more bytes
+		
+		(4 spaces,one line return and one carriage return)to each line which will result a total 
+		
+		increase around 9.375% (6/64) stream size. so here the size is increased by 12.5% to accomodate 
+		
+		these extra bytes. 
+    
+        */
+        
+        totalSize += (totalSize>>3); //increases size of new item by 12.5% 
+
+        totalSize += aOldItem.Size();
+
+        HBufC8* b1 = HBufC8::NewLC(totalSize);
+		
 		*b1 = aNewItem.Ptr(0);
 		TPtr8 ptrB1 = b1->Des();
 		TPtr8 p2 = aOldItem.Ptr(0);
