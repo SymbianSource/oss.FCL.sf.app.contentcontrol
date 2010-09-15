@@ -74,4 +74,3 @@ LIBRARY         centralrepository.lib
 DEBUGLIBRARY    flogger.lib             // For debug logging
 
 
-SMPSAFE

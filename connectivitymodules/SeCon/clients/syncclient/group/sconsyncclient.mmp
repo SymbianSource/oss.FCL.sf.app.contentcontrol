@@ -50,4 +50,3 @@ LIBRARY         smlstoreformat.lib
 DEBUGLIBRARY    flogger.lib
 
 
-SMPSAFE

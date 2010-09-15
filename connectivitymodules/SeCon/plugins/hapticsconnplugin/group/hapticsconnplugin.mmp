@@ -58,4 +58,3 @@ LIBRARY         irobex.lib
 LIBRARY         hwrmhapticspacketizer.lib
 
 
-SMPSAFE

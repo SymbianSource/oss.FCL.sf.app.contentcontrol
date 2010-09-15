@@ -57,4 +57,3 @@ LIBRARY         bluetooth.lib
 LIBRARY         esock.lib 
 
 
-SMPSAFE

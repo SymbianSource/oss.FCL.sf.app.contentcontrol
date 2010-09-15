@@ -47,4 +47,3 @@ LIBRARY         wsaccountmanager.lib
 LIBRARY         estor.lib // For RWriteStream
 
 
-SMPSAFE

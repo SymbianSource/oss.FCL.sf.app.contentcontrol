@@ -77,4 +77,3 @@ LIBRARY         etel3rdparty.lib
 LIBRARY         platformver.lib
 
 
-SMPSAFE

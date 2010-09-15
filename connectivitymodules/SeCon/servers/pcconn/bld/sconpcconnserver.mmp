@@ -77,5 +77,3 @@ LIBRARY         btengsettings.lib
 DEBUGLIBRARY    flogger.lib
 
 
-
-SMPSAFE

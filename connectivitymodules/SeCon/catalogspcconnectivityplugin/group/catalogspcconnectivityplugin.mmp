@@ -39,4 +39,3 @@ LIBRARY                 euser.lib
 LIBRARY                 apmime.lib
 
 
-SMPSAFE

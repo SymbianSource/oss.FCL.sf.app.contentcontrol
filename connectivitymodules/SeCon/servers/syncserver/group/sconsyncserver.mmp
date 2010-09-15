@@ -61,4 +61,3 @@ LIBRARY         smlstoreformat.lib
 LIBRARY         charconv.lib
 
 
-SMPSAFE

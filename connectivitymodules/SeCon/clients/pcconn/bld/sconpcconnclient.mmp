@@ -61,5 +61,3 @@ LIBRARY         estor.lib   // RMemWriteStream
 LIBRARY         efsrv.lib   // Rfs, RFile
 DEBUGLIBRARY    flogger.lib
 
-
-SMPSAFE

@@ -56,4 +56,3 @@ LIBRARY         estor.lib
 DEBUGLIBRARY    flogger.lib
 
 
-SMPSAFE
