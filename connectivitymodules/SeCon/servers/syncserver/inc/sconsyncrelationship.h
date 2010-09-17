@@ -22,7 +22,7 @@
 #include <e32base.h>
 #include <f32file.h> 
 #include <s32file.h>
-#include <syncml/smldatasyncdefs.h>
+#include <smldatasyncdefs.h>
 #include <syncmldef.h>
 
 class CDictionaryFileStore;

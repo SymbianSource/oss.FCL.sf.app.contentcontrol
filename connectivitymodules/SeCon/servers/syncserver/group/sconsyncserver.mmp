@@ -44,10 +44,13 @@ SOURCEPATH      ../../../clients/syncclient/src
 USERINCLUDE     ../../../clients/syncclient/inc
 SOURCE          scondataproviderinfo.cpp
 
-USERINCLUDE     ..\inc
+USERINCLUDE     ../inc
 
 // Default system include paths
 APP_LAYER_SYSTEMINCLUDE
+
+// For temporary use only
+SYSTEMINCLUDE   /epoc32/include/syncml
 
 DEBUGLIBRARY    flogger.lib
 LIBRARY         euser.lib

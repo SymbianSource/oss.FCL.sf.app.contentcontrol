@@ -20,7 +20,7 @@
 #define __SNAPSHOTITEM_H__
 
 // INCLUDES
-#include <syncml/SmlDataSyncDefs.h>
+#include <SmlDataSyncDefs.h>
 #include <hash.h>
 #include "mediadsproviderdefs.h"
 #include "songitem.h"

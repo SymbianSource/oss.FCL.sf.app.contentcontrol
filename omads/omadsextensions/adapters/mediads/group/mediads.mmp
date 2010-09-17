@@ -42,6 +42,8 @@ USERINCLUDE     ../inc
 
 APP_LAYER_SYSTEMINCLUDE
 
+// For temporary use only
+SYSTEMINCLUDE   /epoc32/include/syncml 
 
 START RESOURCE  mediadsprovider.rss
 HEADER
