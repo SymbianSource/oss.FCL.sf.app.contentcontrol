@@ -36,9 +36,9 @@ data=DATAZ_\RESOURCE_FILES_DIR\nsmlnotepaddatastoreformat.rsc		RESOURCE_FILES_DI
 #endif
 
 #ifdef __SYNCML_DS_CON //  SyncML data synchronization contacts plug-in
-ECOM_PLUGIN(nsmlcontactsdataprovider.dll,nsmlcontactsdataprovider.rsc)
-data=DATAZ_\RESOURCE_FILES_DIR\NSmlContactsDataStoreFormat_1_1_2.rsc	RESOURCE_FILES_DIR\NSmlContactsDataStoreFormat_1_1_2.rsc
-data=DATAZ_\RESOURCE_FILES_DIR\NSmlContactsDataStoreFormat_1_2.rsc		RESOURCE_FILES_DIR\NSmlContactsDataStoreFormat_1_2.rsc
+REM ECOM_PLUGIN(nsmlcontactsdataprovider.dll,nsmlcontactsdataprovider.rsc)
+REM data=DATAZ_\RESOURCE_FILES_DIR\NSmlContactsDataStoreFormat_1_1_2.rsc	RESOURCE_FILES_DIR\NSmlContactsDataStoreFormat_1_1_2.rsc
+REM data=DATAZ_\RESOURCE_FILES_DIR\NSmlContactsDataStoreFormat_1_2.rsc		RESOURCE_FILES_DIR\NSmlContactsDataStoreFormat_1_2.rsc
 #endif // __SYNCML_DS_CON
 
 REM \ds\datamod
