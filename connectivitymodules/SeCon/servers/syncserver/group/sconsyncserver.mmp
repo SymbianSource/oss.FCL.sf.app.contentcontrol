@@ -29,8 +29,9 @@ CAPABILITY      LocalServices ReadUserData WriteUserData ReadDeviceData WriteDev
 UID             0x0 0x2001A964
 VENDORID        VID_DEFAULT
 
-EPOCSTACKSIZE   0x2000
-EPOCHEAPSIZE	0x500 0x800000 	// minimum and maximum heap sizes
+// Use same stack and heap sizes than nsmldshostserver2.exe
+EPOCSTACKSIZE   0x14000
+EPOCHEAPSIZE	0x020000 0x800000 	// minimum and maximum heap sizes
 
 SOURCEPATH      ../src
 SOURCE          sconsyncserver.cpp

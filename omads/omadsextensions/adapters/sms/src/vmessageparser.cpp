@@ -326,7 +326,12 @@ TInt CVMessageParser::ReadEnvelope()
 			{
 			if (recipient.iNumber.Length() > 0)
 			    {
-			    iRecipients.Append( recipient );
+			    err = iRecipients.Append( recipient );
+			    if (err)
+			        {
+			        LOGGER_WRITE_1( "iRecipients.Append err: %d", err );
+			        return err;
+			        }
 			    }
 			    
 			err = FindMessageTagWithValue( KVMsgTagBegin, KVMsgSectionVEnv );

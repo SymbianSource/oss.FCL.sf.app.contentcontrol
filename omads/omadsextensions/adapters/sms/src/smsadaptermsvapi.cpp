@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2007 Nokia Corporation and/or its subsidiary(-ies). 
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies). 
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -36,7 +36,9 @@
 
 // CONSTANTS
 
-_LIT16(KSmsNonUnicodeChars, "èéùìòÇØøÅåÆæßÉ£$¥¡ÄÖÑÜ§¿äöñüà");
+// The following string is "èéùìòÇØøÅåÆæßÉ£$¥¡ÄÖÑÜ§¿äöñüà", expressed as standard \xNN escape codes
+_LIT16(KSmsNonUnicodeChars, "\xe8\xe9\xf9\xec\xf2\xc7\xd8\xf8\xc5\xe5\xc6\xe6\xdf\xc9\xa3$\xa5\xa1\xc4\xd6\xd1\xdc\xa7\xbf\xe4\xf6\xf1\xfc\xe0");
+
         
 // OTHER DEFINITIONS
 
@@ -337,7 +339,7 @@ void CSmsAdapterMsvApi::AddSML(
 			{
 			CVMessageParser::TTelephoneNumber recipientInfo;
 			aSm.ParseTelephoneNumber( recipients[i], recipientInfo );
-			aSm.iRecipients.Append( recipientInfo );
+			aSm.iRecipients.AppendL( recipientInfo );
 			}
 		}	
 
@@ -682,6 +684,7 @@ void CSmsAdapterMsvApi::DoUpdateSML( TMsvId aSmId, CVMessageParser &aSm, TBool a
 				{
 				newEntry.iDetails.Set( addrBookName );
 				header.SetFromAddressL( addrBookName );
+				
 				}
 			else
 				{		
@@ -693,6 +696,12 @@ void CSmsAdapterMsvApi::DoUpdateSML( TMsvId aSmId, CVMessageParser &aSm, TBool a
 		CSmsPDU& smsPdu = smsMsg.SmsPDU();
 		CSmsDeliver* smsDeliver = reinterpret_cast<CSmsDeliver*>( &smsPdu );	
 		smsDeliver->SetServiceCenterTimeStamp( newEntry.iDate );
+		if (aSm.iSender.iNumber.Length() > 0)
+		    {
+            TGsmSmsTelNumber telNum;
+            telNum.iTelNumber.Copy( aSm.iSender.iNumber );
+            smsDeliver->SetParsedToFromAddressL( telNum );
+		    }
 		}
 	else // message to be sent
 		{
@@ -1111,7 +1120,10 @@ void CSmsAdapterMsvApi::FetchNameFromContactsL(const TDesC& aNumber, TDes& aName
  
 	CContactItem* item = iContactsDb->ReadContactLC((*contactIds)[0]);
 	CContactItemFieldSet& fieldSet = item->CardFields();
-		
+	
+	TFileName database;
+	iContactsDb->GetCurrentDatabase(database);
+	
 	TPtrC familyName;
 	TPtrC givenName;
 	TInt pos;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2009 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -109,28 +109,10 @@ NONSHARABLE_CLASS ( CSConAppInstaller ): public CActive
 		 */
 		void ProcessUninstallL( const CSConUninstall& aUninstallParams );
 		
-		//void UninstallSisL( const CSConUninstall& aUninstallParams );
-		//void UninstallJavaL( const TUid& aUid, const TSConInstallMode aMode );
-		//void UninstallWidget( const TUid& aUid, const TSConInstallMode aMode );
-		void DeleteFile( const TDesC& aPath );
+		void StrCopyL( const TDesC& aSrc, TDes& aDest );
 		
 	private:
-	    enum TInstallerState
-	        {
-	        EIdle = 0,
-	        EInstalling,
-	        ESilentInstalling,
-	        EUninstalling,
-	        ESilentUninstalling,
-	        ECustomUninstalling,
-	        ESilentCustomUnistalling,
-	        EListingInstalledApps
-	        };
-	    //TInstallerState                 iInstallerState;
 		CSConInstallerQueue*			iQueue; // Not owned
-		//SwiUI::RSWInstLauncher			iSWInst;
-		//SwiUI::TInstallOptions          iOptions;
-        //SwiUI::TInstallOptionsPckg      iOptionsPckg;   
 		Usif::RSoftwareInstall          iSwInstaller;
 		Usif::COpaqueNamedParams*       iSifOptions;
 		Usif::COpaqueNamedParams*       iSifResults;

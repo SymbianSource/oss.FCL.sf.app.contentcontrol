@@ -40,7 +40,7 @@ PRJ_EXPORTS
 PRJ_TESTMMPFILES
 // NOTE: If using ARS requirements .mmp file operation should be done under this.
 // 'abld test build'
-//./TestCntDataStoreExtn.mmp
+TestCntDataStoreExtn.mmp
 
 PRJ_MMPFILES
 // Specify the .mmp files required for building the important component
@@ -56,6 +56,6 @@ PRJ_MMPFILES
 /agnmodel/group/agsvexe.mmp
 #endif
 */
-./TestCntDataStoreExtn.mmp
+
 
 //  End of File

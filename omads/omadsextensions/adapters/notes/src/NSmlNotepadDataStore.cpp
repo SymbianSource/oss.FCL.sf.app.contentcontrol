@@ -1130,20 +1130,24 @@ TInt CNSmlNotepadDataStore::OpenItemL(TSmlDbItemUid& aUid,CBufBase& aItem)
             {
             _NOTEPAD_DBG_FILE("CNSmlNotepadDataStore:: FetchItemL():  begin");
             
-            HBufC8* buf = ConvertNoteToSyncItemL(*note);
-            CleanupStack::PushL(buf);
-            aItem.Reset();
-            // Write the buffer to the passed writeStream (aItem)
-            TBufBuf bufBuf;
-            bufBuf.Set(aItem, 0, TBufBuf::EWrite);
-            RWriteStream writeStream( &bufBuf);
-            writeStream.PushL();
-            writeStream.WriteL(buf->Des().Ptr(), buf->Des().Length());
-            writeStream.CommitL();
-            CleanupStack::PopAndDestroy(1);//writeStream
-            CleanupStack::PopAndDestroy(buf);//buf
-            _NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::FetchItemL(): end");
-            }
+            HBufC8* buf = NULL;
+            TRAP(err, buf = ConvertNoteToSyncItemL(*note));
+            if(err == KErrNone)
+                {
+                CleanupStack::PushL(buf);
+                aItem.Reset();
+                // Write the buffer to the passed writeStream (aItem)
+                TBufBuf bufBuf;
+                bufBuf.Set(aItem, 0, TBufBuf::EWrite);
+                RWriteStream writeStream( &bufBuf);
+                writeStream.PushL();
+                writeStream.WriteL(buf->Des().Ptr(), buf->Des().Length());
+                writeStream.CommitL();
+                CleanupStack::PopAndDestroy(1);//writeStream
+                CleanupStack::PopAndDestroy(buf);//buf
+                _NOTEPAD_DBG_FILE("CNSmlNotepadDataStore::FetchItemL(): end");
+                }     
+              }
         CleanupStack::PopAndDestroy(note); // note
         }
     else
@@ -1198,8 +1202,7 @@ HBufC8* CNSmlNotepadDataStore::ConvertNoteToSyncItemL(CNpdItem& aNote)
     {
     if (!aNote.Content())
         {
-        HBufC8* tempHBuf = HBufC8::NewL(KNullCharLen);//room for null character
-        return tempHBuf;
+        User::Leave(KErrGeneral);
         }
     // Note: a single unicode character can be 4 bytes long in UTF8 format,
     // hence the long length for 8-bit buffer.

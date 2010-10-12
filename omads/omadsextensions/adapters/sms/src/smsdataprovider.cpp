@@ -36,9 +36,7 @@
 // C++ default constructor can NOT contain any code, that might leave
 // -----------------------------------------------------------------------------
 CSmsDataProvider::CSmsDataProvider() :
-    iOwnStoreFormat( NULL ),
-    iFilters( 1 ),
-    iMsvSession( NULL )
+    iFilters( 1 )
     {
     }
 
@@ -50,9 +48,9 @@ void CSmsDataProvider::ConstructL()
     {
     LOGGER_ENTERFN( "ConstructL" ); 
     
-  	User::LeaveIfError( iRFs.Connect() );
   	iStringPool.OpenL();
-
+  	User::LeaveIfError( iRFs.Connect() );
+    
     LOGGER_LEAVEFN( "ConstructL" )
     }
 
@@ -83,10 +81,11 @@ CSmsDataProvider::~CSmsDataProvider()
     {
     LOGGER_ENTERFN( "~CSmsDataProvider()" );
     
-    SAFEDELETE( iOwnStoreFormat );	
+    delete iOwnStoreFormat;	
 	
     iStringPool.Close();
     iFilters.Close();
+    iRFs.Close();
     
     LOGGER_LEAVEFN( "~CSmsDataProvider()" );
     }

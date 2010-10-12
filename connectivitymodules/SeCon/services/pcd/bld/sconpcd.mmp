@@ -30,14 +30,14 @@ TARGET          sconpcd.dll
 TARGETTYPE      DLL
 UID             0x10009D8D 0x101F968B
 
-#if defined(ARMCC)
-DEFFILE	./def/eabiu
-#elif defined(WINSCW) 
-DEFFILE	./def/bwinscw
+#if defined(EABI)
+DEFFILE ./def/eabiu
+#elif defined(WINSCW)
+DEFFILE ./def/bwinscw
 #elif defined(WINS)
-DEFFILE	./def/bwins
+DEFFILE ./def/bwins
 #elif defined(ARM)
-DEFFILE	./def/bmarm
+DEFFILE ./def/bmarm
 #endif
 
 SOURCEPATH      ../src
@@ -48,7 +48,6 @@ SOURCE          sconbrqueue.cpp
 SOURCE          sconinstaller.cpp
 SOURCE          sconbackuprestore.cpp
 SOURCE          sconsbeclient.cpp
-SOURCE          sconpcdutility.cpp
 SOURCE          sconmetadata.cpp
 SOURCE          sconvideoparser.cpp
 SOURCE          sconsynchandler.cpp
@@ -66,16 +65,11 @@ USERINCLUDE     ../../../clients/syncclient/inc
 APP_LAYER_SYSTEMINCLUDE
 
 
-LIBRARY         euser.lib 
-LIBRARY         swinstcli.lib
+LIBRARY         euser.lib
 LIBRARY         sbeclient.lib
-LIBRARY         sisregistryclient.lib
-LIBRARY         javaregistryclient.lib
 LIBRARY         platformenv.lib
 LIBRARY         efsrv.lib
 LIBRARY         sysutil.lib
-LIBRARY         commonengine.lib        // For resource reader
-// LIBRARY         widgetregistryclient.lib
 LIBRARY         metadatautility.lib
 LIBRARY         exiflib.lib
 LIBRARY         charconv.lib
@@ -86,13 +80,13 @@ LIBRARY         tneengine.lib           // for CTNEVideoClipInfo
 LIBRARY         imageconversion.lib         // for CImageEncoder
 LIBRARY         mmfcontrollerframework.lib  // for CMMFMetaDataEntry
 LIBRARY         bafl.lib                    // for BaflUtils
-
 LIBRARY         ecom.lib
 LIBRARY         estor.lib // CDictionaryFileStore
 LIBRARY         sconsyncclient.lib
 LIBRARY         smlstoreformat.lib
-LIBRARY	        centralrepository.lib
+LIBRARY         centralrepository.lib
 LIBRARY         sif.lib
+LIBRARY         scrclient.lib
 DEBUGLIBRARY    flogger.lib
 // End of file
 

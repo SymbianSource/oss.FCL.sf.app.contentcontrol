@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2005-2009 Nokia Corporation and/or its subsidiary(-ies).
+* Copyright (c) 2005-2010 Nokia Corporation and/or its subsidiary(-ies).
 * All rights reserved.
 * This component and the accompanying materials are made available
 * under the terms of "Eclipse Public License v1.0"
@@ -19,16 +19,15 @@
 // INCLUDE FILES
 #include <s32mem.h> // For RBufWriteStream
 #include <utf.h>  // for CnvUtfConverter
-//#include <pathinfo.h>
-#include <usif/sif/sifcommon.h>
+#include <usif/usifcommon.h>
+#include <usif/scr/scr.h>
+#include <driveinfo.h>
 
 using namespace Usif;
 
 #include "debug.h"
 #include "sconinstaller.h"
 #include "sconpcdconsts.h"
-#include "sconpcdutility.h"
-
 
 const TInt KSConSeConUidValue = 0x101f99f6;
 const TUid KSConSeConUid = {KSConSeConUidValue};
@@ -194,30 +193,8 @@ TBool CSConAppInstaller::InstallerActive() const
 void CSConAppInstaller::DoCancel()
     {
     TRACE_FUNC_ENTRY;
-    
     LOGGER_WRITE("Cancel iSwInstaller");
     iSwInstaller.CancelOperation();
-    /*
-    // find and complete current task
-    CSConTask* task = NULL;
-    TInt ret = iQueue->GetTask( iCurrentTask, task );
-
-    if ( iCurrentTask > 0 && ret != KErrNotFound )
-        {
-
-        switch( task->GetServiceId() )
-            {
-            case EInstall :
-                iQueue->CompleteTask( iCurrentTask, KErrCancel );
-                break;
-            case EUninstall :
-                iQueue->CompleteTask( iCurrentTask, KErrCancel );
-                break;
-            default :
-                break;
-            }
-        }
-        */
     TRACE_FUNC_EXIT;
     }
 
@@ -251,7 +228,7 @@ void CSConAppInstaller::RunL()
             {
             LOGGER_WRITE( "CSConAppInstaller::RunL() : before DeleteFile" );
             //delete sis after succesfull install
-            DeleteFile( task->iInstallParams->iPath );
+            iFs.Delete( task->iInstallParams->iPath );
             }
         }
     
@@ -275,7 +252,7 @@ void CSConAppInstaller::WriteTaskDataL( CSConTask& aTask )
     ExternalizeResultArrayIntValL( KSifOutParam_ComponentId , stream);
     ExternalizeResultIntValL( KSifOutParam_ErrCategory , stream);
     ExternalizeResultIntValL( KSifOutParam_ErrCode , stream);
-    ExternalizeResultIntValL( KSifOutParam_ExtendedErrCode , stream);
+    //ExternalizeResultIntValL( KSifOutParam_ExtendedErrCode , stream);
     ExternalizeResultStringValL( KSifOutParam_ErrMessage , stream);
     ExternalizeResultStringValL( KSifOutParam_ErrMessageDetails , stream);
     
@@ -414,17 +391,17 @@ void CSConAppInstaller::ProcessInstallL( const CSConInstall& aInstallParams )
         LOGGER_WRITE( "Begin silent installation.. " );
         
         iSifOptions->AddIntL( Usif::KSifInParam_InstallSilently, ETrue );
-        iSifOptions->AddIntL( Usif::KSifInParam_PerformOCSP, EFalse );   
+        iSifOptions->AddIntL( Usif::KSifInParam_PerformOCSP, Usif::ENotAllowed );   
         // Note if upgrade is allowed, see NeedsInstallingL function.
-        iSifOptions->AddIntL( Usif::KSifInParam_AllowUpgrade, ETrue );
-        iSifOptions->AddIntL( Usif::KSifInParam_AllowUntrusted, EFalse );
-        iSifOptions->AddIntL( Usif::KSifInParam_GrantCapabilities, EFalse ); 
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowUpgrade, Usif::EAllowed );
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowUntrusted, Usif::ENotAllowed );
+        iSifOptions->AddIntL( Usif::KSifInParam_GrantCapabilities, Usif::ENotAllowed ); 
         // Defined for the install.
-        iSifOptions->AddIntL( Usif::KSifInParam_InstallOptionalItems, ETrue );          
-        iSifOptions->AddIntL( Usif::KSifInParam_IgnoreOCSPWarnings, ETrue );            
-        iSifOptions->AddIntL( Usif::KSifInParam_AllowAppShutdown, ETrue );
-        iSifOptions->AddIntL( Usif::KSifInParam_AllowDownload, ETrue );
-        iSifOptions->AddIntL( Usif::KSifInParam_AllowOverwrite, ETrue );
+        iSifOptions->AddIntL( Usif::KSifInParam_InstallOptionalItems, Usif::EAllowed );          
+        iSifOptions->AddIntL( Usif::KSifInParam_IgnoreOCSPWarnings, Usif::EAllowed );            
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowAppShutdown, Usif::EAllowed );
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowDownload, Usif::EAllowed );
+        iSifOptions->AddIntL( Usif::KSifInParam_AllowOverwrite, Usif::EAllowed );
 
         iSwInstaller.Install( aInstallParams.iPath, *iSifOptions,
                 *iSifResults, iStatus, ETrue );
@@ -488,19 +465,78 @@ void CSConAppInstaller::ProcessListInstalledAppsL()
     CSConTask* task = NULL;
     User::LeaveIfError( iQueue->GetTask( iCurrentTask, task ) );
     
-    SConPcdUtility::ProcessListInstalledAppsL( task );
+    CSConListInstApps& listInstApps = *task->iListAppsParams;
+    Usif::RSoftwareComponentRegistry scr;
+    User::LeaveIfError( scr.Connect() );
+    CleanupClosePushL( scr );
+    
+    RArray<Usif::TComponentId> componentList;
+    CleanupClosePushL( componentList );
+    Usif::CComponentFilter* filter = Usif::CComponentFilter::NewLC();
+    
+    if ( listInstApps.iAllApps )
+        {
+        TDriveList driveList;
+        // Get all drives that are visible to the user.
+        TInt driveCount;
+        User::LeaveIfError( DriveInfo::GetUserVisibleDrives( iFs, driveList, driveCount ) );
+        filter->SetInstalledDrivesL( driveList );
+        }
+    else
+        {
+        filter->SetInstalledDrivesL( listInstApps.iDriveList );
+        }
+            
+    scr.GetComponentIdsL( componentList, filter);
+    
+    CleanupStack::PopAndDestroy( filter );
+    LOGGER_WRITE_1("components found: %d", componentList.Count());
+    for (int i=0; i<componentList.Count(); i++)
+        {
+        Usif::CComponentEntry* entry = Usif::CComponentEntry::NewLC();
+        TBool found = scr.GetComponentL(componentList[i], *entry );
+        if (!found)
+            User::Leave(KErrNotFound);
+        
+        CSConInstApp* app = new (ELeave) CSConInstApp();
+        CleanupStack::PushL( app );
+        
+        StrCopyL( entry->Name(), app->iName );
+        StrCopyL( entry->Vendor(), app->iVendor );
+        app->iSize = entry->ComponentSize();
+        StrCopyL( entry->Version(), app->iVersion );
+        app->iWidgetBundleId = entry->GlobalId().AllocL();
+        
+        app->iUid.iUid = componentList[i];
+        
+        if ( entry->SoftwareType().Match( Usif::KSoftwareTypeNative ) == 0 )
+            {
+            app->iType = ESisApplication;
+            }
+        else if ( entry->SoftwareType().Match( Usif::KSoftwareTypeJava ) == 0 )
+            {
+            app->iType = EJavaApplication;
+            }
+        else if ( entry->SoftwareType().Match( Usif::KSoftwareTypeWidget ) == 0 )
+            {
+            app->iType = EWidgetApplication;
+            }
+        
+        User::LeaveIfError( listInstApps.iApps.Append( app ) );
+        CleanupStack::Pop( app );
+            
+        CleanupStack::PopAndDestroy( entry );
+        }
+    CleanupStack::PopAndDestroy( &componentList );
+    CleanupStack::PopAndDestroy( &scr );
     
     TRACE_FUNC_EXIT;
     }
 
-// -----------------------------------------------------------------------------
-// CSConAppInstaller::DeleteFile( const TDesC& aPath )
-// Deletes a file 
-// -----------------------------------------------------------------------------
-//  
-void CSConAppInstaller::DeleteFile( const TDesC& aPath )    
+void CSConAppInstaller::StrCopyL( const TDesC& aSrc, TDes& aDest )
     {
-    TRACE_FUNC;
-    iFs.Delete( aPath );
+    if (aSrc.Size() > aDest.MaxSize())
+        User::Leave(KErrTooBig);
+    aDest.Copy( aSrc );
     }
 // End of file

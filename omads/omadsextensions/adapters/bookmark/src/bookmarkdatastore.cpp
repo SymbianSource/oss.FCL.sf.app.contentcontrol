@@ -444,7 +444,7 @@ void CBookmarkDataStore::RssItemReplacedL( TBool& aMoveNeeded )
                     iCurrentState = EBookmarkUpdatedAndMoving;
                     RPointerArray<const CFolderItem> movedItems;
                     CleanupClosePushL( movedItems );
-                    movedItems.Append( modItem );
+                    movedItems.AppendL( modItem );
                     // FolderItemRequestCompleted is called when ready
                     iRootFolder.MoveFolderItemsToL( movedItems, *newParent);
                     CleanupStack::PopAndDestroy( &movedItems );
@@ -1555,7 +1555,7 @@ void CBookmarkDataStore::DoMoveItemL( TSmlDbItemUid aUid,
             }
         RPointerArray<const CFolderItem> movedItems;
         CleanupClosePushL( movedItems );
-        movedItems.Append( rssItem );
+        movedItems.AppendL( rssItem );
         // FolderItemRequestCompleted is called when ready
         iRootFolder.MoveFolderItemsToL( movedItems, *parent);
         CleanupStack::PopAndDestroy( &movedItems );

@@ -144,6 +144,12 @@ void CSconSyncServer::RemoveSession()
 LOCAL_C void ExeMainL()
     {
     TRACE_FUNC_ENTRY;
+    
+    // Temporary Workaround for Kernel Issue (ou1cimx1#131074)
+    // Load libc here because otherwise plugins which link to Qt will result in libc constructors being called twice
+    RLibrary lib;
+    lib.Load(_L("libc"));
+    
     // Install active scheduler
     CActiveScheduler* scheduler = new(ELeave) CActiveScheduler;
     CleanupStack::PushL(scheduler);

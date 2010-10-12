@@ -286,7 +286,9 @@ void CNSmlNotepadDatabase::UpdateNoteL(const TInt aKey, CNpdItem& aItem)
     HBufC* content = HBufC::NewL(aItem.Content()->Length());
     content = aItem.Content();
 
+	CleanupStack::PushL(content);
     entryTobeUpdated->SetDescriptionL(*content);
+	CleanupStack::Pop(content);
 
     array.AppendL(entryTobeUpdated);
     CleanupStack::Pop(entryTobeUpdated);

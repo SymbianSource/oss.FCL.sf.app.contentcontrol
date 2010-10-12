@@ -30,7 +30,9 @@ CNSmlAgendaProgressview* CNSmlAgendaProgressview::NewL()
 	{
 	_DBG_FILE("CNSmlAgendaProgressview::NewL(): BEGIN");
 	CNSmlAgendaProgressview* self = new (ELeave) CNSmlAgendaProgressview();
+	CleanupStack::PushL(self);
 	self->ConstructL();
+	CleanupStack::Pop(self);
 	_DBG_FILE("CNSmlAgendaProgressview::NewL(): END");
 	return self;
 	}

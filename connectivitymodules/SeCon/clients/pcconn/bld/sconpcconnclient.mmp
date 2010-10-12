@@ -31,7 +31,7 @@ UID             0x10009D8D 0x101F99F7
 
 TARGETPATH      sys/bin
 
-#if defined(ARMCC)
+#if defined(EABI)
 DEFFILE	./def/eabiu
 #elif defined(WINSCW) 
 DEFFILE	./def/bwinscw

@@ -21,8 +21,7 @@
 #include <data_caging_paths.hrh>
 
 VENDORID        VID_DEFAULT
-
-CAPABILITY      CAP_SERVER TrustedUI
+CAPABILITY      ReadDeviceData WriteDeviceData SwEvent NetworkServices ReadUserData WriteUserData LocalServices TrustedUI
 
 TARGET          sconpcconnserver.exe
 TARGETTYPE      exe
@@ -62,7 +61,6 @@ LIBRARY         euser.lib
 LIBRARY         estor.lib       // RMemWriteStream, RMemReadStream
 LIBRARY         efsrv.lib       // Rfs, RFile
 LIBRARY         charconv.lib    // For Unicode conversion
-
 LIBRARY         etel3rdparty.lib
 LIBRARY         platformenv.lib         // For pathinfo
 LIBRARY         directorylocalizer.lib  // For localizing directories
