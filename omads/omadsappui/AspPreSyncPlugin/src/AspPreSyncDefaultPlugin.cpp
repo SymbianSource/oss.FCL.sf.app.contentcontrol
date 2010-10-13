@@ -31,9 +31,9 @@
 
 
 #include <AknQueryDialog.h>
-#include <aspsyncutil.rsg>
+#include <AspSyncUtil.rsg>
 #include <StringLoader.h> 
-#include <AspDefines.h> //For enum TRoamingSettings
+#include <aspdefines.h> //For enum TRoamingSettings
 #include <centralrepository.h> //For central Repository
 
 // ============================== MEMBER FUNCTIONS ============================

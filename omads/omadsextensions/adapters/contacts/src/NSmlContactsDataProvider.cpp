@@ -28,8 +28,8 @@
 #include <bautils.h>
 #include <SmlDataProvider.h>
 #include <implementationproxy.h>
-#include <nsmlcontactsdatastoreformat_1_1_2.rsg>
-#include <nsmlcontactsdatastoreformat_1_2.rsg>
+#include <NSmlContactsDataStoreFormat_1_1_2.rsg>
+#include <NSmlContactsDataStoreFormat_1_2.rsg>
 #include <data_caging_path_literals.hrh>
 #include <vtoken.h>
 #include <e32property.h>

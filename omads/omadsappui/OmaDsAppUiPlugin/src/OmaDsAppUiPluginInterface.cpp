@@ -33,7 +33,7 @@
 #include "OmaDsAppUiPluginInterface.h"
 #include "gsprivatepluginproviderids.h"
 #include <nsmldssync.mbg>
-#include "nsmldsgspluginresource.rsg"
+#include "NsmlDSGSPluginResource.rsg"
 
 
 _LIT(KNsmlDsIconFileName, "Z:\\resource\\apps\\nsmldssync.mif");

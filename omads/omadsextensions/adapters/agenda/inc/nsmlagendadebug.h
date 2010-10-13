@@ -29,6 +29,8 @@ _LIT(KLogFile,"Agenda.txt");
 _LIT(KLogDirFullName,"c:\\logs\\");
 _LIT(KLogDir,"MultiCalDB");
 
+#ifdef _DEBUG
+
 // Declare the FPrint function
 inline void FPrint(const TRefByValue<const TDesC> aFmt, ...)
     {
@@ -56,6 +58,8 @@ inline void FPrint(const TRefByValue<const TDesC> aFmt, ...)
 // ===========================================================================
 #define FLOG(arg...)
 #define FTRACE(a)
+
+#endif // _DEBUG
 
 #endif // NSMLDSSYNC__DEBUG_H
 

@@ -40,8 +40,8 @@
 #include <calenmulticalutil.h>
 #include <CalenInterimUtils2.h>
 
+_LIT(KDrive ,"C:");
 _LIT(KCharUnderscore, "_");
-_LIT( KNSmlAgendaFileNameForDefaultDB, "c:calendar" );
 
 /*******************************************************************************
  * class TAspProviderItem
@@ -1241,7 +1241,7 @@ TInt CAspContentList::CreateTaskL(TAspProviderItem& aDataProvider)
 	if (aDataProvider.iDataProviderId == KUidNSmlAdapterCalendar.iUid )
         {
         TBuf<128> calLocalDb ;
-        CreateCalLocalDatabaseL(calLocalDb);        
+        CreateCalLocalDatabaseL(calLocalDb);
         task.CreateL(iProfile->Profile(), aDataProvider.iDataProviderId, 
                 KNullDesC, calLocalDb);
         }
@@ -1316,7 +1316,8 @@ void CAspContentList::CreateTaskL(TInt aDataProviderId,
 				if (err != KErrNone)
 					{
 					CreateCalLocalDatabaseL(calLocalDb);
-					}								
+					}				
+                
                 task.CreateL(iProfile->Profile(), aDataProviderId, 
                                               aRemoteDatabase, calLocalDb);
                 }
@@ -1336,7 +1337,8 @@ void CAspContentList::CreateTaskL(TInt aDataProviderId,
 		    if (err != KErrNone)
 		        {
 		        CreateCalLocalDatabaseL(calLocalDb);
-		        }		    
+		        }
+		    
 		    task.CreateL(iProfile->Profile(), aDataProviderId, 
 		                                  aRemoteDatabase, calLocalDb);
 		    }
@@ -1387,7 +1389,8 @@ void CAspContentList::CreateTask(TInt aDataProviderId,
 //
 void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
     {
-                
+            
+    aCalName.Copy(KDrive);
     
     TBuf<KBufSize> buffer;
     iProfile->GetName(buffer);
@@ -1506,8 +1509,8 @@ void CAspContentList::CreateCalLocalDatabaseL(TDes& aCalName)
     // Create the CalFile
     HBufC* calfilename = CCalenMultiCalUtil::GetNextAvailableCalFileL();
     calSession->CreateCalFileL( calfilename->Des(), *calinfo );
-		
-    aCalName.Copy(KNSmlAgendaFileNameForDefaultDB);
+	
+	aCalName.Copy( calfilename->Des() );
     
     delete calfilename;
     

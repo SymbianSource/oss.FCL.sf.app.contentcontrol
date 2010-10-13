@@ -27,8 +27,8 @@
 #include <implementationproxy.h>
 #include <vtoken.h>
 #include <sysutil.h>
-#include <nsmlcontactsdatastoreformat_1_1_2.rsg>
-#include <nsmlcontactsdatastoreformat_1_2.rsg>
+#include <NSmlContactsDataStoreFormat_1_1_2.rsg>
+#include <NSmlContactsDataStoreFormat_1_2.rsg>
 #include <data_caging_path_literals.hrh>
 #include <SmlDataFormat.h>
 #include <SmlDataProvider.h>

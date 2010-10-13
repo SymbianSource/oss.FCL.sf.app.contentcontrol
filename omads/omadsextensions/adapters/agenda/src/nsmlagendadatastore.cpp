@@ -34,7 +34,7 @@
 #include <SmlDataFormat.h>
 #include <SmlDataSyncDefs.h>
 #include <data_caging_path_literals.hrh>
-#include <nsmlagendadatastore_1_1_2.rsg>
+#include <NSmlAgendaDataStore_1_1_2.rsg>
 #include <e32property.h>
 #include <DataSyncInternalPSKeys.h>
 #include <CalenImporter.h>
@@ -217,8 +217,6 @@ CNSmlAgendaDataStore::~CNSmlAgendaDataStore()
        iCommittedUidArr->Reset();
        delete iCommittedUidArr;
        }
-    
-     delete iAgendaAdapterLog;
 	FLOG(_L("CNSmlAgendaDataStore::~CNSmlAgendaDataStore(): END"));
 	}
 
@@ -257,7 +255,38 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
 		{
 		FLOG(_L("CNSmlAgendaDataStore::DoOpenL: Calling the OpenStoreL: '%S'"), &aStoreName);
 		TRAP( err, OpenStoreL() );
-		}    
+		}
+    else 
+    	{
+    	// Provided profile is created from the DS Application
+    	FLOG(_L("CNSmlAgendaDataStore::DoOpenL: storename: '%S'"), &aStoreName);    	
+    	if ( iOpenedStoreName )
+            {
+            delete iOpenedStoreName;
+            iOpenedStoreName = NULL;
+            }
+        iOpenedStoreName = aStoreName.AllocL();  
+        
+        CCalSession* calsession = CCalSession::NewL();
+        CleanupStack::PushL(calsession);
+        TRAP( err, calsession->OpenL( aStoreName ) );
+        if ( err )
+            {
+            FLOG(_L("CNSmlAgendaDataStore::DoOpenL: Cannot open the session: '%d'"), err); 
+            CleanupStack::PopAndDestroy( calsession ); 
+            User::RequestComplete( iCallerStatus, err );
+            return;
+            }
+            
+        // Disable notifications
+        TRAP_IGNORE( calsession->DisablePubSubNotificationsL() );
+        TRAP_IGNORE( calsession->DisableChangeBroadcast() );    
+        // Get ID of database
+        calsession->FileIdL( iOpenedStoreId );
+        
+        // Close the session
+        CleanupStack::PopAndDestroy( calsession ); 
+    	}
 		
 	if ( err )
 	    {
@@ -274,11 +303,6 @@ void CNSmlAgendaDataStore::DoOpenL( const TDesC& aStoreName,
 	
 	iChangeFinder = CNSmlChangeFinder::NewL( aContext, iKey, iHasHistory,
 	                                         KNSmlAgendaAdapterImplUid );
-	if (iAgendaAdapterLog)
-	    {
-	    delete iAgendaAdapterLog;
-	    iAgendaAdapterLog = NULL;
-	    }
 	iAgendaAdapterLog = CNSmlAgendaAdapterLog::NewL( aContext );
 	iState = ENSmlOpenAndWaiting;
     User::RequestComplete( iCallerStatus, err );

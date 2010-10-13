@@ -2446,15 +2446,6 @@ HBufC* TAspSyncError::GetSmlErrorTextL(TInt aErrorCode, TInt /*aTransport*/)
 	   	    id = R_ASP_LOG_ERR_SERVERERROR;  // "Error in sync server"
 		    break;
 	        
-		/* Implementation of CMCC PIM v3 begins*/
-		case SyncMLError::KErrServerFull:
-		    if ( FeatureManager::FeatureSupported(KFeatureIdFfTdCmccpimpromptserverfullwhenreceive420statuscodefromserver) )
-		        {
-                id = R_QTN_NSML_LOG_ERR_SERVERFULL;
-		        }
-		    break;
-		/* Implementation of CMCC PIM v3 ends*/
-		    
         default:
             id = R_ASP_LOG_ERR_SYSTEMERROR;  // "System Error"
 		    break;

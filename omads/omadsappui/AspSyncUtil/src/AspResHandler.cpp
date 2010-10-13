@@ -227,54 +227,6 @@ void CAspResHandler::GetBitmapFileName(TDes& aText)
 	TUtil::StrCopy(aText, parse.FullName());
 	}
 
-/* Implementation of CMCC PIM v3 begins*/
-// -----------------------------------------------------------------------------
-// CAspResHandler::ReadProgressTextLC
-//
-// -----------------------------------------------------------------------------
-//
-HBufC* CAspResHandler::ReadProgressTextLC(const TDesC& aContent, TInt aCurrent, TInt aFinal, TInt aPhase)
-    {
-    HBufC* hBuf = NULL;
-    
-    TBool isCalendar = EFalse;
-    HBufC* content = ReadLC(R_ASP_CONTENT_NAME_CALENDAR);
-    if ( !content->Compare(aContent) )
-        {
-        isCalendar = ETrue;
-        }
-    CleanupStack::PopAndDestroy(content); //content
-    
-    if (aPhase == CAspState::EPhaseSending)
-        {
-        if (isCalendar)
-            {
-            hBuf = ReadProgressTextLC(R_QTN_SML_SYNC_SENDING_XOFY_CAL, aCurrent, aFinal, aContent);
-            }
-        else
-            {
-            hBuf = ReadProgressTextLC(R_QTN_SML_SYNC_SENDING_XOFY, aCurrent, aFinal, aContent);
-            }
-        }
-    else if (aPhase == CAspState::EPhaseReceiving)
-        {
-        if (isCalendar)
-            {
-            hBuf = ReadProgressTextLC(R_QTN_SML_SYNC_RECEIVING_XOFY_CAL, aCurrent, aFinal, aContent);
-            }
-        else
-            {
-            hBuf = ReadProgressTextLC(R_QTN_SML_SYNC_RECEIVING_XOFY, aCurrent, aFinal, aContent);
-            }
-        }
-    else
-        {
-        hBuf = HBufC::NewLC(0);  // empty string
-        }
-
-    return hBuf;
-    }
-/* Implementation of CMCC PIM v3 ends*/
 
 // -----------------------------------------------------------------------------
 // CAspResHandler::ReadProgressTextL
@@ -336,61 +288,6 @@ HBufC* CAspResHandler::ReadProgressTextLC(TInt aResourceId, const TDesC& aConten
     return hBuf;
 	}
 
-/* Implementation of CMCC PIM v3 begins*/
-// -----------------------------------------------------------------------------
-// CAspResHandler::ReadProgressTextL
-//
-// Function constructs progress dialog text that is shown with progress bar.
-// Text format is one of the following:
-// "Sending %0N of %1N %U"
-// "Receiving %0U: %0N"
-// -----------------------------------------------------------------------------
-//
-HBufC* CAspResHandler::ReadProgressTextLC(TInt aResourceId, TInt aCurrent, TInt aFinal, const TDesC& aContent)
-    {
-    
-    if (aResourceId != iProgressTextFormatId)
-        {
-        delete iProgressTextFormat;
-        iProgressTextFormat = NULL;
-        iProgressTextFormat = StringLoader::LoadL(aResourceId, iEikEnv);
-        iProgressTextFormatId = aResourceId;
-        }
-    
-    TInt len = iProgressTextFormat->Length() + aContent.Length();// + 8;
-    
-    HBufC* hBuf = HBufC::NewLC(len);
-    TPtr ptr = hBuf->Des();
-
-    HBufC* temp = HBufC::NewLC(len);
-    TPtr tempPtr = temp->Des();
-    
-    if (iProgressTextFormatId == R_QTN_SML_SYNC_RECEIVING_XOFY || iProgressTextFormatId == R_QTN_SML_SYNC_RECEIVING_XOFY_CAL)
-        {
-        // replace %0N with current item
-        StringLoader::Format(tempPtr, iProgressTextFormat->Des(), 0, aCurrent);
-        }
-    else
-        {
-        // replace %0N with current item
-        StringLoader::Format(ptr, iProgressTextFormat->Des(), 0, aCurrent);
-        // replace %1N with total items
-        StringLoader::Format(tempPtr, ptr, 1, aFinal);
-        }
-    if (iProgressTextFormatId == R_QTN_SML_SYNC_RECEIVING_XOFY_CAL || iProgressTextFormatId == R_QTN_SML_SYNC_SENDING_XOFY_CAL)
-        {
-        ptr.Copy(tempPtr);
-        }
-    else
-        {
-        // replace  %0U with content name (eg "Contacts")
-        StringLoader::Format(ptr, tempPtr, 0, aContent);
-        }
-    CleanupStack::PopAndDestroy(temp); //temp
-    
-    return hBuf;
-    }
-/* Implementation of CMCC PIM v3 ends*/
 
 // -----------------------------------------------------------------------------
 // CAspResHandler::ReadProfileInfoTextLC

@@ -231,13 +231,7 @@ RESOURCE TBUF r_syncstatus_canc		    	    { buf = qtn_sml_sync_cancel; }
 //RESOURCE TBUF r_qtn_nsml_receving			    { buf = qtn_sml_sync_recv; }
 RESOURCE TBUF r_qtn_sml_sync_receiving		    { buf = qtn_sml_sync_receiving; }
 RESOURCE TBUF r_qtn_sml_sync_sending		    { buf = qtn_sml_sync_sending; }
-/* Implementation of CMCC PIM v3 begins*/ 
-RESOURCE TBUF r_qtn_sml_sync_receiving_xofy     { buf = qtn_sml_sync_receiving_xofy_tdscdma; }
-RESOURCE TBUF r_qtn_sml_sync_sending_xofy       { buf = qtn_sml_sync_sending_xofy_tdscdma; }
-RESOURCE TBUF r_qtn_sml_sync_receiving_xofy_cal { buf = qtn_sml_sync_receiving_xofy_cal_tdscdma; } 
-RESOURCE TBUF r_qtn_sml_sync_sending_xofy_cal   { buf = qtn_sml_sync_sending_xofy_cal_tdscdma; }
-RESOURCE TBUF r_qtn_nsml_log_err_serverfull     { buf = qtn_nsml_log_err_serverfull_tdscdma; }
-/* Implementation of CMCC PIM v3 ends*/
+
 
 // log dialog strings
 RESOURCE TBUF r_sml_log_synclog_title  		{ buf = qtn_sml_log_synclog_title; }
