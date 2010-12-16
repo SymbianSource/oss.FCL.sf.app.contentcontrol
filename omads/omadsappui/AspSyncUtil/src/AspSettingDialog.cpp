@@ -1372,18 +1372,18 @@ void CAspSettingDialog::SetCurrentProfile(TInt aProfileId)
 //
 void CAspSettingDialog::SetCurrentProfileL()
 	{
-
-#ifdef RD_DSUI_TIMEDSYNC //display profiles in alphabetic order.
-	TInt index = 0;
-	if (!iProfileList->Count())
-		{
-		index = KErrNotFound;
-		}
-
-#else
+ /*
+    Current profile should be last synced profile or if no profile synced yet then the default profile should be the 
+    
+    current profile .If both last synced and default profile not found,then current profile should be the pcsuite profile.
+    
+    So here we are removing the earlier implementation that was sorting the profilList array alphabetically and 
+    
+    setting the first profile from array as the current profile.
+   
+*/
 	TInt index = iProfileList->FindLastSyncedProfileIndexL();
-
-#endif
+	
 	if (index != KErrNotFound)
 		{
 		TAspProfileItem& item = iProfileList->Item(index);
